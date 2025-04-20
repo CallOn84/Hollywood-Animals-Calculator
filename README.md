@@ -49,6 +49,7 @@ cd hollywood-animal-calculator
 python --version
 ```
 If not installed, download from python.org
+
 3. Verify Tkinter is installed (usually included with Python):
 ```
 python -c "import tkinter; tkinter._test()"
