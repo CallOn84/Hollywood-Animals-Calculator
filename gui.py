@@ -584,6 +584,10 @@ class StoryElementCalculatorApp:
         compat_search_frame = ttk.Frame(self.compat_left_frame)
         compat_search_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
         
+        # Configure columns to distribute space better
+        compat_search_frame.columnconfigure(1, weight=1)  # Make search entry expandable
+        
+        # Top row - Search and clear search
         ttk.Label(compat_search_frame, text="Search Story Elements:").grid(row=0, column=0, sticky="w", padx=5, pady=2)
         
         self.compat_search_var = tk.StringVar()
@@ -594,17 +598,18 @@ class StoryElementCalculatorApp:
         compat_search_clear_button = ttk.Button(compat_search_frame, text="Clear Search", command=self.clear_compatibility_search)
         compat_search_clear_button.grid(row=0, column=2, sticky="e", padx=5, pady=2)
         
+        # Bottom row - Additional buttons
         # Add clear selections button
         compat_clear_selections_button = ttk.Button(compat_search_frame, text="Clear Selections", command=self.clear_compatibility_selections)
-        compat_clear_selections_button.grid(row=0, column=3, sticky="e", padx=5, pady=2)
+        compat_clear_selections_button.grid(row=1, column=0, sticky="w", padx=5, pady=2)
         
-        # Add view matrix button
+        # Add view matrix button in a more visible location
         view_matrix_button = ttk.Button(
             compat_search_frame, 
             text="View Matrix", 
             command=self.show_tag_compatibility_matrix
         )
-        view_matrix_button.grid(row=0, column=4, sticky="e", padx=5, pady=2)
+        view_matrix_button.grid(row=1, column=1, sticky="w", padx=5, pady=2)
         
         # Create notebook for compatibility tag categories inside Tag Selection tab
         self.compat_tags_frame = ttk.Frame(self.compat_selection_tab)
