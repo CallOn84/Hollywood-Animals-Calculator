@@ -1,0 +1,56 @@
+{
+  "TM": {
+    "baseWeight": 0.15,
+    "artWeight": 0.05,
+    "commercialWeight": 0.2,
+    "baseDefaultAudience": 0.1,
+    "artDefaultAudience": 0.05,
+    "comDefaultAudience": 0.05,
+    "id": "TM"
+  },
+  "TF": {
+    "baseWeight": 0.15,
+    "artWeight": 0.05,
+    "commercialWeight": 0.2,
+    "baseDefaultAudience": 0.1,
+    "artDefaultAudience": 0.05,
+    "comDefaultAudience": 0.05,
+    "id": "TF"
+  },
+  "YM": {
+    "baseWeight": 0.3,
+    "artWeight": 0.4,
+    "commercialWeight": 0.25,
+    "baseDefaultAudience": 0.1,
+    "artDefaultAudience": 0.05,
+    "comDefaultAudience": 0.05,
+    "id": "YM"
+  },
+  "YF": {
+    "baseWeight": 0.3,
+    "artWeight": 0.3,
+    "commercialWeight": 0.25,
+    "baseDefaultAudience": 0.1,
+    "artDefaultAudience": 0.05,
+    "comDefaultAudience": 0.05,
+    "id": "YF"
+  },
+  "AM": {
+    "baseWeight": 0.05,
+    "artWeight": 0.1,
+    "commercialWeight": 0.1,
+    "baseDefaultAudience": 0.1,
+    "artDefaultAudience": 0.05,
+    "comDefaultAudience": 0.05,
+    "id": "AM"
+  },
+  "AF": {
+    "baseWeight": 0.05,
+    "artWeight": 0.1,
+    "commercialWeight": 0.1,
+    "baseDefaultAudience": 0.1,
+    "artDefaultAudience": 0.05,
+    "comDefaultAudience": 0.05,
+    "id": "AF"
+  }
+}
