@@ -174,6 +174,11 @@ class StoryElementCalculatorApp:
         self.load_compatibility_data()
         self.load_audience_groups()
         
+        # Translation data
+        self.load_language_ids()
+        self.current_language = "ENG"
+        self.load_translation_data(self.current_language)
+        
         # Create frames
         self.create_frames()
         
@@ -407,6 +412,24 @@ class StoryElementCalculatorApp:
         # Create main tab control
         self.main_notebook = ttk.Notebook(self.root)
         self.main_notebook.pack(fill="both", expand=True)
+        
+        # Create language control
+        lang_frame = ttk.Frame(self.root)
+        lang_frame.pack(side="top", anchor="ne", padx=10, pady=5)
+
+        ttk.Label(lang_frame, text="Language:").pack(side="left")
+
+        self.language_var = tk.StringVar(value=self.current_language)
+        lang_selector = ttk.Combobox(
+            lang_frame,
+            textvariable=self.language_var,
+            values=list(self.language_ids.keys()),
+            state="readonly",
+            width=5
+        )
+        lang_selector.pack(side="left")
+        lang_selector.bind("<<ComboboxSelected>>",
+                        lambda e: self.change_language(self.language_var.get()))
         
         # Create tab for Best Advertiser
         self.advertiser_tab = ttk.Frame(self.main_notebook)
@@ -765,7 +788,7 @@ class StoryElementCalculatorApp:
             standardized_category = self.standardize_category(tag_category)
             
             if standardized_category == category:
-                display_name = self.data[tag_id].get("displayName", self.beautify_tag_name(tag_id))
+                display_name = self.data[tag_id].get("displayName", self.translate_tag_name(tag_id))
                 tags.append((tag_id, display_name))
         
         # Add tags from compatibility data if they don't exist in audience data
@@ -775,7 +798,7 @@ class StoryElementCalculatorApp:
                 standardized_category = self.standardize_category(tag_category)
                 
                 if standardized_category == category:
-                    display_name = self.beautify_tag_name(tag_id)
+                    display_name = self.translate_tag_name(tag_id)
                     tags.append((tag_id, display_name))
         
         # Sort by display name
@@ -832,6 +855,13 @@ class StoryElementCalculatorApp:
         
         # Convert RGB to hex
         return f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
+    
+    @staticmethod
+    def strip_markup(text: str) -> str:
+        """Removes any <…> (HTML/Unity-rich-text) constructs and casts the result to a regular string"""
+        if not isinstance(text, str):
+            return text
+        return re.sub(r"<[^>]*>", "", text).strip()
     
     def extract_category_from_tag_id(self, tag_id):
         """Extract the category from a story elements ID based on prefix or special story elements lists"""
@@ -996,6 +1026,33 @@ class StoryElementCalculatorApp:
         # Join with spaces
         return ' '.join(formatted_parts)
     
+    def translate_category_name(self, category: str) -> str:
+        """Returns translated name of the category"""
+        std = self.standardize_category(category)
+        
+        if std in self.map:
+            return self.strip_markup(self.map[std])
+        
+        if std == "THEME_AND_EVENTS":
+            return self.map.get("Theme", "Themes & Events")
+        
+        return self.beautify_category_name(std)
+    
+    def translate_tag_name(self, tag_id: str) -> str:
+        """Returns translated name of the tag"""
+        if tag_id in self.data and "displayName" in self.data[tag_id]:
+            return self.data[tag_id]["displayName"]
+        
+        if tag_id in self.map:
+            return self.strip_markup(self.map[tag_id])
+        
+        if tag_id.endswith("_DESCRIPTION"):
+            base = tag_id[:-12]
+            if base in self.map:
+                return self.map[base]
+            
+        return self.beautify_tag_name(tag_id)
+    
     def create_scrollable_frame(self, parent):
         container = ttk.Frame(parent)
         container.pack(fill="both", expand=True)
@@ -1050,10 +1107,10 @@ class StoryElementCalculatorApp:
             # Extract category from tag ID for search
             category = self.extract_category_from_tag_id(tag_id)
             standardized_category = self.standardize_category(category)
-            beautified_category = self.beautify_category_name(category)
+            beautified_category = self.translate_category_name(category)
             
             # Get the original tag name for the tag
-            original_tag_name = self.beautify_tag_name(tag_id)
+            original_tag_name = self.translate_tag_name(tag_id)
             
             # Increment total tags counter for this category
             if standardized_category in total_tags_per_tab:
@@ -1122,10 +1179,10 @@ class StoryElementCalculatorApp:
             # Extract category from tag ID for search
             category = self.extract_category_from_tag_id(tag_id)
             standardized_category = self.standardize_category(category)
-            beautified_category = self.beautify_category_name(category)
+            beautified_category = self.translate_category_name(category)
             
             # Get the original tag name for the tag
-            original_tag_name = self.beautify_tag_name(tag_id)
+            original_tag_name = self.translate_tag_name(tag_id)
             
             # Increment total tags counter for this category
             if standardized_category in total_tags_per_tab:
@@ -1258,7 +1315,7 @@ class StoryElementCalculatorApp:
             
             # Create a tab for this category with beautified name
             tab = ttk.Frame(self.category_notebook)
-            beautified_cat_name = self.beautify_category_name(category)
+            beautified_cat_name = self.translate_category_name(category)
             self.category_notebook.add(tab, text=beautified_cat_name)
             self.category_tabs[category] = tab
             
@@ -1282,7 +1339,7 @@ class StoryElementCalculatorApp:
             
             # Create checkbuttons for each tag
             for i, (tag_id, tag_data) in enumerate(sorted_tags):
-                display_name = tag_data.get("displayName", self.beautify_tag_name(tag_id))
+                display_name = tag_data.get("displayName", self.translate_tag_name(tag_id))
                 
                 # Calculate row and column
                 row = i % items_per_column
@@ -1347,7 +1404,7 @@ class StoryElementCalculatorApp:
             
             # Create a tab for this category with beautified name
             tab = ttk.Frame(self.compat_category_notebook)
-            beautified_cat_name = self.beautify_category_name(category)
+            beautified_cat_name = self.translate_category_name(category)
             self.compat_category_notebook.add(tab, text=beautified_cat_name)
             self.compat_category_tabs[category] = tab
             
@@ -1371,7 +1428,7 @@ class StoryElementCalculatorApp:
             
             # Create checkbuttons for each tag
             for i, (tag_id, tag_data) in enumerate(sorted_tags):
-                display_name = tag_data.get("displayName", self.beautify_tag_name(tag_id)) if tag_data else self.beautify_tag_name(tag_id)
+                display_name = tag_data.get("displayName", self.translate_tag_name(tag_id)) if tag_data else self.translate_tag_name(tag_id)
                 
                 # Calculate row and column
                 row = i % items_per_column
@@ -1504,6 +1561,69 @@ class StoryElementCalculatorApp:
         except Exception as e:
             messagebox.showerror("Error", f"Error loading file: {str(e)}")
     
+    def load_translation_data(self, lang_code: str):
+        """
+        Load NON_EVENT.json translation for lang_code (e.g. 'ENG')
+        File is searched for at ./Localization/{lang_code}/NON_EVENT.json
+        Result is placed in self.map
+        """
+        self.map = {}
+        file_path = os.path.join("Localization", lang_code, "NON_EVENT.json")
+        
+        with open(file_path, "r", encoding="utf-8") as fp:
+            loc = json.load(fp)
+            
+        id_map      = loc.get("IdMap", {})
+        loc_strings = loc.get("locStrings", [])
+        
+        for key, idx in id_map.items():
+            if 0 <= idx < len(loc_strings):
+                self.map[key] = loc_strings[idx]
+    
+    def load_language_ids(self):
+        """Read ./Localization/LanguageIds.json and generate a dictionary self.language_ids"""
+        path = os.path.join("Localization", "LanguageIds.json")
+        
+        try:
+            with open(path, "r", encoding="utf-8") as fp:
+                self.language_ids = json.load(fp)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            self.language_ids = {"ENG": "en-US"}
+    
+    def change_language(self, new_lang: str):
+        """Change the interface language"""
+        if new_lang == self.current_language:
+            return
+
+        self.current_language = new_lang
+        self.load_translation_data(new_lang)
+
+        for nb in (self.category_notebook, self.compat_category_notebook):
+            for tab_id in nb.tabs():
+                nb.forget(tab_id)
+
+        self.category_tabs.clear()
+        self.category_frames.clear()
+        self.compat_category_tabs.clear()
+        self.compat_category_frames.clear()
+        self.tag_vars.clear()
+        self.tag_checkbuttons.clear()
+        self.compat_tag_vars.clear()
+        self.compat_tag_checkbuttons.clear()
+        self.compat_tag_labels.clear()
+
+        self.build_tag_widgets()
+        self.build_compatibility_tag_widgets()
+
+        self.selected_tags_text.config(state=tk.NORMAL)
+        self.selected_tags_text.delete(1.0, tk.END)
+        self.selected_tags_text.config(state=tk.DISABLED)
+
+        self.compat_selected_tags_text.config(state=tk.NORMAL)
+        self.compat_selected_tags_text.delete(1.0, tk.END)
+        self.compat_selected_tags_text.insert(tk.END, "No story elements selected.")
+        self.compat_selected_tags_text.config(state=tk.DISABLED)
+
     def update_compatibility_colors(self, changed_tag_id=None):
         """Update color indicators based on current tag selections and calculate average score"""
         # Get currently selected tags
@@ -1632,7 +1752,7 @@ class StoryElementCalculatorApp:
         tags_by_category = {}
         for tag_id in selected_tags:
             category = self.extract_category_from_tag_id(tag_id)
-            beautified_category = self.beautify_category_name(category)
+            beautified_category = self.translate_category_name(category)
             
             if beautified_category not in tags_by_category:
                 tags_by_category[beautified_category] = []
@@ -1641,7 +1761,7 @@ class StoryElementCalculatorApp:
             if tag_id in self.data and "displayName" in self.data[tag_id]:
                 display_name = self.data[tag_id]["displayName"]
             else:
-                display_name = self.beautify_tag_name(tag_id)
+                display_name = self.translate_tag_name(tag_id)
                 
             tags_by_category[beautified_category].append(display_name)
         
@@ -1677,7 +1797,7 @@ class StoryElementCalculatorApp:
             if category in mandatory:
                 mandatory[category] = True
         
-        missing = [self.beautify_category_name(key) for key, present in mandatory.items() if not present]
+        missing = [self.translate_category_name(key) for key, present in mandatory.items() if not present]
         return missing
     
     def calculate_advertiser_bonuses(self, audience_weights):
@@ -1799,9 +1919,9 @@ class StoryElementCalculatorApp:
         for tag_id in selected_tags:
             if tag_id in self.data:
                 valid_tags[tag_id] = self.data[tag_id]["weights"]
-                display_name = self.data[tag_id].get("displayName", self.beautify_tag_name(tag_id))
+                display_name = self.data[tag_id].get("displayName", self.translate_tag_name(tag_id))
                 category = self.extract_category_from_tag_id(tag_id)
-                beautified_category = self.beautify_category_name(category)
+                beautified_category = self.translate_category_name(category)
                 self.selected_tags_text.insert(tk.END, f"{beautified_category}: {display_name}\n")
         
         if not valid_tags:
@@ -1941,7 +2061,7 @@ class StoryElementCalculatorApp:
             if tag_id in self.data and "displayName" in self.data[tag_id]:
                 display_names[tag_id] = self.data[tag_id]["displayName"]
             else:
-                display_names[tag_id] = self.beautify_tag_name(tag_id)
+                display_names[tag_id] = self.translate_tag_name(tag_id)
         
         # Headers for the first column
         ttk.Label(matrix_frame, text="Story Element Name", font=("Arial", 10, "bold")).grid(row=0, column=0, sticky="w", padx=5, pady=5)
