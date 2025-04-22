@@ -210,9 +210,9 @@ class DataManager:
                 print("Using minimal example compatibility data")
                 self.compatibility_data = {
                     "PROTAGONIST_COWBOY": {
-                        "WILD_WEST": 5.0,
-                        "MODERN_AMERICAN_CITY": 1.0,
-                        "ACTION": 5.0
+                        "WILD_WEST": "5.0",
+                        "MODERN_AMERICAN_CITY": "1.0",
+                        "ACTION": "5.0"
                     }
                 }
 
@@ -245,57 +245,57 @@ class DataManager:
             # Create default audience groups if file not found
             self.audience_groups = {
                 "TM": {
-                    "baseWeight": 0.15,
-                    "artWeight": 0.05,
-                    "commercialWeight": 0.2,
-                    "baseDefaultAudience": 0.1,
-                    "artDefaultAudience": 0.05,
-                    "comDefaultAudience": 0.05,
+                    "baseWeight": "0.15",
+                    "artWeight": "0.05",
+                    "commercialWeight": "0.2",
+                    "baseDefaultAudience": "0.1",
+                    "artDefaultAudience": "0.05",
+                    "comDefaultAudience": "0.05",
                     "id": "TM"
                 },
                 "TF": {
-                    "baseWeight": 0.15,
-                    "artWeight": 0.05,
-                    "commercialWeight": 0.2,
-                    "baseDefaultAudience": 0.1,
-                    "artDefaultAudience": 0.05,
-                    "comDefaultAudience": 0.05,
+                    "baseWeight": "0.15",
+                    "artWeight": "0.05",
+                    "commercialWeight": "0.2",
+                    "baseDefaultAudience": "0.1",
+                    "artDefaultAudience": "0.05",
+                    "comDefaultAudience": "0.05",
                     "id": "TF"
                 },
                 "YM": {
-                    "baseWeight": 0.3,
-                    "artWeight": 0.4,
-                    "commercialWeight": 0.25,
-                    "baseDefaultAudience": 0.1,
-                    "artDefaultAudience": 0.05,
-                    "comDefaultAudience": 0.05,
+                    "baseWeight": "0.3",
+                    "artWeight": "0.4",
+                    "commercialWeight": "0.25",
+                    "baseDefaultAudience": "0.1",
+                    "artDefaultAudience": "0.05",
+                    "comDefaultAudience": "0.05",
                     "id": "YM"
                 },
                 "YF": {
-                    "baseWeight": 0.3,
-                    "artWeight": 0.3,
-                    "commercialWeight": 0.25,
-                    "baseDefaultAudience": 0.1,
-                    "artDefaultAudience": 0.05,
-                    "comDefaultAudience": 0.05,
+                    "baseWeight": "0.3",
+                    "artWeight": "0.3",
+                    "commercialWeight": "0.25",
+                    "baseDefaultAudience": "0.1",
+                    "artDefaultAudience": "0.05",
+                    "comDefaultAudience": "0.05",
                     "id": "YF"
                 },
                 "AM": {
-                    "baseWeight": 0.05,
-                    "artWeight": 0.1,
-                    "commercialWeight": 0.1,
-                    "baseDefaultAudience": 0.1,
-                    "artDefaultAudience": 0.05,
-                    "comDefaultAudience": 0.05,
+                    "baseWeight": "0.05",
+                    "artWeight": "0.1",
+                    "commercialWeight": "0.1",
+                    "baseDefaultAudience": "0.1",
+                    "artDefaultAudience": "0.05",
+                    "comDefaultAudience": "0.05",
                     "id": "AM"
                 },
                 "AF": {
-                    "baseWeight": 0.05,
-                    "artWeight": 0.1,
-                    "commercialWeight": 0.1,
-                    "baseDefaultAudience": 0.1,
-                    "artDefaultAudience": 0.05,
-                    "comDefaultAudience": 0.05,
+                    "baseWeight": "0.05",
+                    "artWeight": "0.1",
+                    "commercialWeight": "0.1",
+                    "baseDefaultAudience": "0.1",
+                    "artDefaultAudience": "0.05",
+                    "comDefaultAudience": "0.05",
                     "id": "AF"
                 }
             }
@@ -770,11 +770,11 @@ class CalculationEngine:
                 group_data = self.data_manager.audience_groups[audience_id]
                 
                 # Calculate artistic score contribution
-                art_weight = group_data.get("artWeight", 0)
+                art_weight = float(group_data.get("artWeight", "0"))
                 artistic_score += weight * art_weight * 5  # Scale to 1-5 range
                 
                 # Calculate commercial score contribution
-                com_weight = group_data.get("commercialWeight", 0)
+                com_weight = float(group_data.get("commercialWeight", "0"))
                 commercial_score += weight * com_weight * 5  # Scale to 1-5 range
         
         # Ensure scores are in 1-5 range
@@ -1273,7 +1273,9 @@ class AdvertiserTab:
         
         for weights in valid_tags.values():
             for aud in audience_categories:
-                overall_averages[aud] += weights.get(aud, 0)
+                # Convert string weights to float
+                weight_value = float(weights.get(aud, "0"))
+                overall_averages[aud] += weight_value
         
         for aud in overall_averages:
             overall_averages[aud] /= tag_count
@@ -1862,9 +1864,9 @@ class CompatibilityTab:
                 
                 # Look up compatibility in both directions
                 if tag1 in self.data_manager.compatibility_data and tag2 in self.data_manager.compatibility_data[tag1]:
-                    score = self.data_manager.compatibility_data[tag1][tag2]
+                    score = float(self.data_manager.compatibility_data[tag1][tag2])
                 elif tag2 in self.data_manager.compatibility_data and tag1 in self.data_manager.compatibility_data[tag2]:
-                    score = self.data_manager.compatibility_data[tag2][tag1]
+                    score = float(self.data_manager.compatibility_data[tag2][tag1])
                 
                 # Only add valid scores
                 if score is not None:
@@ -1893,9 +1895,9 @@ class CompatibilityTab:
                 
                 # Look up compatibility in both directions
                 if selected_tag in self.data_manager.compatibility_data and tag_id in self.data_manager.compatibility_data[selected_tag]:
-                    score = self.data_manager.compatibility_data[selected_tag][tag_id]
+                    score = float(self.data_manager.compatibility_data[selected_tag][tag_id])
                 elif tag_id in self.data_manager.compatibility_data and selected_tag in self.data_manager.compatibility_data[tag_id]:
-                    score = self.data_manager.compatibility_data[tag_id][selected_tag]
+                    score = float(self.data_manager.compatibility_data[tag_id][selected_tag])
                 
                 # Only add valid scores
                 if score is not None:
@@ -2067,9 +2069,9 @@ class CompatibilityTab:
                 
                 # Look up compatibility in both directions
                 if row_tag_id in self.data_manager.compatibility_data and col_tag_id in self.data_manager.compatibility_data[row_tag_id]:
-                    score = self.data_manager.compatibility_data[row_tag_id][col_tag_id]
+                    score = float(self.data_manager.compatibility_data[row_tag_id][col_tag_id])
                 elif col_tag_id in self.data_manager.compatibility_data and row_tag_id in self.data_manager.compatibility_data[col_tag_id]:
-                    score = self.data_manager.compatibility_data[col_tag_id][row_tag_id]
+                    score = float(self.data_manager.compatibility_data[col_tag_id][row_tag_id])
                 
                 if score is not None:
                     # Create a colored frame to show the score
