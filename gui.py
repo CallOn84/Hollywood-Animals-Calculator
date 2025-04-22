@@ -2128,19 +2128,10 @@ class TranslationManager:
         self.check_system_lang()
         self.load_translation(self.current_lang)
     
-    def bind_on_change(self, cb: Callable[[str], None]) -> None:
-        """Redraw tabs after language change"""
-        self._callback = cb
-    
     def bind_tabs(self, advertiser_tab=None, compatibility_tab=None):
         """ Bind the tab controllers with translation manager"""
         self._advertiser_tab = advertiser_tab
         self._compatibility_tab = compatibility_tab
-    
-    def on_language_change(self, lang_code: str):
-        self.translation_manager.language_selector.set(lang_code)
-        self.advertiser_tab.rebuild_tag_widgets()
-        self.compatibility_tab.rebuild_compatibility_tag_widgets()
     
     def change_language(self, lang: str) -> None:
         if lang == self.current_lang or lang not in self.language_ids:
@@ -2155,9 +2146,6 @@ class TranslationManager:
             self._advertiser_tab.rebuild_tag_widgets()
         if hasattr(self, "_compatibility_tab") and self._compatibility_tab:
             self._compatibility_tab.rebuild_compatibility_tag_widgets()
-
-        if self._callback:
-            self._callback(lang)
     
     def load_language_ids(self):
         """Read ./Localization/LanguageIds.json and generate a dictionary self.language_ids"""
@@ -2277,7 +2265,6 @@ class StoryElementCalculatorApp:
         
         # Initialize the language controller
         self.translation_manager = TranslationManager()
-        self.translation_manager.bind_on_change(self.translation_manager.on_language_change)
         
         # Initialize the data manager
         self.data_manager = DataManager(self.translation_manager)
