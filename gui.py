@@ -2,17 +2,24 @@ import json
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import os
+import sys
 import re
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Callable, Optional
+from pathlib import Path
 import colorsys
 from datetime import datetime
 from calendar import monthcalendar
 import operator
+import locale
+
 
 class DataManager:
     """Handles loading and managing data from JSON files"""
     
-    def __init__(self):
+    def __init__(self, path_manager, translation_manager):
+        self.path_manager = path_manager
+        self.translation_manager = translation_manager
+
         # Character fix mapping - map Cyrillic characters to Latin equivalents
         self.character_fix_map = {
             'С': 'C',  # Cyrillic 'С' to Latin 'C'
@@ -93,7 +100,8 @@ class DataManager:
         possible_paths = [
             "TagsAudienceWeights.json",                     # Same directory
             os.path.join(os.path.dirname(__file__), "TagsAudienceWeights.json"),
-            os.path.abspath("TagsAudienceWeights.json")     # Absolute path
+            os.path.abspath("TagsAudienceWeights.json"),     # Absolute path
+            self.path_manager.tags_audience_weights_path
         ]
         
         data_loaded = False
@@ -139,7 +147,8 @@ class DataManager:
         possible_paths = [
             "TagCompatibilityData.json",                     # Same directory
             os.path.join(os.path.dirname(__file__), "TagCompatibilityData.json"),
-            os.path.abspath("TagCompatibilityData.json")     # Absolute path
+            os.path.abspath("TagCompatibilityData.json"),     # Absolute path
+            self.path_manager.tag_compatibility_data_path
         ]
         
         self.compatibility_data = {}
@@ -222,7 +231,8 @@ class DataManager:
         possible_paths = [
             "AudienceGroups.json",                    # Same directory
             os.path.join(os.path.dirname(__file__), "AudienceGroups.json"),
-            os.path.abspath("AudienceGroups.json")    # Absolute path
+            os.path.abspath("AudienceGroups.json"),    # Absolute path
+            self.path_manager.audience_groups_path
         ]
         
         self.audience_groups = {}
@@ -306,7 +316,8 @@ class DataManager:
         possible_paths = [
             "Holidays.json",                     # Same directory
             os.path.join(os.path.dirname(__file__), "Holidays.json"),
-            os.path.abspath("Holidays.json")     # Absolute path
+            os.path.abspath("Holidays.json"),     # Absolute path
+            self.path_manager.holidays_path
         ]
         
         self.holidays = {}
@@ -396,7 +407,12 @@ class DataManager:
         """Convert category name to a more readable format with special case handling"""
         # Handle special case for combined Theme and Events category
         if category == "THEME_AND_EVENTS":
-            return "Themes & Events"
+            category = "THEMES_AND_EVENTS"
+        
+        # Check if category presented in the game localization file
+        translated_category = self.translation_manager.translate_category(category)
+        if translated_category is not None:
+            return translated_category
             
         # Handle special case for Supporting Character(s)
         if category in ["SUPPORTING_CHARACTER", "SUPPORTING_CHARACTERS", "SUPPORTINGCHARACTER"]:
@@ -464,6 +480,11 @@ class DataManager:
         if tag_id in self.data and "displayName" in self.data[tag_id]:
             return self.data[tag_id]["displayName"]
         
+        # Check if tag presented if the game localization file
+        translated_tag = self.translation_manager.translate_tag(tag_id)
+        if translated_tag is not None:
+            return translated_tag
+
         # Special case handling for WW2 and other acronyms that need to be preserved
         special_cases = {
             "WW2_EUROPE": "WW2 Europe",
@@ -890,10 +911,12 @@ class CalculationEngine:
 class AdvertiserTab:
     """Manages the Advertiser Compatibility tab"""
     
-    def __init__(self, parent, data_manager, calculation_engine):
+    def __init__(self, parent, data_manager, 
+                 calculation_engine, translation_manager):
         self.parent = parent
         self.data_manager = data_manager
         self.calculation_engine = calculation_engine
+        self.translation_manager = translation_manager
         
         # Create frames
         self.left_frame = ttk.Frame(parent, padding="10")
@@ -1414,9 +1437,10 @@ class AdvertiserTab:
 class CompatibilityTab:
     """Manages the Story Element Compatibility tab"""
     
-    def __init__(self, parent, data_manager):
+    def __init__(self, parent, data_manager, translation_manager):
         self.parent = parent
         self.data_manager = data_manager
+        self.translation_manager = translation_manager
         
         # Create frames
         self.left_frame = ttk.Frame(parent, padding="10")
@@ -2101,6 +2125,174 @@ class CompatibilityTab:
         close_button.pack(pady=10)
 
 
+class TranslationManager:
+    def __init__(self, path_manager):
+        self.localization_root = path_manager.localization_path
+        self.lang_map: Dict[str, str] = {}
+        self.current_lang = "ENG"
+        self.load_language_ids()
+        self.check_system_lang()
+        self.load_translation(self.current_lang)
+    
+    def bind_tabs(self, advertiser_tab=None, compatibility_tab=None):
+        """ Bind the tab controllers with translation manager"""
+        self._advertiser_tab = advertiser_tab
+        self._compatibility_tab = compatibility_tab
+    
+    def change_language(self, lang: str) -> None:
+        if lang == self.current_lang or lang not in self.language_ids:
+            return
+        self.load_translation(lang)
+        self.current_lang = lang
+
+        if hasattr(self, "language_selector"):
+            self.language_selector.set(lang)
+
+        if hasattr(self, "_advertiser_tab") and self._advertiser_tab:
+            self._advertiser_tab.rebuild_tag_widgets()
+        if hasattr(self, "_compatibility_tab") and self._compatibility_tab:
+            self._compatibility_tab.rebuild_compatibility_tag_widgets()
+    
+    def load_language_ids(self):
+        """Read ./Localization/LanguageIds.json and generate a dictionary self.language_ids"""
+        file_path = os.path.join(self.localization_root, "LanguageIds.json")
+        try:
+            print(f"Attempting to load language ids data from: {file_path}")
+            with open(file_path, "r", encoding="utf-8") as f:
+                self.language_ids = json.load(f)
+            print(f"Successfully loaded language ids data from {file_path}")
+            data_loaded = True
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error loading language ids data from {file_path}: {e}")  
+            self.language_ids = {"ENG": "en-US"}
+    
+    def load_translation(self, lang_code: str):
+        """
+        Load NON_EVENT.json translation for lang_code (e.g. 'ENG')
+        File is searched for at ./Localization/{lang_code}/NON_EVENT.json
+        Result is placed in self.lang_map
+        """
+        self.lang_map = {}
+        file_path = os.path.join(self.localization_root, lang_code, "NON_EVENT.json")
+
+        try:
+            print(f"Attempting to load translation data from: {file_path}")
+            with open(file_path, "r", encoding="utf-8") as f:
+                self.localization_file = json.load(f)
+            print(f"Successfully loaded translation data from {file_path}")
+            data_loaded = True
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error loading translation data from {file_path}: {e}")      
+            
+        id_map      = self.localization_file.get("IdMap", {})
+        loc_strings = self.localization_file.get("locStrings", [])
+        
+        for key, idx in id_map.items():
+            if 0 <= idx < len(loc_strings):
+                self.lang_map[key] = loc_strings[idx]
+    
+    def create_language_selector_widget(self, parent: tk.Widget) -> ttk.Frame:
+        """Create language selector widget, returns the finished frame"""
+        frame = ttk.Frame(parent)
+
+        ttk.Label(frame, text="Language:").pack(side="left")
+
+        self.language_selector = ttk.Combobox(
+            frame,
+            values=[k for k, v in self.language_ids.items()],
+            state="readonly",
+            width=5
+        )
+        self.language_selector.set(self.current_lang)
+        self.language_selector.pack(side="left")
+
+        self.language_selector.bind(
+            "<<ComboboxSelected>>",
+            lambda event: self.change_language(self.language_selector.get())
+        )
+
+        return frame
+    
+    def check_system_lang(self):
+        """Automatic detection of system language"""
+        system_lang, _ = locale.getlocale()
+        system_lang = system_lang.split('_')[0] if system_lang else "en"
+        
+        matched_lang = None
+        for lang_code, lang in self.language_ids.items():
+            if system_lang == lang.split('-')[0]:
+                matched_lang = lang_code
+                break
+        
+        self.current_lang = matched_lang if matched_lang else "ENG"
+    
+    def strip_markup(self, text: str) -> str:
+        """Removes any <…> (HTML/Unity-rich-text) constructs and casts the result to a regular string"""
+        if not isinstance(text, str):
+            return text
+        return re.sub(r"<[^>]*>", "", text).strip()
+    
+    def translate_category(self, category: str) -> str:
+        """Returns translated name of the category"""
+        if category in self.lang_map:
+            return self.strip_markup(self.lang_map[category])
+    
+    def translate_tag(self, tag_id: str) -> str:
+        """Returns translated name of the tag"""
+        if tag_id in self.lang_map:
+            return self.strip_markup(self.lang_map[tag_id])
+        
+        if tag_id.endswith("_DESCRIPTION"):
+            base = tag_id[:-12]
+            if base in self.lang_map:
+                return self.lang_map[base]
+
+
+class PathManager:
+    def __init__(self):
+        self.check_app()
+        self.choose_app_dir()
+        self.check_app_mode()
+        self.init_files_path()
+    
+    def check_app(self):
+        """Determine if application is a script file or frozen exe"""
+        if getattr(sys, 'frozen', False):
+            self.app_path = Path(os.path.dirname(sys.executable))
+        elif __file__:
+            self.app_path = Path(os.path.dirname(__file__))
+        
+    def choose_app_dir(self):
+        """Choose directory of the project root folder"""
+        if Path(os.getcwd()) != self.app_path:
+            os.chdir(self.app_path)
+    
+    def check_app_mode(self):
+        """Determine if application placed in the project root or game root"""
+        print(self.app_path)
+        if str(self.app_path).__contains__('Calculator'):
+            self.mode = 'project'
+        else:
+            self.mode = 'game'
+            
+    def init_files_path(self):
+        """Initialize path for .json files"""
+        if self.mode == 'project':
+            self.audience_groups_path = Path(self.app_path, 'AudienceGroups.json')
+            self.tag_compatibility_data_path = Path(self.app_path, 'TagCompatibilityData.json')
+            self.tags_audience_weights_path = Path(self.app_path, 'TagsAudienceWeights.json')
+            self.holidays_path = Path(self.app_path, 'Holidays.json')
+            self.localization_path = Path(self.app_path, 'Localization')
+        elif self.mode == 'game':
+            self.data_path = Path(self.app_path, 'Holly_Data', 'StreamingAssets', 'Data')
+            self.configs_path = Path(self.data_path, 'Configs')
+            self.localization_path = Path(self.data_path, 'Localization')
+            self.audience_groups_path = Path(self.configs_path, 'AudienceGroups.json')
+            self.tag_compatibility_data_path = Path(self.configs_path, 'TagCompatibilityData.json')
+            self.tags_audience_weights_path = Path(self.configs_path, 'TagsAudienceWeights.json')
+            self.holidays_path = Path(self.configs_path, 'Holidays.json')
+
+
 class StoryElementCalculatorApp:
     """Main application class that coordinates all components"""
     
@@ -2122,8 +2314,14 @@ class StoryElementCalculatorApp:
                 height = self.root.winfo_screenheight()
                 self.root.geometry(f"{width}x{height}+0+0")
         
+        # Initialize the path manager
+        self.path_manager = PathManager()
+        
+        # Initialize the language controller
+        self.translation_manager = TranslationManager(self.path_manager)
+        
         # Initialize the data manager
-        self.data_manager = DataManager()
+        self.data_manager = DataManager(self.path_manager, self.translation_manager)
         
         # Initialize the calculation engine
         self.calculation_engine = CalculationEngine(self.data_manager)
@@ -2150,8 +2348,18 @@ class StoryElementCalculatorApp:
         self.compatibility_tab_frame.rowconfigure(0, weight=1)
         
         # Initialize the tab controllers
-        self.advertiser_tab = AdvertiserTab(self.advertiser_tab_frame, self.data_manager, self.calculation_engine)
-        self.compatibility_tab = CompatibilityTab(self.compatibility_tab_frame, self.data_manager)
+        self.advertiser_tab = AdvertiserTab(self.advertiser_tab_frame, self.data_manager, 
+                                            self.calculation_engine, self.translation_manager)
+        self.compatibility_tab = CompatibilityTab(self.compatibility_tab_frame, self.data_manager, 
+                                                  self.translation_manager)
+        
+        # Bind the tab controllers with translation manager
+        self.translation_manager.bind_tabs(advertiser_tab=self.advertiser_tab,
+                                           compatibility_tab=self.compatibility_tab)
+        
+        # Create widget for language control
+        self.language_widget = self.translation_manager.create_language_selector_widget(self.root)
+        self.language_widget.pack(side="top", anchor="ne", padx=10, pady=5)
 
 
 if __name__ == "__main__":
