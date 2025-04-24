@@ -9,6 +9,7 @@ from datetime import datetime
 from calendar import monthcalendar
 import operator
 
+
 class DataManager:
     """Handles loading and managing data from JSON files"""
     
@@ -519,7 +520,7 @@ class DataManager:
         
         # Join with spaces
         return ' '.join(formatted_parts)
-    
+
 
 class UIHelper:
     """Helper class for common UI components and utilities"""
@@ -1207,7 +1208,7 @@ class AdvertiserTab:
         for checkbutton in self.tag_checkbuttons.values():
             checkbutton.grid()
     
-    def clear_selections(self):
+    def clear_selections(self, show_message: bool = True):
         """Clear all selected checkboxes across all tabs"""
         # Set all tag variables to False
         for tag_id, var in self.tag_vars.items():
@@ -1221,9 +1222,10 @@ class AdvertiserTab:
         self.selected_tags_text.config(state=tk.NORMAL)
         self.selected_tags_text.delete(1.0, tk.END)
         self.selected_tags_text.config(state=tk.DISABLED)
-        
-        # Show a message to confirm selections were cleared
-        messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
+
+        if show_message:
+            # Show a message to confirm selections were cleared
+            messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
     
     def calculate_weights(self):
         """Calculate audience weights based on selected tags."""
@@ -1410,6 +1412,12 @@ class AdvertiserTab:
         self.advertiser_text.config(state=tk.DISABLED)
         self.selected_tags_text.config(state=tk.DISABLED)
 
+    def select_tags(self, tags):
+        """ Select given tags """
+        for tag_id, var in self.tag_vars.items():
+            if tag_id in tags:
+                var.set(True)
+
 
 class CompatibilityTab:
     """Manages the Story Element Compatibility tab"""
@@ -1506,7 +1514,6 @@ class CompatibilityTab:
         # Build compatibility tag widgets in tabs
         self.build_compatibility_tag_widgets()
 
-        
         # Right frame - Compatibility Legend and Selected Tags
         ttk.Label(self.right_frame, text="Compatibility Legend", font=("Arial", 12, "bold")).grid(row=0, column=0, pady=5, sticky="w")
         
@@ -1537,6 +1544,10 @@ class CompatibilityTab:
             font=("Arial", 10, "bold")
         )
         self.score_display_label.pack(fill="both", expand=True)
+
+        # Button to export selected tags from CompatibilityTab to AdvertiserTab
+        self.export_to_advertiser_tab_button = ttk.Button(score_frame, text="Export to AdvertisersTab", command=self.export_to_advertisers_tab)
+        self.export_to_advertiser_tab_button.pack(side="left", padx=5)
         
         # Selected tags display
         ttk.Label(self.right_frame, text="Selected Tags:", font=("Arial", 10, "bold")).grid(row=3, column=0, sticky="w", pady=5)
@@ -1835,7 +1846,7 @@ class CompatibilityTab:
         
         # Show a message to confirm selections were cleared
         messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
-    
+
     def update_compatibility_colors(self, changed_tag_id=None):
         """Update color indicators based on current tag selections and calculate average score"""
         # Get currently selected tags
@@ -2100,6 +2111,16 @@ class CompatibilityTab:
         close_button = ttk.Button(main_frame, text="Close", command=matrix_window.destroy)
         close_button.pack(pady=10)
 
+    def export_to_advertisers_tab(self):
+        """ Export all the selected tags from CompatibilityTab to AdvertiserTab """
+        # Get currently selected tags
+        selected_tags = [tag_id for tag_id, var in self.compat_tag_vars.items() if var.get()]
+
+        AdvertiserTab.clear_selections(app.advertiser_tab, False)
+        AdvertiserTab.select_tags(app.get_advertiser_tab(), selected_tags)
+        # Switch to AdvertiserTab
+        app.main_notebook.select(app.main_notebook.index(app.advertiser_tab_frame))
+
 
 class StoryElementCalculatorApp:
     """Main application class that coordinates all components"""
@@ -2152,6 +2173,9 @@ class StoryElementCalculatorApp:
         # Initialize the tab controllers
         self.advertiser_tab = AdvertiserTab(self.advertiser_tab_frame, self.data_manager, self.calculation_engine)
         self.compatibility_tab = CompatibilityTab(self.compatibility_tab_frame, self.data_manager)
+
+    def get_advertiser_tab(self):
+        return self.advertiser_tab
 
 
 if __name__ == "__main__":
