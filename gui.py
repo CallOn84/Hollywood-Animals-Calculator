@@ -895,6 +895,7 @@ class AdvertiserTab:
         self.parent = parent
         self.data_manager = data_manager
         self.calculation_engine = calculation_engine
+        self.tags_counter = TagsCounter(self)
         
         # Create frames
         self.left_frame = ttk.Frame(parent, padding="10")
@@ -927,7 +928,7 @@ class AdvertiserTab:
         
         # Create widgets
         self.create_widgets()
-    
+
     def create_widgets(self):
         """Create widgets for the Advertiser tab"""
         # Add file path input
@@ -958,7 +959,14 @@ class AdvertiserTab:
         # Add clear selections button
         clear_selections_button = ttk.Button(search_frame, text="Clear Selections", command=self.clear_selections)
         clear_selections_button.grid(row=0, column=3, sticky="e", padx=5, pady=2)
-        
+
+        # Add counter for selected tags
+        self.counter_label = tk.Label(
+            search_frame,
+            text="Story Elements Count: " + str(self.tags_counter.tags_count),
+        )
+        self.counter_label.grid(row=1, column=0, sticky="ws", padx=5, pady=2)
+
         # Create notebook for tag categories
         self.tags_frame = ttk.Frame(self.left_frame)
         self.tags_frame.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
@@ -1075,7 +1083,8 @@ class AdvertiserTab:
                 cb = ttk.Checkbutton(
                     grid_frame, 
                     text=display_name,
-                    variable=var
+                    variable=var,
+                    command=lambda tag_id=tag_id, var=var: self.on_cb_click(tag_id, var)
                 )
                 cb.grid(row=row, column=col, sticky="w", padx=5, pady=2)
                 
@@ -1226,6 +1235,11 @@ class AdvertiserTab:
         if show_message:
             # Show a message to confirm selections were cleared
             messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
+        
+        # Show a message to confirm selections were cleared
+        messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
+
+        self.tags_counter.reset()
     
     def calculate_weights(self):
         """Calculate audience weights based on selected tags."""
@@ -1417,6 +1431,8 @@ class AdvertiserTab:
         for tag_id, var in self.tag_vars.items():
             if tag_id in tags:
                 var.set(True)
+    def on_cb_click(self, tag_id, var):
+        self.tags_counter.update(tag_id, var)
 
 
 class CompatibilityTab:
@@ -1425,6 +1441,7 @@ class CompatibilityTab:
     def __init__(self, parent, data_manager):
         self.parent = parent
         self.data_manager = data_manager
+        self.tags_counter = TagsCounter(self)
         
         # Create frames
         self.left_frame = ttk.Frame(parent, padding="10")
@@ -1448,7 +1465,7 @@ class CompatibilityTab:
         self.compat_tag_labels = {}
         self.compat_category_tabs = {}
         self.compat_category_frames = {}
-        
+
         # Create widgets
         self.create_widgets()
     
@@ -1503,6 +1520,13 @@ class CompatibilityTab:
             command=self.show_tag_compatibility_matrix
         )
         view_matrix_button.grid(row=1, column=1, sticky="w", padx=5, pady=2)
+
+        # Add counter for selected tags
+        self.counter_label = tk.Label(
+            compat_search_frame,
+            text="Story Elements Count: " + str(self.tags_counter.tags_count),
+        )
+        self.counter_label.grid(row=2, column=0, sticky="w", padx=5, pady=2)
         
         # Create notebook for compatibility tag categories inside Tag Selection tab
         self.compat_tags_frame = ttk.Frame(self.compat_selection_tab)
@@ -1680,14 +1704,12 @@ class CompatibilityTab:
                 
                 var = tk.BooleanVar(value=False)
                 self.compat_tag_vars[tag_id] = var
-                
-                # Add trace to the variable to update colors when checked/unchecked
-                var.trace("w", lambda name, index, mode, tag_id=tag_id: self.update_compatibility_colors(tag_id))
-                
+
                 cb = ttk.Checkbutton(
                     tag_frame, 
                     text=display_name,
-                    variable=var
+                    variable=var,
+                    command=lambda tag_id=tag_id, var=var: self.on_cb_click(tag_id, var)
                 )
                 cb.grid(row=0, column=1, sticky="w")
                 
@@ -1846,6 +1868,9 @@ class CompatibilityTab:
         
         # Show a message to confirm selections were cleared
         messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
+
+        self.tags_counter.reset()
+    
 
     def update_compatibility_colors(self, changed_tag_id=None):
         """Update color indicators based on current tag selections and calculate average score"""
@@ -2121,6 +2146,10 @@ class CompatibilityTab:
         # Switch to AdvertiserTab
         app.main_notebook.select(app.main_notebook.index(app.advertiser_tab_frame))
 
+    def on_cb_click(self, tag_id, var):
+        self.update_compatibility_colors(tag_id)
+        self.tags_counter.update(tag_id, var)
+
 
 class StoryElementCalculatorApp:
     """Main application class that coordinates all components"""
@@ -2176,6 +2205,28 @@ class StoryElementCalculatorApp:
 
     def get_advertiser_tab(self):
         return self.advertiser_tab
+
+
+class TagsCounter:
+    def __init__(self, tab):
+        self.tags_count = 0
+        self.tab = tab
+
+    def reset(self):
+        self.tags_count = 0
+        self.tab.counter_label.config(text="Story Elements Count: " + str(self.tags_count))
+
+    def update(self, tag_id, var):
+        # Check if the selected tag is in Genre or Setting category and don't count it
+        if tag_id in self.tab.data_manager.genre_tags or tag_id in self.tab.data_manager.setting_tags:
+            return
+
+        if var.get():
+            self.tags_count += 1
+        else:
+            self.tags_count -= 1
+
+        self.tab.counter_label.config(text="Story Elements Count: " + str(self.tags_count))
 
 
 if __name__ == "__main__":
