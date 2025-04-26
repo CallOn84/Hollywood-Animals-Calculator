@@ -1,5 +1,6 @@
 import json
 import tkinter as tk
+import typing
 from tkinter import ttk, messagebox, scrolledtext
 import os
 import re
@@ -8,6 +9,7 @@ import colorsys
 from datetime import datetime
 from calendar import monthcalendar
 import operator
+
 
 class DataManager:
     """Handles loading and managing data from JSON files"""
@@ -519,7 +521,7 @@ class DataManager:
         
         # Join with spaces
         return ' '.join(formatted_parts)
-    
+
 
 class UIHelper:
     """Helper class for common UI components and utilities"""
@@ -889,11 +891,12 @@ class CalculationEngine:
 
 class AdvertiserTab:
     """Manages the Advertiser Compatibility tab"""
-    
+
     def __init__(self, parent, data_manager, calculation_engine):
         self.parent = parent
         self.data_manager = data_manager
         self.calculation_engine = calculation_engine
+        self.tags_counter = TagsCounter(self)
         
         # Create frames
         self.left_frame = ttk.Frame(parent, padding="10")
@@ -926,7 +929,7 @@ class AdvertiserTab:
         
         # Create widgets
         self.create_widgets()
-    
+
     def create_widgets(self):
         """Create widgets for the Advertiser tab"""
         # Add file path input
@@ -957,7 +960,14 @@ class AdvertiserTab:
         # Add clear selections button
         clear_selections_button = ttk.Button(search_frame, text="Clear Selections", command=self.clear_selections)
         clear_selections_button.grid(row=0, column=3, sticky="e", padx=5, pady=2)
-        
+
+        # Add counter for selected tags
+        self.counter_label = tk.Label(
+            search_frame,
+            text="Story Elements Count: " + str(self.tags_counter.tags_count),
+        )
+        self.counter_label.grid(row=1, column=0, sticky="ws", padx=5, pady=2)
+
         # Create notebook for tag categories
         self.tags_frame = ttk.Frame(self.left_frame)
         self.tags_frame.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
@@ -1074,7 +1084,8 @@ class AdvertiserTab:
                 cb = ttk.Checkbutton(
                     grid_frame, 
                     text=display_name,
-                    variable=var
+                    variable=var,
+                    command=lambda tag_id=tag_id, var=var: self.on_cb_click(tag_id, var)
                 )
                 cb.grid(row=row, column=col, sticky="w", padx=5, pady=2)
                 
@@ -1207,7 +1218,7 @@ class AdvertiserTab:
         for checkbutton in self.tag_checkbuttons.values():
             checkbutton.grid()
     
-    def clear_selections(self):
+    def clear_selections(self, show_message: bool = True):
         """Clear all selected checkboxes across all tabs"""
         # Set all tag variables to False
         for tag_id, var in self.tag_vars.items():
@@ -1221,9 +1232,12 @@ class AdvertiserTab:
         self.selected_tags_text.config(state=tk.NORMAL)
         self.selected_tags_text.delete(1.0, tk.END)
         self.selected_tags_text.config(state=tk.DISABLED)
-        
-        # Show a message to confirm selections were cleared
-        messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
+
+        if show_message:
+            # Show a message to confirm selections were cleared
+            messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
+
+        self.tags_counter.reset()
     
     def calculate_weights(self):
         """Calculate audience weights based on selected tags."""
@@ -1410,6 +1424,15 @@ class AdvertiserTab:
         self.advertiser_text.config(state=tk.DISABLED)
         self.selected_tags_text.config(state=tk.DISABLED)
 
+    def select_tags(self, tags):
+        """ Select given tags """
+        for tag_id, var in self.tag_vars.items():
+            if tag_id in tags:
+                var.set(True)
+
+    def on_cb_click(self, tag_id, var):
+        self.tags_counter.update(tag_id, var)
+
 
 class CompatibilityTab:
     """Manages the Story Element Compatibility tab"""
@@ -1417,6 +1440,7 @@ class CompatibilityTab:
     def __init__(self, parent, data_manager):
         self.parent = parent
         self.data_manager = data_manager
+        self.tags_counter = TagsCounter(self)
         
         # Create frames
         self.left_frame = ttk.Frame(parent, padding="10")
@@ -1440,7 +1464,7 @@ class CompatibilityTab:
         self.compat_tag_labels = {}
         self.compat_category_tabs = {}
         self.compat_category_frames = {}
-        
+
         # Create widgets
         self.create_widgets()
     
@@ -1495,6 +1519,13 @@ class CompatibilityTab:
             command=self.show_tag_compatibility_matrix
         )
         view_matrix_button.grid(row=1, column=1, sticky="w", padx=5, pady=2)
+
+        # Add counter for selected tags
+        self.counter_label = tk.Label(
+            compat_search_frame,
+            text="Story Elements Count: " + str(self.tags_counter.tags_count),
+        )
+        self.counter_label.grid(row=2, column=0, sticky="w", padx=5, pady=2)
         
         # Create notebook for compatibility tag categories inside Tag Selection tab
         self.compat_tags_frame = ttk.Frame(self.compat_selection_tab)
@@ -1506,7 +1537,6 @@ class CompatibilityTab:
         # Build compatibility tag widgets in tabs
         self.build_compatibility_tag_widgets()
 
-        
         # Right frame - Compatibility Legend and Selected Tags
         ttk.Label(self.right_frame, text="Compatibility Legend", font=("Arial", 12, "bold")).grid(row=0, column=0, pady=5, sticky="w")
         
@@ -1537,6 +1567,10 @@ class CompatibilityTab:
             font=("Arial", 10, "bold")
         )
         self.score_display_label.pack(fill="both", expand=True)
+
+        # Button to export selected tags from CompatibilityTab to AdvertiserTab
+        self.export_to_advertiser_tab_button = ttk.Button(score_frame, text="Export to AdvertisersTab", command=self.export_to_advertisers_tab)
+        self.export_to_advertiser_tab_button.pack(side="left", padx=5)
         
         # Selected tags display
         ttk.Label(self.right_frame, text="Selected Tags:", font=("Arial", 10, "bold")).grid(row=3, column=0, sticky="w", pady=5)
@@ -1669,14 +1703,12 @@ class CompatibilityTab:
                 
                 var = tk.BooleanVar(value=False)
                 self.compat_tag_vars[tag_id] = var
-                
-                # Add trace to the variable to update colors when checked/unchecked
-                var.trace("w", lambda name, index, mode, tag_id=tag_id: self.update_compatibility_colors(tag_id))
-                
+
                 cb = ttk.Checkbutton(
                     tag_frame, 
                     text=display_name,
-                    variable=var
+                    variable=var,
+                    command=lambda tag_id=tag_id, var=var: self.on_cb_click(tag_id, var)
                 )
                 cb.grid(row=0, column=1, sticky="w")
                 
@@ -1835,7 +1867,9 @@ class CompatibilityTab:
         
         # Show a message to confirm selections were cleared
         messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
-    
+
+        self.tags_counter.reset()
+
     def update_compatibility_colors(self, changed_tag_id=None):
         """Update color indicators based on current tag selections and calculate average score"""
         # Get currently selected tags
@@ -2100,10 +2134,27 @@ class CompatibilityTab:
         close_button = ttk.Button(main_frame, text="Close", command=matrix_window.destroy)
         close_button.pack(pady=10)
 
+    def export_to_advertisers_tab(self):
+        """ Export all the selected tags from CompatibilityTab to AdvertiserTab """
+        # Get currently selected tags
+        selected_tags = [tag_id for tag_id, var in self.compat_tag_vars.items() if var.get()]
+
+        app.advertiser_tab.clear_selections(False)
+        app.advertiser_tab.select_tags(selected_tags)
+        app.advertiser_tab.tags_counter.tags_count = self.tags_counter.tags_count
+        app.advertiser_tab.tags_counter.update()
+
+        # Switch to AdvertiserTab
+        app.main_notebook.select(app.main_notebook.index(app.advertiser_tab_frame))
+
+    def on_cb_click(self, tag_id, var):
+        self.update_compatibility_colors(tag_id)
+        self.tags_counter.update(tag_id, var)
+
 
 class StoryElementCalculatorApp:
     """Main application class that coordinates all components"""
-    
+
     def __init__(self, root):
         self.root = root
         self.root.title("Hollywood Animal Calculator")
@@ -2152,6 +2203,33 @@ class StoryElementCalculatorApp:
         # Initialize the tab controllers
         self.advertiser_tab = AdvertiserTab(self.advertiser_tab_frame, self.data_manager, self.calculation_engine)
         self.compatibility_tab = CompatibilityTab(self.compatibility_tab_frame, self.data_manager)
+
+
+class TagsCounter:
+    def __init__(self, tab):
+        self.tags_count = 0
+        self.tab = tab
+
+    def reset(self):
+        self.tags_count = 0
+        self.tab.counter_label.config(text="Story Elements Count: " + str(self.tags_count))
+
+    def update(self, tag_id=None, var=None):
+        # Updates label without clicking checkbox
+        if tag_id is None or var is None:
+            self.tab.counter_label.config(text="Story Elements Count: " + str(self.tags_count))
+            return
+
+        # Check if the selected tag is in Genre or Setting category and don't count it
+        if tag_id in self.tab.data_manager.genre_tags or tag_id in self.tab.data_manager.setting_tags:
+            return
+
+        if var.get():
+            self.tags_count += 1
+        else:
+            self.tags_count -= 1
+
+        self.tab.counter_label.config(text="Story Elements Count: " + str(self.tags_count))
 
 
 if __name__ == "__main__":
