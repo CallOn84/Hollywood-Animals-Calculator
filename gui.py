@@ -1,5 +1,6 @@
 import json
 import tkinter as tk
+import typing
 from tkinter import ttk, messagebox, scrolledtext
 import os
 import re
@@ -890,7 +891,7 @@ class CalculationEngine:
 
 class AdvertiserTab:
     """Manages the Advertiser Compatibility tab"""
-    
+
     def __init__(self, parent, data_manager, calculation_engine):
         self.parent = parent
         self.data_manager = data_manager
@@ -1235,9 +1236,6 @@ class AdvertiserTab:
         if show_message:
             # Show a message to confirm selections were cleared
             messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
-        
-        # Show a message to confirm selections were cleared
-        messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
 
         self.tags_counter.reset()
     
@@ -1431,6 +1429,7 @@ class AdvertiserTab:
         for tag_id, var in self.tag_vars.items():
             if tag_id in tags:
                 var.set(True)
+
     def on_cb_click(self, tag_id, var):
         self.tags_counter.update(tag_id, var)
 
@@ -1870,7 +1869,6 @@ class CompatibilityTab:
         messagebox.showinfo("Selections Cleared", "All story element selections have been cleared.")
 
         self.tags_counter.reset()
-    
 
     def update_compatibility_colors(self, changed_tag_id=None):
         """Update color indicators based on current tag selections and calculate average score"""
@@ -2141,8 +2139,11 @@ class CompatibilityTab:
         # Get currently selected tags
         selected_tags = [tag_id for tag_id, var in self.compat_tag_vars.items() if var.get()]
 
-        AdvertiserTab.clear_selections(app.advertiser_tab, False)
-        AdvertiserTab.select_tags(app.get_advertiser_tab(), selected_tags)
+        app.advertiser_tab.clear_selections(False)
+        app.advertiser_tab.select_tags(selected_tags)
+        app.advertiser_tab.tags_counter.tags_count = self.tags_counter.tags_count
+        app.advertiser_tab.tags_counter.update()
+
         # Switch to AdvertiserTab
         app.main_notebook.select(app.main_notebook.index(app.advertiser_tab_frame))
 
@@ -2153,7 +2154,7 @@ class CompatibilityTab:
 
 class StoryElementCalculatorApp:
     """Main application class that coordinates all components"""
-    
+
     def __init__(self, root):
         self.root = root
         self.root.title("Hollywood Animal Calculator")
@@ -2203,9 +2204,6 @@ class StoryElementCalculatorApp:
         self.advertiser_tab = AdvertiserTab(self.advertiser_tab_frame, self.data_manager, self.calculation_engine)
         self.compatibility_tab = CompatibilityTab(self.compatibility_tab_frame, self.data_manager)
 
-    def get_advertiser_tab(self):
-        return self.advertiser_tab
-
 
 class TagsCounter:
     def __init__(self, tab):
@@ -2216,7 +2214,12 @@ class TagsCounter:
         self.tags_count = 0
         self.tab.counter_label.config(text="Story Elements Count: " + str(self.tags_count))
 
-    def update(self, tag_id, var):
+    def update(self, tag_id=None, var=None):
+        # Updates label without clicking checkbox
+        if tag_id is None or var is None:
+            self.tab.counter_label.config(text="Story Elements Count: " + str(self.tags_count))
+            return
+
         # Check if the selected tag is in Genre or Setting category and don't count it
         if tag_id in self.tab.data_manager.genre_tags or tag_id in self.tab.data_manager.setting_tags:
             return
