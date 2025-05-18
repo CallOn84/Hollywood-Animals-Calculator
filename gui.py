@@ -2,6 +2,7 @@ import json
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import os
+import sys
 import re
 from typing import Dict, List, Tuple, Callable, Optional
 from pathlib import Path
@@ -15,7 +16,8 @@ import locale
 class DataManager:
     """Handles loading and managing data from JSON files"""
     
-    def __init__(self, translation_manager):
+    def __init__(self, path_manager, translation_manager):
+        self.path_manager = path_manager
         self.translation_manager = translation_manager
 
         # Character fix mapping - map Cyrillic characters to Latin equivalents
@@ -98,7 +100,8 @@ class DataManager:
         possible_paths = [
             "TagsAudienceWeights.json",                     # Same directory
             os.path.join(os.path.dirname(__file__), "TagsAudienceWeights.json"),
-            os.path.abspath("TagsAudienceWeights.json")     # Absolute path
+            os.path.abspath("TagsAudienceWeights.json"),     # Absolute path
+            self.path_manager.tags_audience_weights_path
         ]
         
         data_loaded = False
@@ -144,7 +147,8 @@ class DataManager:
         possible_paths = [
             "TagCompatibilityData.json",                     # Same directory
             os.path.join(os.path.dirname(__file__), "TagCompatibilityData.json"),
-            os.path.abspath("TagCompatibilityData.json")     # Absolute path
+            os.path.abspath("TagCompatibilityData.json"),     # Absolute path
+            self.path_manager.tag_compatibility_data_path
         ]
         
         self.compatibility_data = {}
@@ -227,7 +231,8 @@ class DataManager:
         possible_paths = [
             "AudienceGroups.json",                    # Same directory
             os.path.join(os.path.dirname(__file__), "AudienceGroups.json"),
-            os.path.abspath("AudienceGroups.json")    # Absolute path
+            os.path.abspath("AudienceGroups.json"),    # Absolute path
+            self.path_manager.audience_groups_path
         ]
         
         self.audience_groups = {}
@@ -311,7 +316,8 @@ class DataManager:
         possible_paths = [
             "Holidays.json",                     # Same directory
             os.path.join(os.path.dirname(__file__), "Holidays.json"),
-            os.path.abspath("Holidays.json")     # Absolute path
+            os.path.abspath("Holidays.json"),     # Absolute path
+            self.path_manager.holidays_path
         ]
         
         self.holidays = {}
@@ -2120,8 +2126,8 @@ class CompatibilityTab:
 
 
 class TranslationManager:
-    def __init__(self):
-        self.localization_root = Path("Localization")
+    def __init__(self, path_manager):
+        self.localization_root = path_manager.localization_path
         self.lang_map: Dict[str, str] = {}
         self.current_lang = "ENG"
         self.load_language_ids()
@@ -2149,7 +2155,7 @@ class TranslationManager:
     
     def load_language_ids(self):
         """Read ./Localization/LanguageIds.json and generate a dictionary self.language_ids"""
-        file_path = os.path.join("Localization", "LanguageIds.json")
+        file_path = os.path.join(self.localization_root, "LanguageIds.json")
         try:
             print(f"Attempting to load language ids data from: {file_path}")
             with open(file_path, "r", encoding="utf-8") as f:
@@ -2167,7 +2173,7 @@ class TranslationManager:
         Result is placed in self.lang_map
         """
         self.lang_map = {}
-        file_path = os.path.join("Localization", lang_code, "NON_EVENT.json")
+        file_path = os.path.join(self.localization_root, lang_code, "NON_EVENT.json")
 
         try:
             print(f"Attempting to load translation data from: {file_path}")
@@ -2209,7 +2215,7 @@ class TranslationManager:
     
     def check_system_lang(self):
         """Automatic detection of system language"""
-        system_lang, _ = locale.getdefaultlocale()
+        system_lang, _ = locale.getlocale()
         system_lang = system_lang.split('_')[0] if system_lang else "en"
         
         matched_lang = None
@@ -2242,6 +2248,51 @@ class TranslationManager:
                 return self.lang_map[base]
 
 
+class PathManager:
+    def __init__(self):
+        self.check_app()
+        self.choose_app_dir()
+        self.check_app_mode()
+        self.init_files_path()
+    
+    def check_app(self):
+        """Determine if application is a script file or frozen exe"""
+        if getattr(sys, 'frozen', False):
+            self.app_path = Path(os.path.dirname(sys.executable))
+        elif __file__:
+            self.app_path = Path(os.path.dirname(__file__))
+        
+    def choose_app_dir(self):
+        """Choose directory of the project root folder"""
+        if Path(os.getcwd()) != self.app_path:
+            os.chdir(self.app_path)
+    
+    def check_app_mode(self):
+        """Determine if application placed in the project root or game root"""
+        print(self.app_path)
+        if str(self.app_path).__contains__('Calculator'):
+            self.mode = 'project'
+        else:
+            self.mode = 'game'
+            
+    def init_files_path(self):
+        """Initialize path for .json files"""
+        if self.mode == 'project':
+            self.audience_groups_path = Path(self.app_path, 'AudienceGroups.json')
+            self.tag_compatibility_data_path = Path(self.app_path, 'TagCompatibilityData.json')
+            self.tags_audience_weights_path = Path(self.app_path, 'TagsAudienceWeights.json')
+            self.holidays_path = Path(self.app_path, 'Holidays.json')
+            self.localization_path = Path(self.app_path, 'Localization')
+        elif self.mode == 'game':
+            self.data_path = Path(self.app_path, 'Holly_Data', 'StreamingAssets', 'Data')
+            self.configs_path = Path(self.data_path, 'Configs')
+            self.localization_path = Path(self.data_path, 'Localization')
+            self.audience_groups_path = Path(self.configs_path, 'AudienceGroups.json')
+            self.tag_compatibility_data_path = Path(self.configs_path, 'TagCompatibilityData.json')
+            self.tags_audience_weights_path = Path(self.configs_path, 'TagsAudienceWeights.json')
+            self.holidays_path = Path(self.configs_path, 'Holidays.json')
+
+
 class StoryElementCalculatorApp:
     """Main application class that coordinates all components"""
     
@@ -2263,11 +2314,14 @@ class StoryElementCalculatorApp:
                 height = self.root.winfo_screenheight()
                 self.root.geometry(f"{width}x{height}+0+0")
         
+        # Initialize the path manager
+        self.path_manager = PathManager()
+        
         # Initialize the language controller
-        self.translation_manager = TranslationManager()
+        self.translation_manager = TranslationManager(self.path_manager)
         
         # Initialize the data manager
-        self.data_manager = DataManager(self.translation_manager)
+        self.data_manager = DataManager(self.path_manager, self.translation_manager)
         
         # Initialize the calculation engine
         self.calculation_engine = CalculationEngine(self.data_manager)
