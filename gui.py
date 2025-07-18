@@ -971,7 +971,7 @@ class AdvertiserTab:
         
         ttk.Label(search_frame, text="Search Story Element:").grid(row=0, column=0, sticky="w", padx=5, pady=2)
         
-        self.search_var.trace("w", self.filter_tags)
+        self.search_var.trace_add("write", self.filter_tags)
         search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=30)
         search_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=2)
         
@@ -1111,8 +1111,8 @@ class AdvertiserTab:
                 var = tk.BooleanVar(value=False)
 
                 # whenever this box is toggled, recalc immediately
-                var.trace("w", lambda *args: self.calculate_weights())
-                var.trace("w", lambda *args: self.update_advertiser_colors())
+                var.trace_add("write", lambda *args: self.calculate_weights())
+                var.trace_add("write", lambda *args: self.update_advertiser_colors())
 
                 self.tag_vars[tag_id] = var
                 
@@ -1589,7 +1589,7 @@ class CompatibilityTab:
         # Top row - Search and clear search
         ttk.Label(compat_search_frame, text="Search Story Elements:").grid(row=0, column=0, sticky="w", padx=5, pady=2)
         
-        self.compat_search_var.trace("w", self.filter_compatibility_tags)
+        self.compat_search_var.trace_add("write", self.filter_compatibility_tags)
         compat_search_entry = ttk.Entry(compat_search_frame, textvariable=self.compat_search_var, width=30)
         compat_search_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=2)
         
@@ -1785,7 +1785,7 @@ class CompatibilityTab:
                 self.compat_tag_vars[tag_id] = var
                 
                 # Add trace to the variable to update colors when checked/unchecked
-                var.trace("w", lambda name, index, mode, tag_id=tag_id: self.update_compatibility_colors(tag_id))
+                var.trace_add("write", lambda name, index, mode, tag_id=tag_id: self.update_compatibility_colors(tag_id))
                 
                 cb = ttk.Checkbutton(
                     tag_frame, 
