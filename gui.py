@@ -957,6 +957,13 @@ class AdvertiserTab:
         
         load_button = ttk.Button(file_frame, text="Load File", command=self.load_file)
         load_button.grid(row=0, column=2, sticky="e", padx=5, pady=2)
+
+        self.copy_from_compat_btn = ttk.Button(
+            file_frame,
+            text="Mirror from Story-Element Tab",
+            command=self.copy_from_compat
+        )
+        self.copy_from_compat_btn.grid(row=0, column=3, sticky="e", padx=5, pady=2)
         
         # Add search bar
         search_frame = ttk.Frame(self.left_frame)
@@ -986,12 +993,12 @@ class AdvertiserTab:
         self.build_tag_widgets()
         
         # Add calculate button
-        self.calculate_button = ttk.Button(
-            self.left_frame, 
-            text="Calculate",
-            command=self.calculate_weights
-        )
-        self.calculate_button.grid(row=3, column=0, pady=10)
+        # self.calculate_button = ttk.Button(
+        #    self.left_frame, 
+        #    text="Calculate",
+        #    command=self.calculate_weights
+        # )
+        # self.calculate_button.grid(row=3, column=0, pady=10)
         
         # Right frame - Advertiser & Audience Results
         ttk.Label(self.right_frame, text="Advertiser & Audience Results", font=("Arial", 12, "bold")).grid(row=0, column=0, pady=5, sticky="w")
@@ -1021,6 +1028,9 @@ class AdvertiserTab:
     
     def build_tag_widgets(self):
         """Build tag widgets organized in tabs by category with improved layout"""
+        # start with a fresh map of tag→swatch
+        self.tag_color_labels = {}
+        
         # Group tags by category
         categories = {}
         for tag_id, tag_data in self.data_manager.data.items():
@@ -1083,20 +1093,85 @@ class AdvertiserTab:
                 
                 # Calculate row and column
                 row = i % items_per_column
-                col = i // items_per_column
-                
+                col = i // items_per_column 
+
+                tag_frame = tk.Frame(grid_frame)
+                tag_frame.grid(row=row, column=col, sticky="w", padx=5, pady=2)
+
+                color_lbl = tk.Label(
+                                tag_frame,
+                                width=2,
+                                background="#cccccc",
+                                relief="groove",
+                                highlightthickness=0
+                            )
+                color_lbl.pack(side="left", padx=(0,5))
+                self.tag_color_labels[tag_id] = color_lbl
+
                 var = tk.BooleanVar(value=False)
+
+                # whenever this box is toggled, recalc immediately
+                var.trace("w", lambda *args: self.calculate_weights())
+                var.trace("w", lambda *args: self.update_advertiser_colors())
+
                 self.tag_vars[tag_id] = var
                 
                 cb = ttk.Checkbutton(
-                    grid_frame, 
-                    text=display_name,
-                    variable=var
-                )
-                cb.grid(row=row, column=col, sticky="w", padx=5, pady=2)
+                        tag_frame,
+                        text=display_name,
+                        variable=var
+                    )
+                cb.pack(side="left")
                 
                 # Store reference to checkbutton for search filtering
                 self.tag_checkbuttons[tag_id] = cb
+
+    def update_advertiser_colors(self, *args):
+        # 1) Gather current selection
+        sel = [tid for tid, v in self.tag_vars.items() if v.get()]
+
+        # 2) For each tag, simulate adding it (or mark selected ones specially)
+        simulated_scores = {}
+        for tid in self.tag_vars:
+            if tid in sel:
+                simulated_scores[tid] = None   # we’ll color these “selected” differently
+                continue
+
+            # 3) Build the audience-weights exactly like calculate_weights does…
+            #    (copy/paste from calculate_weights :contentReference[oaicite:0]{index=0})
+            valid = {t: self.data_manager.data[t]["weights"] for t in sel + [tid]}
+            auds  = ["TF","TM","YF","YM","AF","AM"]
+            overall = {a: 0 for a in auds}
+            for w in valid.values():
+                for a in auds:
+                    overall[a] += float(w.get(a,0))
+            for a in overall:
+                overall[a] /= len(valid)
+
+            # 4) …then call your bonus calculator on those weights
+            sorted_advs, _ = \
+                self.calculation_engine.calculate_advertiser_bonuses(overall)  # :contentReference[oaicite:1]{index=1}
+
+            # 5) Store the top advertiser’s match_score
+            top = sorted_advs[0][1]["match_score"]
+            simulated_scores[tid] = top
+
+        # 6) Normalize all the “top” scores into a 1–5 range so get_compatibility_color works
+        vals = [v for v in simulated_scores.values() if v is not None]
+        lo, hi = min(vals), max(vals)
+        span = hi - lo if hi > lo else 1
+
+        # 7) Finally, paint each tag’s swatch
+        for tid, lbl in self.tag_color_labels.items():
+            score = simulated_scores[tid]
+            if score is None:
+                # selected tags get a solid blue, for example
+                lbl.configure(background="#4a86e8")
+            else:
+                # map score↦[1.0–5.0], then to a color
+                norm = 1.0 + 4.0 * ((score - lo) / span)
+                color = UIHelper.get_compatibility_color(norm)       # :contentReference[oaicite:2]{index=2}
+                lbl.configure(background=color)
     
     def rebuild_tag_widgets(self):
         """Rebuild tag widgets with current data"""
@@ -1109,6 +1184,7 @@ class AdvertiserTab:
         self.category_frames = {}
         self.tag_vars = {}
         self.tag_checkbuttons = {}
+        self.tag_color_labels = {}
         
         # Rebuild
         self.build_tag_widgets()
@@ -1216,6 +1292,17 @@ class AdvertiserTab:
                 total_tags = sum(total_tags_per_tab.values())
                 print(f"Search results: {total_visible} matching story elements found out of {total_tags} total story elements")
     
+    def copy_from_compat(self):
+        """Set AdvertiserTab checkboxes to whatever's set in CompatibilityTab."""
+        if not hasattr(self, "compat_tab"):
+            messagebox.showwarning("Mirror Error", "Compatibility tab not initialized.")
+            return
+
+        for tag_id, var in self.tag_vars.items():
+            compat_vars = self.compat_tab.compat_tag_vars
+            if tag_id in compat_vars:
+                var.set( compat_vars[tag_id].get() )
+
     def clear_search(self):
         """Clear the search field and show all tags"""
         self.search_var.set("")
@@ -1483,6 +1570,14 @@ class CompatibilityTab:
         
         compat_load_button = ttk.Button(compat_file_frame, text="Load Compatibility", command=self.load_compatibility_file)
         compat_load_button.grid(row=0, column=2, sticky="e", padx=5, pady=2)
+
+        # Mirror button next to Load Compatibility
+        self.copy_from_adv_btn = ttk.Button(
+                                    compat_file_frame,
+                                    text="Mirror from Advertiser Tab",
+                                    command=self.copy_from_advertiser
+                                )
+        self.copy_from_adv_btn.grid(row=0, column=3, sticky="e", padx=5, pady=2)
         
         # Search frame for compatibility
         compat_search_frame = ttk.Frame(self.left_frame)
@@ -1514,6 +1609,7 @@ class CompatibilityTab:
         )
         view_matrix_button.grid(row=1, column=1, sticky="w", padx=5, pady=2)
         
+
         # Create notebook for compatibility tag categories inside Tag Selection tab
         self.compat_tags_frame = ttk.Frame(self.compat_selection_tab)
         self.compat_tags_frame.pack(fill="both", expand=True)
@@ -1824,6 +1920,20 @@ class CompatibilityTab:
                 tab_id = self.compat_category_notebook.index(self.compat_category_tabs[first_visible_tab])
                 self.compat_category_notebook.select(tab_id)
     
+    def copy_from_advertiser(self):
+        """Set CompatibilityTab checkboxes to match AdvertiserTab selections."""
+        if not hasattr(self, "adv_tab"):
+            messagebox.showwarning("Mirror Error", "Advertiser tab not initialized.")
+            return
+
+        for tag_id, var in self.compat_tag_vars.items():
+            adv_vars = self.adv_tab.tag_vars
+            if tag_id in adv_vars:
+                var.set( adv_vars[tag_id].get() )
+
+        # refresh the colors & score based on new selection
+        self.update_compatibility_colors()
+        
     def clear_compatibility_search(self):
         """Clear the search field in compatibility tab and show all tags"""
         self.compat_search_var.set("")
@@ -2118,6 +2228,191 @@ class CompatibilityTab:
         close_button = ttk.Button(main_frame, text="Close", command=matrix_window.destroy)
         close_button.pack(pady=10)
 
+class GenerationalTab:
+    """Given genre(s), auto-pick setting & protagonist, optional antagonist/finale, support/themes, grouped display with scores and overall match score."""
+    def __init__(self, parent, data_manager, calculation_engine):
+        self.dm = data_manager
+        self.ce = calculation_engine
+
+        # Top controls
+        ctrl = ttk.Frame(parent, padding=10)
+        ctrl.pack(fill="x")
+
+        ttk.Label(ctrl, text="Genre:").grid(row=0, column=0, sticky="w")
+        self.genre_cb = ttk.Combobox(
+            ctrl,
+            values=[self.dm.beautify_tag_name(g) for g in self.dm.genre_tags],
+            state="readonly",
+            width=25
+        )
+        self.genre_cb.grid(row=0, column=1, padx=5)
+
+        params = ttk.LabelFrame(parent, text="Parameters", padding=10)
+        params.pack(fill="x", padx=10, pady=(0,10))
+
+        # Genres min/max
+        ttk.Label(params, text="Genres Min/Max:").grid(row=0, column=0, sticky="w")
+        self.min_gen = ttk.Spinbox(params, from_=1, to=len(self.dm.genre_tags), width=4)
+        self.min_gen.set(1)
+        self.min_gen.grid(row=0, column=1, padx=2)
+        self.max_gen = ttk.Spinbox(params, from_=1, to=len(self.dm.genre_tags), width=4)
+        self.max_gen.set(min(10, len(self.dm.genre_tags)))
+        self.max_gen.grid(row=0, column=2, padx=2)
+
+        # Supporting Characters
+        ttk.Label(params, text="Sup. Char Min/Max:").grid(row=1, column=0, sticky="w")
+        self.min_sup = ttk.Spinbox(params, from_=0, to=10, width=4)
+        self.min_sup.set(0)
+        self.min_sup.grid(row=1, column=1, padx=2)
+        self.max_sup = ttk.Spinbox(params, from_=0, to=10, width=4)
+        self.max_sup.set(2)
+        self.max_sup.grid(row=1, column=2, padx=2)
+
+        # Themes
+        ttk.Label(params, text="Theme Min/Max:").grid(row=2, column=0, sticky="w")
+        self.min_theme = ttk.Spinbox(params, from_=0, to=10, width=4)
+        self.min_theme.set(0)
+        self.min_theme.grid(row=2, column=1, padx=2)
+        self.max_theme = ttk.Spinbox(params, from_=0, to=10, width=4)
+        self.max_theme.set(2)
+        self.max_theme.grid(row=2, column=2, padx=2)
+
+        # Antagonist toggle
+        self.use_ant = tk.BooleanVar()
+        ttk.Checkbutton(params, text="Include Antagonist", variable=self.use_ant).grid(row=3, column=0, sticky="w")
+
+        # Finale toggle
+        self.use_fin = tk.BooleanVar()
+        ttk.Checkbutton(params, text="Include Finale", variable=self.use_fin).grid(row=4, column=0, sticky="w")
+
+        # Max extras cap (exempts genres & setting)
+        ttk.Label(params, text="Max Extra Tags:").grid(row=5, column=0, sticky="w")
+        self.max_extra = ttk.Spinbox(params, from_=1, to=20, width=4)
+        self.max_extra.set(6)
+        self.max_extra.grid(row=5, column=1, padx=2)
+
+        ttk.Button(ctrl, text="Generate", command=self.generate).grid(row=0, column=2, padx=10)
+
+        # Results area
+        self.result = scrolledtext.ScrolledText(parent, wrap=tk.WORD, height=24, state=tk.DISABLED)
+        self.result.pack(fill="both", expand=True, padx=10, pady=(0,10))
+
+    def _score_for(self, base, tag):
+        auds = ["TF","TM","YF","YM","AF","AM"]
+        overall = {a: 0 for a in auds}
+        for t in base + [tag]:
+            w = self.dm.data[t]["weights"]
+            for a in auds:
+                overall[a] += float(w.get(a, 0))
+        for a in overall:
+            overall[a] /= (len(base) + 1)
+        sorted_advs, _ = self.ce.calculate_advertiser_bonuses(overall)
+        return sorted_advs[0][1]["match_score"]
+
+    def _best_for(self, base, cands):
+        return max(cands, key=lambda t: self._score_for(base, t)) if cands else None
+
+    def _top_n(self, base, cands, n):
+        scored = [(t, self._score_for(base, t)) for t in cands]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[:n]
+
+    def generate(self):
+        self.result.config(state=tk.NORMAL)
+        self.result.delete("1.0", tk.END)
+
+        # --- Pick tags ---
+        genre_disp = self.genre_cb.get()
+        if not genre_disp:
+            return messagebox.showwarning("Select Genre", "Please choose a genre.")
+        genre = next(g for g in self.dm.genre_tags if self.dm.beautify_tag_name(g)==genre_disp)
+
+        min_g, max_g = int(self.min_gen.get()), int(self.max_gen.get())
+        others = [g for g in self.dm.genre_tags if g!=genre]
+        genres = [genre]
+        if len(genres)<min_g:
+            genres += [t for t,_ in self._top_n(genres, others, min_g-len(genres))]
+        genres = genres[:max_g]
+
+        # auto-pick setting & protagonist
+        setting = self._best_for(genres, self.dm.setting_tags)
+        prot_ids = [t for t in self.dm.data if self.dm.extract_category_from_tag_id(t)=="PROTAGONIST"]
+        protagonist = self._best_for(genres+[setting], prot_ids)
+
+        # optional antagonist & finale
+        ant = None
+        if self.use_ant.get():
+            ant_ids = [t for t in self.dm.data if self.dm.extract_category_from_tag_id(t)=="ANTAGONIST"]
+            ant = self._best_for(genres+[setting, protagonist], ant_ids)
+        theme_ids = [t for t in self.dm.data if self.dm.extract_category_from_tag_id(t)=="THEME_AND_EVENTS"]
+        theme_n = int(self.max_theme.get())
+        theme_list = [t for t,_ in self._top_n(genres+[setting, protagonist]+([ant] if ant else []), theme_ids, theme_n)]
+        sup_ids = [t for t in self.dm.data if self.dm.extract_category_from_tag_id(t)=="SUPPORTING_CHARACTER"]
+        sup_n = int(self.max_sup.get())
+        sup_list = [t for t,_ in self._top_n(genres+[setting, protagonist]+([ant] if ant else [])+theme_list, sup_ids, sup_n)]
+        fin = None
+        if self.use_fin.get():
+            fin_ids = [t for t in self.dm.data if self.dm.extract_category_from_tag_id(t)=="FINALE"]
+            fin = self._best_for(genres+[setting, protagonist]+([ant] if ant else [])+sup_list+theme_list, fin_ids)
+
+        # assemble picks
+        picks = genres + [setting, protagonist] + ([ant] if ant else []) + sup_list + theme_list + ([fin] if fin else [])
+
+        # --- Compute combined movie match score ---
+        # overall audience weights
+        auds = ["TF","TM","YF","YM","AF","AM"]
+        overall = {a:0 for a in auds}
+        for t in picks:
+            w = self.dm.data[t]["weights"]
+            for a in auds:
+                overall[a] += float(w.get(a,0))
+        for a in overall:
+            overall[a] /= len(picks)
+        sorted_advs, _ = self.ce.calculate_advertiser_bonuses(overall)
+        movie_score = sorted_advs[0][1]["match_score"]
+
+        # --- Display results ---
+        self.result.insert(tk.END, f"Movie Match Score: {movie_score:.2f}\n", "header")
+        self.result.tag_configure("header", font=("TkDefaultFont", 12, "bold"))
+        self.result.insert(tk.END, "\n")
+
+        # group by category with per-tag scores
+        sections = []
+        sections.append(("Genres", [(t, self._score_for(genres[:genres.index(t)] if t!=genre else [], t)) for t in genres]))
+        sections.append(("Setting", [(setting, self._score_for(genres, setting))]))
+        sections.append(("Protagonist", [(protagonist, self._score_for(genres+[setting], protagonist))]))
+        if ant: sections.append(("Antagonist", [(ant, self._score_for(genres+[setting, protagonist], ant))]))
+        sections.append(("Supporting", [(t, self._score_for(genres+[setting, protagonist]+([ant] if ant else []), t)) for t in sup_list]))
+        sections.append(("Themes", [(t, self._score_for(genres+[setting, protagonist]+([ant] if ant else [])+sup_list, t)) for t in theme_list]))
+        if fin: sections.append(("Finale", [(fin, self._score_for(genres+[setting, protagonist]+([ant] if ant else [])+sup_list+theme_list, fin))]))
+
+        # apply extras cap
+        max_extra = int(self.max_extra.get())
+        extras = []
+        for cat,it in sections:
+            if cat in ["Genres","Setting"]: continue
+            extras.extend([t for t,_ in it])
+        if len(extras)>max_extra:
+            allowed = extras[:max_extra]
+            new=[]
+            for cat,it in sections:
+                if cat in ["Genres","Setting"]:
+                    new.append((cat,it))
+                else:
+                    pruned=[(t,s) for t,s in it if t in allowed]
+                    if pruned: new.append((cat,pruned))
+            sections=new
+
+        for cat, items in sections:
+            self.result.insert(tk.END, f"{cat}:\n", "cat")
+            for tid, score in items:
+                name = self.dm.beautify_tag_name(tid)
+                self.result.insert(tk.END, f"  • {name} (score: {score:.2f})\n")
+            self.result.insert(tk.END, "\n")
+        self.result.tag_configure("cat", font=("TkDefaultFont", 11, "bold"))
+        self.result.config(state=tk.DISABLED)
+
+
 
 class TranslationManager:
     def __init__(self):
@@ -2283,6 +2578,10 @@ class StoryElementCalculatorApp:
         # Create tab for Tag Compatibility
         self.compatibility_tab_frame = ttk.Frame(self.main_notebook)
         self.main_notebook.add(self.compatibility_tab_frame, text="Story Element Compatibility")
+
+        # Create the frame and tab
+        self.generational_tab_frame = ttk.Frame(self.main_notebook)
+        self.main_notebook.add(self.generational_tab_frame, text="Generational Recommendations")
         
         # Configure grid weights for resizing
         self.advertiser_tab_frame.columnconfigure(0, weight=3)  # Left frame gets more space
@@ -2298,6 +2597,16 @@ class StoryElementCalculatorApp:
                                             self.calculation_engine, self.translation_manager)
         self.compatibility_tab = CompatibilityTab(self.compatibility_tab_frame, self.data_manager, 
                                                   self.translation_manager)
+
+        # Instantiate your new tab controller
+        self.generational_tab = GenerationalTab(self.generational_tab_frame, self.data_manager,
+                                                self.calculation_engine)
+
+
+        self.advertiser_tab.compat_tab = self.compatibility_tab
+        self.compatibility_tab.adv_tab  = self.advertiser_tab
+        self.translation_manager.bind_tabs(advertiser_tab=self.advertiser_tab,
+                                            compatibility_tab=self.compatibility_tab)
         
         # Bind the tab controllers with translation manager
         self.translation_manager.bind_tabs(advertiser_tab=self.advertiser_tab,
