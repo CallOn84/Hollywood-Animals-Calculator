@@ -428,7 +428,7 @@ function displayResults(winner, weightedScores, leanText, movieLean, adResult, a
                 </div>
                 <div class="duration-details">
                     <div class="detail-block">
-                        <span class="detail-label">Ticket Strategy</span>
+                        <span class="detail-label">Ticket Pice</span>
                         <span class="detail-val">$${adResult.ticketPrice.toFixed(2)}</span>
                     </div>
                     <div class="detail-block">
