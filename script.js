@@ -1,12 +1,7 @@
+// script.js
+
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
-
-const ALL_AUDIENCE = 30000000; 
-const ADS_BUDGET_BASE = 50000; 
-const ADS_EFFICIENCY_TIERS = [0.15, 0.30, 0.50]; 
-const ADS_CAMPAIGN_EFFICIENCY_GRAPHIC = [0.25, 0.45, 0.60, 0.70, 0.80, 0.90, 0.95, 1.00, 1.00, 0.95, 0.90, 0.85, 0.75, 0.60, 0.30, 0.10];
-const ADS_CAMPAIGN_DROP_GRAPHIC = [0.95, 0.85, 0.70, 0.20];
-const MAX_PHYSICAL_CAPACITY = 2400000; 
 
 window.onload = async function() {
     try {
@@ -14,9 +9,10 @@ window.onload = async function() {
         initializeSelectors();
         buildSearchIndex();
         setupSearchListener();
-        setupControlsListeners(); 
+        console.log("Initialization Complete. Tags Loaded:", Object.keys(GAME_DATA.tags).length);
     } catch (error) {
         console.error("Failed to load data:", error);
+        alert("Error loading data files. Please ensure TagData.json and TagsAudienceWeights.json are in the repository.");
     }
 };
 
@@ -32,12 +28,16 @@ async function loadExternalData() {
     const weightDataRaw = await weightRes.json();
 
     for (const [tagId, data] of Object.entries(tagDataRaw)) {
+        
         if (!weightDataRaw[tagId]) continue;
 
         let category = "Unknown";
-        if (data.type === 0) category = "Genre";
-        else if (data.type === 1) category = "Setting";
-        else if (data.CategoryID) {
+        
+        if (data.type === 0) {
+            category = "Genre";
+        } else if (data.type === 1) {
+            category = "Setting";
+        } else if (data.CategoryID) {
             switch (data.CategoryID) {
                 case "Protagonist": category = "Protagonist"; break;
                 case "Antagonist": category = "Antagonist"; break;
@@ -47,6 +47,7 @@ async function loadExternalData() {
                 default: category = data.CategoryID;
             }
         } 
+        
         if (tagId.startsWith("EVENTS_")) category = "Theme & Event";
 
         GAME_DATA.tags[tagId] = {
@@ -55,7 +56,6 @@ async function loadExternalData() {
             category: category,
             art: parseFloat(data.artValue || 0),
             com: parseFloat(data.commercialValue || 0),
-            base: (parseFloat(data.artValue || 0) + parseFloat(data.commercialValue || 0)) / 2, 
             weights: parseWeights(weightDataRaw[tagId].weights)
         };
     }
@@ -71,12 +71,17 @@ function parseWeights(weightObj) {
 
 function beautifyTagName(raw) {
     let name = raw;
+    // Remove prefixes
     const prefixes = ["PROTAGONIST_", "ANTAGONIST_", "SUPPORTINGCHARACTER_", "THEME_", "EVENTS_", "FINALE_", "EVENT_"];
     prefixes.forEach(p => {
         if (name.startsWith(p)) name = name.substring(p.length);
     });
-    return name.replace(/_/g, ' ').toLowerCase()
-               .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    
+    return name.replace(/_/g, ' ')
+               .toLowerCase()
+               .split(' ')
+               .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+               .join(' ');
 }
 
 function initializeSelectors() {
@@ -96,6 +101,7 @@ function initializeSelectors() {
 
         const header = document.createElement('div');
         header.className = 'category-header';
+        
         const label = document.createElement('div');
         label.className = 'category-label';
         label.innerText = category;
@@ -108,6 +114,7 @@ function initializeSelectors() {
             addBtn.onclick = () => addDropdown(category);
             header.appendChild(addBtn);
         }
+
         groupDiv.appendChild(header);
 
         const inputsContainer = document.createElement('div');
@@ -116,6 +123,7 @@ function initializeSelectors() {
         groupDiv.appendChild(inputsContainer);
 
         container.appendChild(groupDiv);
+
         addDropdown(category);
     });
 }
@@ -154,6 +162,7 @@ function addDropdown(category, selectedId = null) {
     });
 
     if (selectedId) select.value = selectedId;
+
     row.appendChild(select);
 
     if (MULTI_SELECT_CATEGORIES.includes(category)) {
@@ -163,13 +172,18 @@ function addDropdown(category, selectedId = null) {
         removeBtn.onclick = () => row.remove();
         row.appendChild(removeBtn);
     }
+
     container.appendChild(row);
 }
 
 function buildSearchIndex() {
-    searchIndex = Object.values(GAME_DATA.tags).map(tag => ({
-        id: tag.id, name: tag.name, category: tag.category
-    }));
+    searchIndex = Object.values(GAME_DATA.tags).map(tag => {
+        return {
+            id: tag.id,
+            name: tag.name,
+            category: tag.category
+        };
+    });
 }
 
 function setupSearchListener() {
@@ -179,14 +193,17 @@ function setupSearchListener() {
     input.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
         resultsBox.innerHTML = '';
+        
         if (query.length < 2) {
             resultsBox.classList.add('hidden');
             return;
         }
+
         const matches = searchIndex.filter(item => 
             item.name.toLowerCase().includes(query) || 
             item.category.toLowerCase().includes(query)
         );
+
         if (matches.length > 0) {
             resultsBox.classList.remove('hidden');
             matches.forEach(match => {
@@ -206,30 +223,8 @@ function setupSearchListener() {
     });
 
     document.addEventListener('click', (e) => {
-        if (e.target !== input && e.target !== resultsBox) resultsBox.classList.add('hidden');
-    });
-}
-
-function setupControlsListeners() {
-    const radios = document.querySelectorAll('input[name="ticketPrice"]');
-    radios.forEach(radio => {
-        radio.addEventListener('change', () => {
-            if (!document.getElementById('results').classList.contains('hidden')) {
-                analyzeMovie();
-            }
-        });
-    });
-
-    const inputs = ['artInput', 'comInput'];
-    inputs.forEach(id => {
-        const el = document.getElementById(id);
-        if(el) {
-            el.addEventListener('input', () => {
-                if (parseFloat(el.value) > 10) el.value = 10;
-                if (!document.getElementById('results').classList.contains('hidden')) {
-                    analyzeMovie();
-                }
-            });
+        if (e.target !== input && e.target !== resultsBox) {
+            resultsBox.classList.add('hidden');
         }
     });
 }
@@ -238,10 +233,12 @@ function selectTagFromSearch(tagObj) {
     const category = tagObj.category;
     const containerId = `inputs-${category.replace(/\s/g, '-')}`;
     const container = document.getElementById(containerId);
+
     if (!container) return;
 
     const selects = container.querySelectorAll('select');
     let filled = false;
+
     for (let select of selects) {
         if (select.value === "") {
             select.value = tagObj.id;
@@ -249,10 +246,15 @@ function selectTagFromSearch(tagObj) {
             break;
         }
     }
+
     if (!filled) {
-        if (MULTI_SELECT_CATEGORIES.includes(category)) addDropdown(category, tagObj.id);
-        else if (selects.length > 0) selects[0].value = tagObj.id;
+        if (MULTI_SELECT_CATEGORIES.includes(category)) {
+            addDropdown(category, tagObj.id);
+        } else {
+            if (selects.length > 0) selects[0].value = tagObj.id;
+        }
     }
+    
     const group = document.getElementById(`group-${category.replace(/\s/g, '-')}`);
     if (group) {
         group.style.borderColor = '#d4af37';
@@ -268,121 +270,64 @@ function analyzeMovie() {
     });
 
     if(selectedTags.length === 0) {
-        if(event && event.type === 'click') alert("Please select at least one tag.");
+        alert("Please select at least one tag.");
         return;
     }
 
-    let demoScores = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
+    let scores = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
+    let artTotal = 0;
+    let comTotal = 0;
 
     selectedTags.forEach(tagId => {
         const tagData = GAME_DATA.tags[tagId];
         if(!tagData) return;
-        for(let demo in demoScores) {
+
+        for(let demo in scores) {
             if(tagData.weights[demo]) {
-                demoScores[demo] += tagData.weights[demo];
+                scores[demo] += tagData.weights[demo];
             }
         }
+        artTotal += tagData.art;
+        comTotal += tagData.com;
     });
 
     let weightedScores = {};
-    for(let demoKey in demoScores) {
-        weightedScores[demoKey] = demoScores[demoKey] * GAME_DATA.demographics[demoKey].baseWeight;
+    for(let demo in scores) {
+        weightedScores[demo] = scores[demo] * GAME_DATA.demographics[demo].weight;
     }
+
     let winner = Object.keys(weightedScores).reduce((a, b) => weightedScores[a] > weightedScores[b] ? a : b);
-
-    const artScore = parseFloat(document.getElementById('artInput').value) || 0;
-    const comScore = parseFloat(document.getElementById('comInput').value) || 0;
-    const ticketPrice = parseFloat(document.querySelector('input[name="ticketPrice"]:checked').value);
-
+    
     let movieLean = 0; 
     let leanText = "Balanced";
-    if (artScore > comScore + 0.5) {
-        movieLean = 1; 
+    
+    if (artTotal > comTotal + 0.1) {
+        movieLean = 1;
         leanText = "Artistic";
-    } else if (comScore > artScore + 0.5) {
-        movieLean = 2; 
+    } else if (comTotal > artTotal + 0.1) {
+        movieLean = 2;
         leanText = "Commercial";
     }
 
     let validAgents = GAME_DATA.adAgents.filter(agent => {
-        return agent.targets.includes(winner);
-    });
-    if(validAgents.length === 0) validAgents = GAME_DATA.adAgents;
-
-    let bestAgent = null;
-    let bestResult = { weeks: 0, netProfit: -Infinity };
-
-    validAgents.forEach(agent => {
-        const result = estimateAdDuration(artScore, comScore, ticketPrice, movieLean, agent);
-        
-        if (result.netProfit > bestResult.netProfit) {
-            bestResult = result;
-            bestAgent = agent;
-        }
+        return agent.targets.includes(winner) && (agent.type === movieLean || agent.type === 0);
     });
 
-    if (!bestAgent || bestResult.netProfit === -Infinity) {
-        bestAgent = validAgents[0];
-        const fallbackCost = ADS_BUDGET_BASE * bestAgent.budgetFactor;
-        bestResult = { weeks: 0, netProfit: 0, weeklyCost: fallbackCost };
+    if(validAgents.length === 0) {
+        validAgents = GAME_DATA.adAgents.filter(agent => {
+            return agent.targets.includes(winner) && agent.type === 0;
+        });
     }
 
-    displayResults(winner, weightedScores, leanText, movieLean, bestResult, bestAgent);
-}
+    let bestHoliday = GAME_DATA.holidays.find(h => {
+        if(Array.isArray(h.target)) return h.target.includes(winner);
+        return h.target === winner;
+    });
+    
+    if(!bestHoliday) bestHoliday = { name: "Christmas or Any Generic Window", bonus: "Standard" };
 
-function estimateAdDuration(artScore, comScore, ticketPrice, movieLean, agent) {
-    let optimalWeeks = 0;
-    let cumulativeProfit = 0;
-    const maxWeeks = 16; 
-
-    const maxScore = Math.max(artScore, comScore);
-    let occupancyPercent = maxScore / 10; 
-    let totalBaseAudience = MAX_PHYSICAL_CAPACITY * occupancyPercent;
-
-    const weeklyAdCost = ADS_BUDGET_BASE * agent.budgetFactor;
-    const agentEfficiencyBase = ADS_EFFICIENCY_TIERS[agent.type];
-
-    let decayRate = 0.90;
-    if (movieLean === 1) decayRate = 0.95;
-    if (movieLean === 2) decayRate = 0.85;
-
-    for (let week = 0; week < maxWeeks; week++) {
-        const organicDecayMultiplier = Math.pow(decayRate, week);
-        const organicAudience = totalBaseAudience * organicDecayMultiplier;
-
-        let graphicValue = 0;
-        if (week < ADS_CAMPAIGN_EFFICIENCY_GRAPHIC.length) {
-            graphicValue = ADS_CAMPAIGN_EFFICIENCY_GRAPHIC[week];
-        }
-        const adBoostFactor = agentEfficiencyBase * graphicValue;
-
-        const revenueNoAd = organicAudience * ticketPrice;
-        const audienceWithAd = organicAudience * (1 + adBoostFactor);
-        const revenueWithAd = audienceWithAd * ticketPrice;
-
-        const marginalGain = revenueWithAd - revenueNoAd;
-        const netWeekProfit = marginalGain - weeklyAdCost;
-
-        if (marginalGain > weeklyAdCost) {
-            optimalWeeks = week + 1;
-            cumulativeProfit += netWeekProfit;
-        } else {
-            break; 
-        }
-    }
-
-    return {
-        weeks: optimalWeeks,
-        ticketPrice: ticketPrice,
-        decay: decayRate,
-        weeklyCost: weeklyAdCost,
-        netProfit: cumulativeProfit
-    };
-}
-
-function displayResults(winner, weightedScores, leanText, movieLean, adResult, bestAgent) {
     document.getElementById('results').classList.remove('hidden');
-
+    
     document.getElementById('targetAudienceDisplay').innerHTML = `
         <span style="font-size: 1.8em; color: #ffd700; font-weight: 800;">${GAME_DATA.demographics[winner].name}</span>
         <span style="color: #888; margin-left: 10px;">(${winner})</span><br>
@@ -390,61 +335,17 @@ function displayResults(winner, weightedScores, leanText, movieLean, adResult, b
     `;
 
     document.getElementById('movieLeanDisplay').innerText = leanText;
-    document.getElementById('adAgentDisplay').innerHTML = `
-        <div style="font-size: 1.1em; font-weight: bold; color: white;">${bestAgent.name}</div>
-        <div style="font-size: 0.85em; color: #888;">Tier ${bestAgent.type} • Targets: ${bestAgent.targets.join(', ')}</div>
-    `;
 
-    let bestHoliday = GAME_DATA.holidays.find(h => {
-        if(Array.isArray(h.target)) return h.target.includes(winner);
-        return h.target === winner;
-    });
-    if(!bestHoliday) bestHoliday = { name: "Christmas or Generic Window", bonus: "Standard" };
-    
+    let agentHtml = validAgents.map(a => 
+        `<div style="padding: 5px 0; border-bottom: 1px solid #333;">${a.name}</div>`
+    ).join('');
+    if(!agentHtml) agentHtml = "Nate Sparrow Press (Fallback)";
+    document.getElementById('adAgentDisplay').innerHTML = agentHtml;
+
     document.getElementById('holidayDisplay').innerHTML = `
         <div style="font-size: 1.2em; font-weight: bold; color: #fff;">${bestHoliday.name}</div>
         <div style="color: #d4af37;">Bonus: ${bestHoliday.bonus}</div>
     `;
-
-    const durationBox = document.getElementById('adDurationDisplay');
     
-    if (adResult.weeks > 0) {
-        durationBox.innerHTML = `
-            <div class="duration-layout">
-                <div class="duration-main">
-                    <span class="big-number">${adResult.weeks}</span>
-                    <span class="big-unit">Weeks</span>
-                </div>
-                <div class="duration-details">
-                    <div class="detail-block">
-                        <span class="detail-label">Ticket Strategy</span>
-                        <span class="detail-val">$${adResult.ticketPrice.toFixed(2)}</span>
-                    </div>
-                    <div class="detail-block">
-                        <span class="detail-label">Weekly Ad Cost</span>
-                        <span class="detail-val">$${adResult.weeklyCost.toLocaleString()}</span>
-                    </div>
-                    <div class="detail-block">
-                        <span class="detail-label">Est. Net Profit</span>
-                        <span class="detail-val profit-val">+$${adResult.netProfit.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    } else {
-        const displayCost = adResult.weeklyCost ? adResult.weeklyCost.toLocaleString() : "Unknown";
-        
-        durationBox.innerHTML = `
-            <div class="warning-box">
-                <span class="warning-icon">⚠️</span>
-                <span class="warning-title">Do Not Advertise</span>
-                <div style="font-size: 0.9em; color: #aaa; margin-top:5px;">
-                    Projected revenue gain is lower than the advertising cost.<br>
-                    (Lowest cost option: $${displayCost})
-                </div>
-            </div>
-        `;
-    }
-
     document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 }

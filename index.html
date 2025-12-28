@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HA Advertising Tool</title>
+    <title>Hollywood Animal - Advertising Tool</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Google Fonts for modern typography -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -19,54 +20,24 @@
 
         <div class="container">
             
+            <!-- SEARCH BAR SECTION -->
             <div class="card search-card">
-                <h3>Quick Search</h3>
+                <h3>🔍 Quick Search</h3>
                 <div class="search-wrapper">
                     <input type="text" id="globalSearch" placeholder="Type to find a tag (e.g., 'Action', 'Cowboy')..." autocomplete="off">
                     <div id="searchResults" class="search-results hidden"></div>
                 </div>
             </div>
 
+            <!-- SCRIPT BUILDER SECTION -->
             <div class="card builder-card">
                 <div class="card-header">
                     <h3>Build Your Script</h3>
                     <button class="reset-btn" onclick="location.reload()">Reset</button>
                 </div>
+                <p class="subtitle">Select tags manually or use the search bar above.</p>
                 
-                <div class="controls-wrapper">
-                    
-                    <div class="control-group ticket-section">
-                        <label class="group-label">Pick the Ticket Price</label>
-                        <div class="segmented-control">
-                            <input type="radio" id="priceLow" name="ticketPrice" value="0.23" checked>
-                            <label for="priceLow">
-                                <span class="price">$0.23</span>
-                                <span class="sub-text">Base</span>
-                            </label>
-                    
-                            <input type="radio" id="priceHigh" name="ticketPrice" value="0.58">
-                            <label for="priceHigh">
-                                <span class="price">$0.58</span>
-                                <span class="sub-text">High (From FSAA Policy)</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="control-group score-section">
-                        <label class="group-label">Review Scores</label>
-                        <div class="dual-inputs">
-                            <div class="input-wrapper">
-                                <label for="comInput">Commercial</label>
-                                <input type="number" id="artInput" class="score-input" min="0" max="10" step="0.1" value="5.0">
-                            </div>
-                            <div class="input-wrapper">
-                                <label for="artInput">Artistic</label>
-                                <input type="number" id="comInput" class="score-input" min="0" max="10" step="0.1" value="5.0">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+                <!-- Dynamic Selectors Container -->
                 <div id="selectors-container"></div>
                 
                 <div class="action-area">
@@ -74,41 +45,31 @@
                 </div>
             </div>
 
-            <div id="results" class="hidden">
+            <!-- RESULTS SECTION -->
+            <div id="results" class="results-grid hidden">
                 
-                <div class="card result-card duration-card">
-                    <h3>Optimal Advertising Duration</h3>
-                    <div id="adDurationDisplay">
-                    </div>
-                    <p class="disclaimer">Calculated based on marginal revenue vs. cost decay.</p>
+                <div class="card result-card target-card">
+                    <h3>Target Audience</h3>
+                    <div id="targetAudienceDisplay"></div>
                 </div>
 
-                <div class="results-grid">
-                    
-                    <div class="card result-card target-card">
-                        <h3>Target Audience</h3>
-                        <div id="targetAudienceDisplay"></div>
-                    </div>
-
-                    <div class="card result-card strategy-card">
-                        <h3>Advertisers</h3>
-                        <div class="strategy-content">
-                            <div class="stat-row">
-                                <span class="label">Film Lean:</span>
-                                <span id="movieLeanDisplay" class="value"></span>
-                            </div>
-                            <div class="stat-row vertical">
-                                <span class="label">Recommended Advertisers:</span>
-                                <div id="adAgentDisplay" class="highlight-box"></div>
-                            </div>
+                <div class="card result-card strategy-card">
+                    <h3>Result</h3>
+                    <div class="strategy-content">
+                        <div class="stat-row">
+                            <span class="label">Commercial or Artistic?</span>
+                            <span id="movieLeanDisplay" class="value"></span>
+                        </div>
+                        <div class="stat-row vertical">
+                            <span class="label">Recommended Advertiser:</span>
+                            <div id="adAgentDisplay" class="highlight-box"></div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="card result-card date-card">
-                        <h3>Best Holiday to Release</h3>
-                        <div id="holidayDisplay" class="highlight-box"></div>
-                    </div>
-
+                <div class="card result-card date-card">
+                    <h3>Preferred Holiday to Release</h3>
+                    <div id="holidayDisplay" class="highlight-box"></div>
                 </div>
             </div>
         </div>
