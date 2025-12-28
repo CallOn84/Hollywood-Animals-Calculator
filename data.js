@@ -23,12 +23,12 @@ const GAME_DATA = {
     ],
 
     holidays: [
-        { name: "Valentine's Day (Feb 14)", target: "YF", bonus: "30%" },
-        { name: "Halloween (Oct 31)", target: ["TM", "TF", "YM"], bonus: "18-22%" },
-        { name: "Thanksgiving (Late Nov)", target: ["AM", "AF"], bonus: "22%" },
-        { name: "Independence Day (July 4)", target: "AM", bonus: "18%" },
-        { name: "Christmas (Dec 25)", target: "ALL", bonus: "10-15%" },
-        { name: "Memorial Day (May)", target: ["YM", "AM"], bonus: "16-18%" }
+        { name: "Valentine's Day", target: "YF", bonus: "30%" },
+        { name: "Halloween", target: ["TM", "TF", "YM"], bonus: "18-22%" },
+        { name: "Thanksgiving", target: ["AM", "AF"], bonus: "22%" },
+        { name: "Independence Day", target: "AM", bonus: "18%" },
+        { name: "Christmas", target: "ALL", bonus: "10-15%" },
+        { name: "Memorial Day", target: ["YM", "AM"], bonus: "16-18%" }
     ],
 
     categories: [
