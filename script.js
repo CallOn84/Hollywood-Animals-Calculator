@@ -1,33 +1,99 @@
 // script.js
 
-const MULTI_SELECT_CATEGORIES = [
-    "Genre", 
-    "Supporting Character", 
-    "Theme & Event"
-];
-
+const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
 
-window.onload = function() {
-    initializeSelectors();
-    buildSearchIndex();
-    setupSearchListener();
+window.onload = async function() {
+    try {
+        await loadExternalData();
+        initializeSelectors();
+        buildSearchIndex();
+        setupSearchListener();
+        console.log("Initialization Complete. Tags Loaded:", Object.keys(GAME_DATA.tags).length);
+    } catch (error) {
+        console.error("Failed to load data:", error);
+        alert("Error loading data files. Please ensure TagData.json and TagsAudienceWeights.json are in the repository.");
+    }
 };
 
-function formatTagName(rawName) {
-    return rawName; 
+async function loadExternalData() {
+    const [tagRes, weightRes] = await Promise.all([
+        fetch('data/TagData.json'),
+        fetch('data/TagsAudienceWeights.json')
+    ]);
+
+    if (!tagRes.ok || !weightRes.ok) throw new Error("File not found");
+
+    const tagDataRaw = await tagRes.json();
+    const weightDataRaw = await weightRes.json();
+
+    for (const [tagId, data] of Object.entries(tagDataRaw)) {
+        
+        if (!weightDataRaw[tagId]) continue;
+
+        let category = "Unknown";
+        
+        if (data.type === 0) {
+            category = "Genre";
+        } else if (data.type === 1) {
+            category = "Setting";
+        } else if (data.CategoryID) {
+            switch (data.CategoryID) {
+                case "Protagonist": category = "Protagonist"; break;
+                case "Antagonist": category = "Antagonist"; break;
+                case "SupportingCharacter": category = "Supporting Character"; break;
+                case "Theme": category = "Theme & Event"; break;
+                case "Finale": category = "Finale"; break;
+                default: category = data.CategoryID;
+            }
+        } 
+        
+        if (tagId.startsWith("EVENTS_")) category = "Theme & Event";
+
+        GAME_DATA.tags[tagId] = {
+            id: tagId,
+            name: beautifyTagName(tagId),
+            category: category,
+            art: parseFloat(data.artValue || 0),
+            com: parseFloat(data.commercialValue || 0),
+            weights: parseWeights(weightDataRaw[tagId].weights)
+        };
+    }
+}
+
+function parseWeights(weightObj) {
+    let clean = {};
+    for (let key in weightObj) {
+        clean[key] = parseFloat(weightObj[key]);
+    }
+    return clean;
+}
+
+function beautifyTagName(raw) {
+    let name = raw;
+    // Remove prefixes
+    const prefixes = ["PROTAGONIST_", "ANTAGONIST_", "SUPPORTINGCHARACTER_", "THEME_", "EVENTS_", "FINALE_", "EVENT_"];
+    prefixes.forEach(p => {
+        if (name.startsWith(p)) name = name.substring(p.length);
+    });
+    
+    return name.replace(/_/g, ' ')
+               .toLowerCase()
+               .split(' ')
+               .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+               .join(' ');
 }
 
 function initializeSelectors() {
     const container = document.getElementById('selectors-container');
-    container.innerHTML = '';
+    container.innerHTML = ''; 
 
     GAME_DATA.categories.forEach(category => {
-        const hasTags = Object.values(GAME_DATA.tags).some(t => 
-            t.category && t.category.toLowerCase() === category.toLowerCase()
-        );
+        const tagsInCategory = Object.values(GAME_DATA.tags).filter(t => 
+            t.category === category
+        ).sort((a, b) => a.name.localeCompare(b.name));
 
-        if (!hasTags) return;
+        if (tagsInCategory.length === 0) return;
 
         const groupDiv = document.createElement('div');
         groupDiv.className = 'category-group';
@@ -45,7 +111,6 @@ function initializeSelectors() {
             const addBtn = document.createElement('button');
             addBtn.className = 'add-btn';
             addBtn.innerHTML = '+';
-            addBtn.title = "Add another " + category;
             addBtn.onclick = () => addDropdown(category);
             header.appendChild(addBtn);
         }
@@ -63,21 +128,19 @@ function initializeSelectors() {
     });
 }
 
-function addDropdown(category, selectedValue = null) {
+function addDropdown(category, selectedId = null) {
     const containerId = `inputs-${category.replace(/\s/g, '-')}`;
     const container = document.getElementById(containerId);
     if (!container) return;
 
     if (!MULTI_SELECT_CATEGORIES.includes(category) && container.children.length > 0) {
         const select = container.querySelector('select');
-        if (selectedValue) select.value = selectedValue;
+        if (selectedId) select.value = selectedId;
         return;
     }
 
-    const tagsInCategory = Object.keys(GAME_DATA.tags).filter(tagKey => {
-        return GAME_DATA.tags[tagKey].category && 
-               GAME_DATA.tags[tagKey].category.toLowerCase() === category.toLowerCase();
-    }).sort();
+    const tags = Object.values(GAME_DATA.tags).filter(t => t.category === category)
+                 .sort((a, b) => a.name.localeCompare(b.name));
 
     const row = document.createElement('div');
     row.className = 'select-row';
@@ -88,19 +151,17 @@ function addDropdown(category, selectedValue = null) {
 
     const defOpt = document.createElement('option');
     defOpt.value = "";
-    defOpt.innerText = selectedValue ? "-- Select --" : `-- Select ${category} --`;
+    defOpt.innerText = selectedId ? "-- Select --" : `-- Select ${category} --`;
     select.appendChild(defOpt);
 
-    tagsInCategory.forEach(tagKey => {
+    tags.forEach(tag => {
         const opt = document.createElement('option');
-        opt.value = tagKey;
-        opt.innerText = formatTagName(tagKey);
+        opt.value = tag.id;
+        opt.innerText = tag.name;
         select.appendChild(opt);
     });
 
-    if (selectedValue) {
-        select.value = selectedValue;
-    }
+    if (selectedId) select.value = selectedId;
 
     row.appendChild(select);
 
@@ -108,7 +169,6 @@ function addDropdown(category, selectedValue = null) {
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-btn';
         removeBtn.innerHTML = '×';
-        removeBtn.title = 'Remove';
         removeBtn.onclick = () => row.remove();
         row.appendChild(removeBtn);
     }
@@ -117,11 +177,11 @@ function addDropdown(category, selectedValue = null) {
 }
 
 function buildSearchIndex() {
-    searchIndex = Object.keys(GAME_DATA.tags).map(key => {
+    searchIndex = Object.values(GAME_DATA.tags).map(tag => {
         return {
-            id: key,
-            name: formatTagName(key),
-            category: GAME_DATA.tags[key].category
+            id: tag.id,
+            name: tag.name,
+            category: tag.category
         };
     });
 }
@@ -196,13 +256,15 @@ function selectTagFromSearch(tagObj) {
     }
     
     const group = document.getElementById(`group-${category.replace(/\s/g, '-')}`);
-    group.style.borderColor = '#d4af37';
-    setTimeout(() => group.style.borderColor = 'transparent', 500);
+    if (group) {
+        group.style.borderColor = '#d4af37';
+        setTimeout(() => group.style.borderColor = '', 500);
+        group.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }
 
 function analyzeMovie() {
     const selectedTags = [];
-    
     document.querySelectorAll('.tag-selector').forEach(sel => {
         if(sel.value) selectedTags.push(sel.value);
     });
@@ -222,11 +284,11 @@ function analyzeMovie() {
 
         for(let demo in scores) {
             if(tagData.weights[demo]) {
-                scores[demo] += parseFloat(tagData.weights[demo]);
+                scores[demo] += tagData.weights[demo];
             }
         }
-        artTotal += parseFloat(tagData.art || 0);
-        comTotal += parseFloat(tagData.com || 0);
+        artTotal += tagData.art;
+        comTotal += tagData.com;
     });
 
     let weightedScores = {};
