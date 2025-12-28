@@ -1,5 +1,3 @@
-// script.js
-
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
 
@@ -9,55 +7,106 @@ window.onload = async function() {
         initializeSelectors();
         buildSearchIndex();
         setupSearchListener();
+        setupScoreSync(); // Initialize slider listeners
         console.log("Initialization Complete. Tags Loaded:", Object.keys(GAME_DATA.tags).length);
     } catch (error) {
         console.error("Failed to load data:", error);
-        alert("Error loading data files. Please ensure TagData.json and TagsAudienceWeights.json are in the repository.");
+        // Fallback if data is local or missing, though alerts might be annoying in some contexts
+        // alert("Error loading data files.");
     }
 };
 
-async function loadExternalData() {
-    const [tagRes, weightRes] = await Promise.all([
-        fetch('data/TagData.json'),
-        fetch('data/TagsAudienceWeights.json')
-    ]);
+// --- NEW FUNCTION: SYNC SLIDERS AND INPUTS ---
+function setupScoreSync() {
+    const pairs = [
+        { slider: 'artScoreSlider', input: 'artScoreInput' },
+        { slider: 'comScoreSlider', input: 'comScoreInput' }
+    ];
 
-    if (!tagRes.ok || !weightRes.ok) throw new Error("File not found");
+    pairs.forEach(pair => {
+        const slider = document.getElementById(pair.slider);
+        const input = document.getElementById(pair.input);
 
-    const tagDataRaw = await tagRes.json();
-    const weightDataRaw = await weightRes.json();
+        // When slider moves
+        slider.addEventListener('input', (e) => {
+            input.value = e.target.value;
+            updateSliderTrack(slider);
+        });
 
-    for (const [tagId, data] of Object.entries(tagDataRaw)) {
-        
-        if (!weightDataRaw[tagId]) continue;
-
-        let category = "Unknown";
-        
-        if (data.type === 0) {
-            category = "Genre";
-        } else if (data.type === 1) {
-            category = "Setting";
-        } else if (data.CategoryID) {
-            switch (data.CategoryID) {
-                case "Protagonist": category = "Protagonist"; break;
-                case "Antagonist": category = "Antagonist"; break;
-                case "SupportingCharacter": category = "Supporting Character"; break;
-                case "Theme": category = "Theme & Event"; break;
-                case "Finale": category = "Finale"; break;
-                default: category = data.CategoryID;
+        // When number typed
+        input.addEventListener('input', (e) => {
+            let val = parseFloat(e.target.value);
+            // Clamp values
+            if (val > 10) val = 10;
+            if (val < 0) val = 0;
+            // Update slider if valid number
+            if (!isNaN(val)) {
+                slider.value = val;
+                updateSliderTrack(slider);
             }
-        } 
-        
-        if (tagId.startsWith("EVENTS_")) category = "Theme & Event";
+        });
 
-        GAME_DATA.tags[tagId] = {
-            id: tagId,
-            name: beautifyTagName(tagId),
-            category: category,
-            art: parseFloat(data.artValue || 0),
-            com: parseFloat(data.commercialValue || 0),
-            weights: parseWeights(weightDataRaw[tagId].weights)
-        };
+        // Initialize visual state
+        updateSliderTrack(slider);
+    });
+}
+
+// Visual logic to make the track look "filled"
+function updateSliderTrack(slider) {
+    const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+    const color = slider.classList.contains('art-slider') ? '#a0a0ff' : '#d4af37'; 
+    
+    // CSS gradient trick to fill the track
+    slider.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${value}%, #444 ${value}%, #444 100%)`;
+}
+
+async function loadExternalData() {
+    // If files aren't found, we default to GAME_DATA defined in data.js if available
+    try {
+        const [tagRes, weightRes] = await Promise.all([
+            fetch('data/TagData.json'),
+            fetch('data/TagsAudienceWeights.json')
+        ]);
+
+        if (!tagRes.ok || !weightRes.ok) return; // Fail silently and use default GAME_DATA if set
+
+        const tagDataRaw = await tagRes.json();
+        const weightDataRaw = await weightRes.json();
+
+        for (const [tagId, data] of Object.entries(tagDataRaw)) {
+            
+            if (!weightDataRaw[tagId]) continue;
+
+            let category = "Unknown";
+            
+            if (data.type === 0) {
+                category = "Genre";
+            } else if (data.type === 1) {
+                category = "Setting";
+            } else if (data.CategoryID) {
+                switch (data.CategoryID) {
+                    case "Protagonist": category = "Protagonist"; break;
+                    case "Antagonist": category = "Antagonist"; break;
+                    case "SupportingCharacter": category = "Supporting Character"; break;
+                    case "Theme": category = "Theme & Event"; break;
+                    case "Finale": category = "Finale"; break;
+                    default: category = data.CategoryID;
+                }
+            } 
+            
+            if (tagId.startsWith("EVENTS_")) category = "Theme & Event";
+
+            GAME_DATA.tags[tagId] = {
+                id: tagId,
+                name: beautifyTagName(tagId),
+                category: category,
+                art: parseFloat(data.artValue || 0),
+                com: parseFloat(data.commercialValue || 0),
+                weights: parseWeights(weightDataRaw[tagId].weights)
+            };
+        }
+    } catch(e) {
+        console.warn("External JSON load failed, relying on data.js default", e);
     }
 }
 
@@ -275,6 +324,7 @@ function analyzeMovie() {
 
     // --- READ USER INPUTS ---
     // User sees 0-10, Internal logic uses 0.0-1.0
+    // Updated to target IDs that match new HTML structure
     const inputArt = parseFloat(document.getElementById('artScoreInput').value) || 0;
     const inputCom = parseFloat(document.getElementById('comScoreInput').value) || 0;
     
@@ -341,9 +391,6 @@ function analyzeMovie() {
     let yieldPercentage = bestAgent ? GAME_DATA.constants.AD_EFFICIENCY[bestAgent.level] : 0;
     
     // 3. Conversion: Based on the relevant Score
-    // If Movie is Art, conversion depends on Art Score.
-    // If Movie is Com, conversion depends on Com Score.
-    // If Balanced, we assume the stronger score drives conversion or a blend.
     let conversionFactor = 0;
     if (movieLean === 1) conversionFactor = factorArt; 
     else if (movieLean === 2) conversionFactor = factorCom; 

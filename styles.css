@@ -80,6 +80,121 @@ h3 {
 
 .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
 
+/* --- NEW SCORE CARD STYLES --- */
+.score-card {
+    border-top: 4px solid var(--border);
+}
+
+.score-help {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: #333;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.score-controls-wrapper {
+    display: flex;
+    gap: 30px;
+    margin-top: 15px;
+}
+
+.score-control-group {
+    flex: 1;
+    background: #252525;
+    padding: 15px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+}
+
+.score-control-group:hover {
+    border-color: #555;
+}
+
+.score-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.score-label-row label {
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.score-label-row .icon {
+    font-size: 1.2rem;
+}
+
+.score-number-display {
+    width: 60px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-family: 'Inter', monospace;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-align: center;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.score-number-display:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.range-wrapper {
+    position: relative;
+    height: 24px;
+    display: flex;
+    align-items: center;
+}
+
+.styled-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #444;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.styled-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--text-main);
+    border: 2px solid #252525;
+    cursor: grab;
+    transition: transform 0.1s;
+    margin-top: -6px; /* center thumb */
+}
+
+.styled-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.art-slider::-webkit-slider-thumb {
+    background: #a0a0ff; /* Art Color */
+}
+
+.com-slider::-webkit-slider-thumb {
+    background: var(--accent); /* Commercial Color */
+}
+
+/* --- END SCORE CARD STYLES --- */
+
 /* Search Bar */
 .search-wrapper { position: relative; }
 
@@ -91,7 +206,7 @@ input[type="text"] {
     color: white;
     border-radius: var(--radius);
     font-size: 1rem;
-    box-sizing: border-box; /* Important for padding */
+    box-sizing: border-box; 
 }
 
 input[type="text"]:focus {
@@ -273,4 +388,5 @@ footer {
 @media (max-width: 600px) {
     #selectors-container { grid-template-columns: 1fr; }
     h1 { font-size: 1.8rem; }
+    .score-controls-wrapper { flex-direction: column; gap: 15px; }
 }
