@@ -22,10 +22,24 @@
             
             <!-- SEARCH BAR SECTION -->
             <div class="card search-card">
-                <h3>🔍 Quick Search</h3>
+                <h3>Quick Search</h3>
                 <div class="search-wrapper">
                     <input type="text" id="globalSearch" placeholder="Type to find a tag (e.g., 'Action', 'Cowboy')..." autocomplete="off">
                     <div id="searchResults" class="search-results hidden"></div>
+                </div>
+            </div>
+
+            <div class="score-inputs" style="margin: 15px 0; padding: 10px; background: #222; border: 1px solid #444; border-radius: 5px;">
+                <h3 style="margin-top: 0; font-size: 0.9em; text-transform: uppercase; color: #888; margin-bottom: 10px;">Predicted Scores (0-10)</h3>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 0.8em; color: #aaa; margin-bottom: 5px;">Art</label>
+                        <input type="number" id="artScoreInput" step="0.1" min="0" max="10" value="6.0" style="width: 100%; padding: 8px; background: #333; color: white; border: 1px solid #555; box-sizing: border-box;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 0.8em; color: #aaa; margin-bottom: 5px;">Commercial</label>
+                        <input type="number" id="comScoreInput" step="0.1" min="0" max="10" value="6.0" style="width: 100%; padding: 8px; background: #333; color: white; border: 1px solid #555; box-sizing: border-box;">
+                    </div>
                 </div>
             </div>
 
