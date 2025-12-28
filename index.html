@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hollywood Animal - Advertising Tool</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Google Fonts for modern typography -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -20,7 +19,6 @@
 
         <div class="container">
             
-            <!-- SEARCH BAR SECTION -->
             <div class="card search-card">
                 <h3>🔍 Quick Search</h3>
                 <div class="search-wrapper">
@@ -29,15 +27,23 @@
                 </div>
             </div>
 
-            <!-- SCRIPT BUILDER SECTION -->
             <div class="card builder-card">
                 <div class="card-header">
                     <h3>Build Your Script</h3>
                     <button class="reset-btn" onclick="location.reload()">Reset</button>
                 </div>
-                <p class="subtitle">Select tags manually or use the search bar above.</p>
                 
-                <!-- Dynamic Selectors Container -->
+                <div class="ticket-section">
+                    <p class="label-small">Ticket Price Strategy:</p>
+                    <div class="ticket-toggle">
+                        <input type="radio" id="priceLow" name="ticketPrice" value="0.23" checked>
+                        <label for="priceLow">$0.23</label>
+
+                        <input type="radio" id="priceHigh" name="ticketPrice" value="0.58">
+                        <label for="priceHigh">$0.58</label>
+                    </div>
+                </div>
+
                 <div id="selectors-container"></div>
                 
                 <div class="action-area">
@@ -45,7 +51,6 @@
                 </div>
             </div>
 
-            <!-- RESULTS SECTION -->
             <div id="results" class="results-grid hidden">
                 
                 <div class="card result-card target-card">
@@ -54,23 +59,31 @@
                 </div>
 
                 <div class="card result-card strategy-card">
-                    <h3>Result</h3>
+                    <h3>Advertisers</h3>
                     <div class="strategy-content">
                         <div class="stat-row">
-                            <span class="label">Commercial or Artistic?</span>
+                            <span class="label">Artistic or Commercial?</span>
                             <span id="movieLeanDisplay" class="value"></span>
                         </div>
                         <div class="stat-row vertical">
-                            <span class="label">Recommended Advertiser:</span>
+                            <span class="label">Recommended Advertisers</span>
                             <div id="adAgentDisplay" class="highlight-box"></div>
                         </div>
                     </div>
                 </div>
 
                 <div class="card result-card date-card">
-                    <h3>Preferred Holiday to Release</h3>
+                    <h3>Best Holiday to Release</h3>
                     <div id="holidayDisplay" class="highlight-box"></div>
                 </div>
+
+                <div class="card result-card duration-card">
+                    <h3>Optimal Ad Duration</h3>
+                    <div id="adDurationDisplay" class="highlight-box">
+                    </div>
+                    <p class="disclaimer">Calculated based on marginal revenue vs. cost decay.</p>
+                </div>
+
             </div>
         </div>
         

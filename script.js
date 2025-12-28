@@ -3,16 +3,23 @@
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
 
+const ALL_AUDIENCE = 30000000;
+const ADS_BUDGET_BASE = 50000;
+const ADS_EFFICIENCY_TIERS = [0.15, 0.30, 0.50];
+const ADS_CAMPAIGN_EFFICIENCY_GRAPHIC = [0.25, 0.45, 0.60, 0.70, 0.80, 0.90, 0.95, 1.00, 1.00, 0.95, 0.90, 0.85, 0.75, 0.60, 0.30, 0.10];
+const ADS_CAMPAIGN_DROP_GRAPHIC = [0.95, 0.85, 0.70, 0.20];
+
+const MAX_PHYSICAL_CAPACITY = 2400000; 
+
 window.onload = async function() {
     try {
         await loadExternalData();
         initializeSelectors();
         buildSearchIndex();
         setupSearchListener();
-        console.log("Initialization Complete. Tags Loaded:", Object.keys(GAME_DATA.tags).length);
+        setupTicketListeners();
     } catch (error) {
         console.error("Failed to load data:", error);
-        alert("Error loading data files. Please ensure TagData.json and TagsAudienceWeights.json are in the repository.");
     }
 };
 
@@ -28,16 +35,12 @@ async function loadExternalData() {
     const weightDataRaw = await weightRes.json();
 
     for (const [tagId, data] of Object.entries(tagDataRaw)) {
-        
         if (!weightDataRaw[tagId]) continue;
 
         let category = "Unknown";
-        
-        if (data.type === 0) {
-            category = "Genre";
-        } else if (data.type === 1) {
-            category = "Setting";
-        } else if (data.CategoryID) {
+        if (data.type === 0) category = "Genre";
+        else if (data.type === 1) category = "Setting";
+        else if (data.CategoryID) {
             switch (data.CategoryID) {
                 case "Protagonist": category = "Protagonist"; break;
                 case "Antagonist": category = "Antagonist"; break;
@@ -47,7 +50,6 @@ async function loadExternalData() {
                 default: category = data.CategoryID;
             }
         } 
-        
         if (tagId.startsWith("EVENTS_")) category = "Theme & Event";
 
         GAME_DATA.tags[tagId] = {
@@ -56,6 +58,7 @@ async function loadExternalData() {
             category: category,
             art: parseFloat(data.artValue || 0),
             com: parseFloat(data.commercialValue || 0),
+            base: (parseFloat(data.artValue || 0) + parseFloat(data.commercialValue || 0)) / 2, 
             weights: parseWeights(weightDataRaw[tagId].weights)
         };
     }
@@ -71,17 +74,12 @@ function parseWeights(weightObj) {
 
 function beautifyTagName(raw) {
     let name = raw;
-    // Remove prefixes
     const prefixes = ["PROTAGONIST_", "ANTAGONIST_", "SUPPORTINGCHARACTER_", "THEME_", "EVENTS_", "FINALE_", "EVENT_"];
     prefixes.forEach(p => {
         if (name.startsWith(p)) name = name.substring(p.length);
     });
-    
-    return name.replace(/_/g, ' ')
-               .toLowerCase()
-               .split(' ')
-               .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-               .join(' ');
+    return name.replace(/_/g, ' ').toLowerCase()
+               .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
 function initializeSelectors() {
@@ -101,7 +99,6 @@ function initializeSelectors() {
 
         const header = document.createElement('div');
         header.className = 'category-header';
-        
         const label = document.createElement('div');
         label.className = 'category-label';
         label.innerText = category;
@@ -114,7 +111,6 @@ function initializeSelectors() {
             addBtn.onclick = () => addDropdown(category);
             header.appendChild(addBtn);
         }
-
         groupDiv.appendChild(header);
 
         const inputsContainer = document.createElement('div');
@@ -123,7 +119,6 @@ function initializeSelectors() {
         groupDiv.appendChild(inputsContainer);
 
         container.appendChild(groupDiv);
-
         addDropdown(category);
     });
 }
@@ -162,7 +157,6 @@ function addDropdown(category, selectedId = null) {
     });
 
     if (selectedId) select.value = selectedId;
-
     row.appendChild(select);
 
     if (MULTI_SELECT_CATEGORIES.includes(category)) {
@@ -172,18 +166,13 @@ function addDropdown(category, selectedId = null) {
         removeBtn.onclick = () => row.remove();
         row.appendChild(removeBtn);
     }
-
     container.appendChild(row);
 }
 
 function buildSearchIndex() {
-    searchIndex = Object.values(GAME_DATA.tags).map(tag => {
-        return {
-            id: tag.id,
-            name: tag.name,
-            category: tag.category
-        };
-    });
+    searchIndex = Object.values(GAME_DATA.tags).map(tag => ({
+        id: tag.id, name: tag.name, category: tag.category
+    }));
 }
 
 function setupSearchListener() {
@@ -193,17 +182,14 @@ function setupSearchListener() {
     input.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
         resultsBox.innerHTML = '';
-        
         if (query.length < 2) {
             resultsBox.classList.add('hidden');
             return;
         }
-
         const matches = searchIndex.filter(item => 
             item.name.toLowerCase().includes(query) || 
             item.category.toLowerCase().includes(query)
         );
-
         if (matches.length > 0) {
             resultsBox.classList.remove('hidden');
             matches.forEach(match => {
@@ -223,9 +209,18 @@ function setupSearchListener() {
     });
 
     document.addEventListener('click', (e) => {
-        if (e.target !== input && e.target !== resultsBox) {
-            resultsBox.classList.add('hidden');
-        }
+        if (e.target !== input && e.target !== resultsBox) resultsBox.classList.add('hidden');
+    });
+}
+
+function setupTicketListeners() {
+    const radios = document.querySelectorAll('input[name="ticketPrice"]');
+    radios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (!document.getElementById('results').classList.contains('hidden')) {
+                analyzeMovie();
+            }
+        });
     });
 }
 
@@ -233,12 +228,10 @@ function selectTagFromSearch(tagObj) {
     const category = tagObj.category;
     const containerId = `inputs-${category.replace(/\s/g, '-')}`;
     const container = document.getElementById(containerId);
-
     if (!container) return;
 
     const selects = container.querySelectorAll('select');
     let filled = false;
-
     for (let select of selects) {
         if (select.value === "") {
             select.value = tagObj.id;
@@ -246,15 +239,10 @@ function selectTagFromSearch(tagObj) {
             break;
         }
     }
-
     if (!filled) {
-        if (MULTI_SELECT_CATEGORIES.includes(category)) {
-            addDropdown(category, tagObj.id);
-        } else {
-            if (selects.length > 0) selects[0].value = tagObj.id;
-        }
+        if (MULTI_SELECT_CATEGORIES.includes(category)) addDropdown(category, tagObj.id);
+        else if (selects.length > 0) selects[0].value = tagObj.id;
     }
-    
     const group = document.getElementById(`group-${category.replace(/\s/g, '-')}`);
     if (group) {
         group.style.borderColor = '#d4af37';
@@ -270,37 +258,38 @@ function analyzeMovie() {
     });
 
     if(selectedTags.length === 0) {
-        alert("Please select at least one tag.");
+        if(event && event.type === 'click') alert("Please select at least one tag.");
         return;
     }
 
-    let scores = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
     let artTotal = 0;
     let comTotal = 0;
+    let baseTotal = 0; 
+    let demoScores = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
 
     selectedTags.forEach(tagId => {
         const tagData = GAME_DATA.tags[tagId];
         if(!tagData) return;
 
-        for(let demo in scores) {
-            if(tagData.weights[demo]) {
-                scores[demo] += tagData.weights[demo];
-            }
-        }
         artTotal += tagData.art;
         comTotal += tagData.com;
+        baseTotal += tagData.base;
+
+        for(let demo in demoScores) {
+            if(tagData.weights[demo]) {
+                demoScores[demo] += tagData.weights[demo];
+            }
+        }
     });
 
     let weightedScores = {};
-    for(let demo in scores) {
-        weightedScores[demo] = scores[demo] * GAME_DATA.demographics[demo].weight;
+    for(let demoKey in demoScores) {
+        weightedScores[demoKey] = demoScores[demoKey] * GAME_DATA.demographics[demoKey].baseWeight;
     }
-
     let winner = Object.keys(weightedScores).reduce((a, b) => weightedScores[a] > weightedScores[b] ? a : b);
-    
+
     let movieLean = 0; 
     let leanText = "Balanced";
-    
     if (artTotal > comTotal + 0.1) {
         movieLean = 1;
         leanText = "Artistic";
@@ -312,22 +301,78 @@ function analyzeMovie() {
     let validAgents = GAME_DATA.adAgents.filter(agent => {
         return agent.targets.includes(winner) && (agent.type === movieLean || agent.type === 0);
     });
+    if(validAgents.length === 0) validAgents = GAME_DATA.adAgents.filter(a => a.targets.includes(winner) && a.type === 0);
 
-    if(validAgents.length === 0) {
-        validAgents = GAME_DATA.adAgents.filter(agent => {
-            return agent.targets.includes(winner) && agent.type === 0;
-        });
+    let bestAgent = validAgents.sort((a,b) => b.type - a.type)[0];
+    if(!bestAgent) bestAgent = { name: "Fallback", type: 0, budgetFactor: 1.0 };
+
+    const ticketPrice = parseFloat(document.querySelector('input[name="ticketPrice"]:checked').value);
+    
+    let decayRate = 0.90;
+    if (movieLean === 1) decayRate = 0.95;
+    if (movieLean === 2) decayRate = 0.85;
+
+    const adResult = estimateAdDuration(artTotal, comTotal, baseTotal, ticketPrice, decayRate, bestAgent);
+
+    displayResults(winner, weightedScores, leanText, movieLean, adResult, bestAgent);
+}
+
+function estimateAdDuration(artScore, comScore, baseScore, ticketPrice, decayRate, agent) {
+    let optimalWeeks = 0;
+    const maxWeeks = 16; 
+
+    let totalBaseAudience = 0;
+    for (const [key, demo] of Object.entries(GAME_DATA.demographics)) {
+        const demoAudience = ALL_AUDIENCE * (
+            (demo.baseWeight * baseScore) +
+            (demo.artWeight * artScore) +
+            (demo.comWeight * comScore)
+        );
+        totalBaseAudience += Math.max(0, demoAudience); 
     }
 
-    let bestHoliday = GAME_DATA.holidays.find(h => {
-        if(Array.isArray(h.target)) return h.target.includes(winner);
-        return h.target === winner;
-    });
-    
-    if(!bestHoliday) bestHoliday = { name: "Christmas or Any Generic Window", bonus: "Standard" };
+    totalBaseAudience = Math.min(totalBaseAudience, MAX_PHYSICAL_CAPACITY);
 
+    const weeklyAdCost = ADS_BUDGET_BASE * agent.budgetFactor;
+    const agentEfficiencyBase = ADS_EFFICIENCY_TIERS[agent.type];
+
+    for (let week = 0; week < maxWeeks; week++) {
+
+        const organicDecayMultiplier = Math.pow(decayRate, week);
+        const organicAudience = totalBaseAudience * organicDecayMultiplier;
+
+        let graphicValue = 0;
+        if (week < ADS_CAMPAIGN_EFFICIENCY_GRAPHIC.length) {
+            graphicValue = ADS_CAMPAIGN_EFFICIENCY_GRAPHIC[week];
+        }
+        
+        const adBoostFactor = agentEfficiencyBase * graphicValue;
+
+        const revenueNoAd = organicAudience * ticketPrice;
+        
+        const audienceWithAd = organicAudience * (1 + adBoostFactor);
+        const revenueWithAd = audienceWithAd * ticketPrice;
+
+        const marginalGain = revenueWithAd - revenueNoAd;
+
+        if (marginalGain > weeklyAdCost) {
+            optimalWeeks = week + 1; 
+        } else {
+            break; 
+        }
+    }
+
+    return {
+        weeks: optimalWeeks,
+        ticketPrice: ticketPrice,
+        decay: decayRate,
+        weeklyCost: weeklyAdCost
+    };
+}
+
+function displayResults(winner, weightedScores, leanText, movieLean, adResult, bestAgent) {
     document.getElementById('results').classList.remove('hidden');
-    
+
     document.getElementById('targetAudienceDisplay').innerHTML = `
         <span style="font-size: 1.8em; color: #ffd700; font-weight: 800;">${GAME_DATA.demographics[winner].name}</span>
         <span style="color: #888; margin-left: 10px;">(${winner})</span><br>
@@ -335,17 +380,36 @@ function analyzeMovie() {
     `;
 
     document.getElementById('movieLeanDisplay').innerText = leanText;
+    document.getElementById('adAgentDisplay').innerText = bestAgent.name;
 
-    let agentHtml = validAgents.map(a => 
-        `<div style="padding: 5px 0; border-bottom: 1px solid #333;">${a.name}</div>`
-    ).join('');
-    if(!agentHtml) agentHtml = "Nate Sparrow Press (Fallback)";
-    document.getElementById('adAgentDisplay').innerHTML = agentHtml;
-
+    let bestHoliday = GAME_DATA.holidays.find(h => {
+        if(Array.isArray(h.target)) return h.target.includes(winner);
+        return h.target === winner;
+    });
+    if(!bestHoliday) bestHoliday = { name: "Christmas or Generic Window", bonus: "Standard" };
+    
     document.getElementById('holidayDisplay').innerHTML = `
         <div style="font-size: 1.2em; font-weight: bold; color: #fff;">${bestHoliday.name}</div>
         <div style="color: #d4af37;">Bonus: ${bestHoliday.bonus}</div>
     `;
-    
+
+    const durationBox = document.getElementById('adDurationDisplay');
+    if (adResult.weeks > 0) {
+        durationBox.innerHTML = `
+            <div style="font-size: 2em; font-weight: 800; color: #fff;">${adResult.weeks} Weeks</div>
+            <div style="font-size: 0.9em; color: #aaa;">
+                At $${adResult.ticketPrice.toFixed(2)} ticket price.<br>
+                Estimated Weekly Cost: $${adResult.weeklyCost.toLocaleString()}
+            </div>
+        `;
+    } else {
+        durationBox.innerHTML = `
+            <div style="font-size: 1.5em; font-weight: 800; color: #ff5f5f;">Do Not Advertise</div>
+            <div style="font-size: 0.9em; color: #aaa;">
+                Revenue gain covers less than ad cost.
+            </div>
+        `;
+    }
+
     document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 }
