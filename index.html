@@ -18,7 +18,7 @@
         </header>
 
         <div class="container">
-
+            
             <div class="card search-card">
                 <h3>Quick Search</h3>
                 <div class="search-wrapper">
@@ -34,7 +34,7 @@
                 </div>
                 
                 <div class="controls-wrapper">
-
+                    
                     <div class="control-group ticket-section">
                         <label class="group-label">Pick the Ticket Price</label>
                         <div class="segmented-control">
@@ -56,11 +56,11 @@
                         <label class="group-label">Review Scores</label>
                         <div class="dual-inputs">
                             <div class="input-wrapper">
-                                <label for="artInput">Artistic</label>
+                                <label for="comInput">Commercial</label>
                                 <input type="number" id="artInput" class="score-input" min="0" max="10" step="0.1" value="5.0">
                             </div>
                             <div class="input-wrapper">
-                                <label for="comInput">Commercial</label>
+                                <label for="artInput">Artistic</label>
                                 <input type="number" id="comInput" class="score-input" min="0" max="10" step="0.1" value="5.0">
                             </div>
                         </div>
@@ -75,23 +75,21 @@
             </div>
 
             <div id="results" class="hidden">
-
+                
                 <div class="card result-card duration-card">
                     <h3>Optimal Advertising Duration</h3>
                     <div id="adDurationDisplay">
                     </div>
+                    <p class="disclaimer">Calculated based on marginal revenue vs. cost decay.</p>
                 </div>
 
-                <!-- 2. DETAILED GRID -->
                 <div class="results-grid">
                     
-                    <!-- Target Audience -->
                     <div class="card result-card target-card">
                         <h3>Target Audience</h3>
                         <div id="targetAudienceDisplay"></div>
                     </div>
 
-                    <!-- Strategy & Agent -->
                     <div class="card result-card strategy-card">
                         <h3>Advertisers</h3>
                         <div class="strategy-content">
@@ -106,7 +104,6 @@
                         </div>
                     </div>
 
-                    <!-- Release Window -->
                     <div class="card result-card date-card">
                         <h3>Best Holiday to Release</h3>
                         <div id="holidayDisplay" class="highlight-box"></div>

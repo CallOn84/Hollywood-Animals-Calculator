@@ -211,7 +211,6 @@ function setupSearchListener() {
 }
 
 function setupControlsListeners() {
-    // Ticket Price
     const radios = document.querySelectorAll('input[name="ticketPrice"]');
     radios.forEach(radio => {
         radio.addEventListener('change', () => {
@@ -221,7 +220,6 @@ function setupControlsListeners() {
         });
     });
 
-    // Score Inputs (Art / Com)
     const inputs = ['artInput', 'comInput'];
     inputs.forEach(id => {
         const el = document.getElementById(id);
@@ -274,7 +272,6 @@ function analyzeMovie() {
         return;
     }
 
-    // 1. Calculate Tag Demographics (Audience Targeting)
     let demoScores = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
 
     selectedTags.forEach(tagId => {
@@ -299,12 +296,11 @@ function analyzeMovie() {
 
     let movieLean = 0; 
     let leanText = "Balanced";
-
     if (artScore > comScore + 0.5) {
-        movieLean = 1;
+        movieLean = 1; 
         leanText = "Artistic";
     } else if (comScore > artScore + 0.5) {
-        movieLean = 2;
+        movieLean = 2; 
         leanText = "Commercial";
     }
 
@@ -325,9 +321,10 @@ function analyzeMovie() {
         }
     });
 
-    if (!bestAgent) {
+    if (!bestAgent || bestResult.netProfit === -Infinity) {
         bestAgent = validAgents[0];
-        bestResult = { weeks: 0, netProfit: 0, weeklyCost: bestAgent.weeklyCost };
+        const fallbackCost = ADS_BUDGET_BASE * bestAgent.budgetFactor;
+        bestResult = { weeks: 0, netProfit: 0, weeklyCost: fallbackCost };
     }
 
     displayResults(winner, weightedScores, leanText, movieLean, bestResult, bestAgent);
@@ -340,7 +337,6 @@ function estimateAdDuration(artScore, comScore, ticketPrice, movieLean, agent) {
 
     const maxScore = Math.max(artScore, comScore);
     let occupancyPercent = maxScore / 10; 
-
     let totalBaseAudience = MAX_PHYSICAL_CAPACITY * occupancyPercent;
 
     const weeklyAdCost = ADS_BUDGET_BASE * agent.budgetFactor;
@@ -351,7 +347,6 @@ function estimateAdDuration(artScore, comScore, ticketPrice, movieLean, agent) {
     if (movieLean === 2) decayRate = 0.85;
 
     for (let week = 0; week < maxWeeks; week++) {
-
         const organicDecayMultiplier = Math.pow(decayRate, week);
         const organicAudience = totalBaseAudience * organicDecayMultiplier;
 
@@ -388,52 +383,13 @@ function estimateAdDuration(artScore, comScore, ticketPrice, movieLean, agent) {
 function displayResults(winner, weightedScores, leanText, movieLean, adResult, bestAgent) {
     document.getElementById('results').classList.remove('hidden');
 
-    const durationBox = document.getElementById('adDurationDisplay');
-    
-    if (adResult.weeks > 0) {
-        durationBox.innerHTML = `
-            <div class="duration-layout">
-                <div class="duration-main">
-                    <span class="big-number">${adResult.weeks}</span>
-                    <span class="big-unit">Weeks</span>
-                </div>
-                <div class="duration-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Weekly Ad Cost</span>
-                        <span class="detail-val">$${adResult.weeklyCost.toLocaleString()}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Decay Rate</span>
-                        <span class="detail-val">${(adResult.decay * 100).toFixed(0)}%</span>
-                    </div>
-                    <div class="detail-row profit">
-                        <span class="detail-label">Est. Net Profit</span>
-                        <span class="detail-val profit-val">+$${adResult.netProfit.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    } else {
-        durationBox.innerHTML = `
-            <div class="warning-box">
-                <span class="warning-icon">⚠️</span>
-                <span class="warning-title">Do Not Advertise</span>
-                <div style="font-size: 0.9em; color: #aaa; margin-top:5px;">
-                    Projected revenue gain is lower than the advertising cost.<br>
-                    (Lowest cost option: $${bestAgent.weeklyCost.toLocaleString()})
-                </div>
-            </div>
-        `;
-    }
-
     document.getElementById('targetAudienceDisplay').innerHTML = `
-        <span style="font-size: 1.8em; color: #d4af37; font-weight: 800;">${GAME_DATA.demographics[winner].name}</span>
+        <span style="font-size: 1.8em; color: #ffd700; font-weight: 800;">${GAME_DATA.demographics[winner].name}</span>
         <span style="color: #888; margin-left: 10px;">(${winner})</span><br>
         <div style="margin-top: 5px; color: #fff;">Weighted Score: <strong>${weightedScores[winner].toFixed(2)}</strong></div>
     `;
 
     document.getElementById('movieLeanDisplay').innerText = leanText;
-    
     document.getElementById('adAgentDisplay').innerHTML = `
         <div style="font-size: 1.1em; font-weight: bold; color: white;">${bestAgent.name}</div>
         <div style="font-size: 0.85em; color: #888;">Tier ${bestAgent.type} • Targets: ${bestAgent.targets.join(', ')}</div>
@@ -449,6 +405,46 @@ function displayResults(winner, weightedScores, leanText, movieLean, adResult, b
         <div style="font-size: 1.2em; font-weight: bold; color: #fff;">${bestHoliday.name}</div>
         <div style="color: #d4af37;">Bonus: ${bestHoliday.bonus}</div>
     `;
+
+    const durationBox = document.getElementById('adDurationDisplay');
+    
+    if (adResult.weeks > 0) {
+        durationBox.innerHTML = `
+            <div class="duration-layout">
+                <div class="duration-main">
+                    <span class="big-number">${adResult.weeks}</span>
+                    <span class="big-unit">Weeks</span>
+                </div>
+                <div class="duration-details">
+                    <div class="detail-block">
+                        <span class="detail-label">Ticket Strategy</span>
+                        <span class="detail-val">$${adResult.ticketPrice.toFixed(2)}</span>
+                    </div>
+                    <div class="detail-block">
+                        <span class="detail-label">Weekly Ad Cost</span>
+                        <span class="detail-val">$${adResult.weeklyCost.toLocaleString()}</span>
+                    </div>
+                    <div class="detail-block">
+                        <span class="detail-label">Est. Net Profit</span>
+                        <span class="detail-val profit-val">+$${adResult.netProfit.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        const displayCost = adResult.weeklyCost ? adResult.weeklyCost.toLocaleString() : "Unknown";
+        
+        durationBox.innerHTML = `
+            <div class="warning-box">
+                <span class="warning-icon">⚠️</span>
+                <span class="warning-title">Do Not Advertise</span>
+                <div style="font-size: 0.9em; color: #aaa; margin-top:5px;">
+                    Projected revenue gain is lower than the advertising cost.<br>
+                    (Lowest cost option: $${displayCost})
+                </div>
+            </div>
+        `;
+    }
 
     document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 }
