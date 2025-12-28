@@ -36,7 +36,7 @@ const GAME_DATA = {
         "Protagonist", 
         "Antagonist", 
         "Supporting Character", 
-        "Theme & Event", 
+        "Theme and Event", 
         "Finale"
     ],
 
@@ -598,327 +598,327 @@ const GAME_DATA = {
             weights: { TF: 4, TM: 4, YF: 1, YM: 2, AF: 0, AM: 0 } 
         },
         "A Curse": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 2, YF: 0, YM: 2, AF: 0, AM: 1 } 
         },
         "Abundant Profanity": {
-            category: "Theme & Event", art: 0.05, com: 0.12,
+            category: "Theme and Event", art: 0.05, com: 0.12,
             weights: { TF: 3, TM: 3, YF: 3, YM: 3, AF: 3, AM: 3 } 
         },
         "Accidental Murder": {
-            category: "Theme & Event", art: 0.10, com: 0.00,
+            category: "Theme and Event", art: 0.10, com: 0.00,
             weights: { TF: 0, TM: 0, YF: 1, YM: 1, AF: 2, AM: 2 } 
         },
         "Ace Combat": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 4, YF: 1, YM: 3, AF: 1, AM: 3 } 
         },
         "Amnesia": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 2, TM: 2, YF: 2, YM: 2, AF: 3, AM: 3 } 
         },
         "Assassination Attempts": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 0, TM: 2, YF: 0, YM: 2, AF: 0, AM: 2 } 
         },
         "Betrayal": {
-            category: "Theme & Event", art: 0.05, com: 0.00,
+            category: "Theme and Event", art: 0.05, com: 0.00,
             weights: { TF: 2, TM: 3, YF: 2, YM: 4, AF: 2, AM: 3 } 
         },
         "Avenging Loved Ones": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 3, YF: 1, YM: 3, AF: 1, AM: 3 } 
         },
         "Bank Robbery": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 3, YF: 1, YM: 3, AF: 0, AM: 2 } 
         },
         "Bar Brawl": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: -1, TM: 2, YF: -1, YM: 1, AF: -1, AM: 1 } 
         },
         "Big Battle Scenes": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 4, YF: 1, YM: 3, AF: 0, AM: 2 } 
         },
         "Breaking in New Employee": {
-            category: "Theme & Event", art: -0.10, com: 0.05,
+            category: "Theme and Event", art: -0.10, com: 0.05,
             weights: { TF: 1, TM: 1, YF: 2, YM: 2, AF: 1, AM: 1 } 
         },
         "Captured and Tortured": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 2, YF: 1, YM: 3, AF: 1, AM: 3 } 
         },
         "Car Chase": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 4, YF: 1, YM: 4, AF: 0, AM: 2 } 
         },
         "Child Abuse": {
-            category: "Theme & Event", art: 0.10, com: -0.10,
+            category: "Theme and Event", art: 0.10, com: -0.10,
             weights: { TF: -1, TM: -1, YF: 2, YM: 2, AF: 3, AM: 3 } 
         },
         "Crime of Necessity": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 2, YF: 1, YM: 2, AF: 1, AM: 2 } 
         },
         "Cursed Deal": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 2, YF: 1, YM: 2, AF: 1, AM: 2 } 
         },
         "Death of a Loved One": {
-            category: "Theme & Event", art: 0.10, com: 0.00,
+            category: "Theme and Event", art: 0.10, com: 0.00,
             weights: { TF: 1, TM: 0, YF: 3, YM: 2, AF: 5, AM: 3 } 
         },
         "Depressed": {
-            category: "Theme & Event", art: 0.10, com: -0.10,
+            category: "Theme and Event", art: 0.10, com: -0.10,
             weights: { TF: -1, TM: -1, YF: 2, YM: 2, AF: 3, AM: 3 } 
         },
         "Divorce": {
-            category: "Theme & Event", art: 0.10, com: -0.10,
+            category: "Theme and Event", art: 0.10, com: -0.10,
             weights: { TF: 1, TM: 1, YF: 3, YM: 2, AF: 4, AM: 2 } 
         },
         "Drug Addiction": {
-            category: "Theme & Event", art: 0.10, com: -0.10,
+            category: "Theme and Event", art: 0.10, com: -0.10,
             weights: { TF: -1, TM: -1, YF: 1, YM: 2, AF: 3, AM: 3 } 
         },
         "Evil Transformation": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 2, AM: 3 } 
         },
         "Escape Captivity": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 1, AM: 2 } 
         },
         "Festive ATM": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 2, YF: 3, YM: 3, AF: 2, AM: 2 } 
         },
         "Fighting a Sorcerer": {
-            category: "Theme & Event", art: -0.40, com: 0.30,
+            category: "Theme and Event", art: -0.40, com: 0.30,
             weights: { TF: 4, TM: 5, YF: 3, YM: 5, AF: 2, AM: 5 } 
         },
         "Fighting Fascism": {
-            category: "Theme & Event", art: -0.20, com: 0.10,
+            category: "Theme and Event", art: -0.20, com: 0.10,
             weights: { TF: 1, TM: 1, YF: 1, YM: 2, AF: 2, AM: 3 } 
         },
         "Fighting Racism": {
-            category: "Theme & Event", art: -0.20, com: 0.10,
+            category: "Theme and Event", art: -0.20, com: 0.10,
             weights: { TF: 1, TM: 1, YF: 1, YM: 2, AF: 2, AM: 3 } 
         },
         "Finding Inner Peace": {
-            category: "Theme & Event", art: 0.10, com: -0.10,
+            category: "Theme and Event", art: 0.10, com: -0.10,
             weights: { TF: 1, TM: -1, YF: 2, YM: 1, AF: 4, AM: 2 } 
         },
         "Forbidden Love": {
-            category: "Theme & Event", art: 0.05, com: 0.00,
+            category: "Theme and Event", art: 0.05, com: 0.00,
             weights: { TF: 1, TM: 0, YF: 4, YM: 2, AF: 4, AM: 1 } 
         },
         "Funny One Liners": {
-            category: "Theme & Event", art: 0.05, com: 0.12,
+            category: "Theme and Event", art: 0.05, com: 0.12,
             weights: { TF: 3, TM: 3, YF: 3, YM: 3, AF: 3, AM: 3 } 
         },
         "Getting Pregnant": {
-            category: "Theme & Event", art: 0.05, com: -0.05,
+            category: "Theme and Event", art: 0.05, com: -0.05,
             weights: { TF: 1, TM: -3, YF: 2, YM: 0, AF: 4, AM: 0 } 
         },
         "Gore": {
-            category: "Theme & Event", art: 0.10, com: -0.10,
+            category: "Theme and Event", art: 0.10, com: -0.10,
             weights: { TF: 0, TM: 1, YF: 0, YM: 2, AF: 0, AM: 2 } 
         },
         "Hunting for a Lost Treasure": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 2, AM: 2 } 
         },
         "Jousting Tournament": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 2, TM: 3, YF: 1, YM: 3, AF: 1, AM: 2 } 
         },
         "Kidnapping": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 2, YF: 1, YM: 3, AF: 1, AM: 3 } 
         },
         "Long Journey": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 2, AM: 2 } 
         },
         "Love Triangle": {
-            category: "Theme & Event", art: 0.05, com: 0.00,
+            category: "Theme and Event", art: 0.05, com: 0.00,
             weights: { TF: 1, TM: 0, YF: 4, YM: 2, AF: 4, AM: 1 } 
         },
         "Magic Sword": {
-            category: "Theme & Event", art: -0.40, com: 0.30,
+            category: "Theme and Event", art: -0.40, com: 0.30,
             weights: { TF: 4, TM: 5, YF: 3, YM: 5, AF: 2, AM: 5 } 
         },
         "Mafia Power Struggle": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 3, YF: 1, YM: 3, AF: 1, AM: 3 } 
         },
         "Mob War": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 3, YF: 1, YM: 3, AF: 1, AM: 3 } 
         },
         "Murder": {
-            category: "Theme & Event", art: 0.10, com: 0.00,
+            category: "Theme and Event", art: 0.10, com: 0.00,
             weights: { TF: 0, TM: 0, YF: 1, YM: 1, AF: 2, AM: 2 } 
         },
         "Multiple Murders": {
-            category: "Theme & Event", art: 0.10, com: 0.00,
+            category: "Theme and Event", art: 0.10, com: 0.00,
             weights: { TF: 0, TM: 0, YF: 1, YM: 1, AF: 2, AM: 2 } 
         },
         "Naughty Schoolgirl": {
-            category: "Theme & Event", art: -0.30, com: 0.10,
+            category: "Theme and Event", art: -0.30, com: 0.10,
             weights: { TF: -4, TM: -4, YF: 2, YM: 5, AF: -2, AM: 5 } 
         },
         "Outlaw": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 3, YF: 1, YM: 3, AF: 0, AM: 2 } 
         },
         "Prison Break": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 1, AM: 2 } 
         },
         "Protagonist Passes the Torch": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 1, YF: 1, YM: 1, AF: 2, AM: 2 } 
         },
         "Protagonist Roped Back in": {
-            category: "Theme & Event", art: 0.01, com: 0.05,
+            category: "Theme and Event", art: 0.01, com: 0.05,
             weights: { TF: 1, TM: 1, YF: 1, YM: 1, AF: 2, AM: 2 } 
         },
         "Protagonists Close One Dies": {
-            category: "Theme & Event", art: 0.10, com: 0.00,
+            category: "Theme and Event", art: 0.10, com: 0.00,
             weights: { TF: 1, TM: 0, YF: 3, YM: 2, AF: 5, AM: 3 } 
         },
         "Rape": {
-            category: "Theme & Event", art: -0.30, com: 0.10,
+            category: "Theme and Event", art: -0.30, com: 0.10,
             weights: { TF: -4, TM: -4, YF: 2, YM: 5, AF: -2, AM: 5 } 
         },
         "Rescue Mission": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 1, AM: 2 } 
         },
         "Revenge": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 3, YF: 1, YM: 3, AF: 1, AM: 3 } 
         },
         "Runaway": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 2, TM: 2, YF: 2, YM: 2, AF: 2, AM: 2 } 
         },
         "Saving the Beloved": {
-            category: "Theme & Event", art: 0.05, com: 0.00,
+            category: "Theme and Event", art: 0.05, com: 0.00,
             weights: { TF: 1, TM: 0, YF: 4, YM: 2, AF: 4, AM: 1 } 
         },
         "Search Killer": {
-            category: "Theme & Event", art: 0.10, com: 0.00,
+            category: "Theme and Event", art: 0.10, com: 0.00,
             weights: { TF: 0, TM: 0, YF: 1, YM: 1, AF: 2, AM: 2 } 
         },
         "Shootout": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 4, YF: 1, YM: 3, AF: 0, AM: 2 } 
         },
         "Stagecoach Robbery": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 3, YF: 1, YM: 3, AF: 0, AM: 2 } 
         },
         "Stockholm Syndrome": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 1, YF: 2, YM: 2, AF: 2, AM: 2 } 
         },
         "Struggle for Better Life": {
-            category: "Theme & Event", art: 0.10, com: -0.10,
+            category: "Theme and Event", art: 0.10, com: -0.10,
             weights: { TF: 1, TM: 0, YF: 3, YM: 2, AF: 5, AM: 3 } 
         },
         "Tank Combat": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 4, YF: 1, YM: 3, AF: 1, AM: 3 } 
         },
         "The Big Heist": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 3, YF: 1, YM: 3, AF: 0, AM: 2 } 
         },
         "The Dark Secret": {
-            category: "Theme & Event", art: 0.10, com: 0.00,
+            category: "Theme and Event", art: 0.10, com: 0.00,
             weights: { TF: 1, TM: 1, YF: 2, YM: 2, AF: 2, AM: 2 } 
         },
         "The Great Escape": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 1, AM: 2 } 
         },
         "The Key Witness": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 2, TM: 2, YF: 2, YM: 2, AF: 2, AM: 2 } 
         },
         "The Long Journey": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 2, AM: 2 } 
         },
         "The Manhunt": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 3, YF: 1, YM: 3, AF: 0, AM: 2 } 
         },
         "The Rescue Mission": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 1, AM: 2 } 
         },
         "The Search for a Killer": {
-            category: "Theme & Event", art: 0.10, com: 0.00,
+            category: "Theme and Event", art: 0.10, com: 0.00,
             weights: { TF: 0, TM: 0, YF: 1, YM: 1, AF: 2, AM: 2 } 
         },
         "The Treasure Hunt": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 2, AM: 2 } 
         },
         "Train Job": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 1, TM: 3, YF: 1, YM: 3, AF: 0, AM: 2 } 
         },
         "Treasure Hunt": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 2, TM: 3, YF: 2, YM: 3, AF: 2, AM: 2 } 
         },
         "Unrequited Love": {
-            category: "Theme & Event", art: 0.05, com: 0.00,
+            category: "Theme and Event", art: 0.05, com: 0.00,
             weights: { TF: 1, TM: 0, YF: 4, YM: 2, AF: 4, AM: 1 } 
         },
         "Unwanted Pregnancy": {
-            category: "Theme & Event", art: 0.05, com: -0.05,
+            category: "Theme and Event", art: 0.05, com: -0.05,
             weights: { TF: 1, TM: -3, YF: 2, YM: 0, AF: 4, AM: 0 } 
         },
         "War": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 4, YF: 1, YM: 3, AF: 1, AM: 3 } 
         },
         "War on Sorcery": {
-            category: "Theme & Event", art: -0.40, com: 0.30,
+            category: "Theme and Event", art: -0.40, com: 0.30,
             weights: { TF: 5, TM: 5, YF: 4, YM: 5, AF: 3, AM: 5 } 
         },
         "War Scenes": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 4, YF: 1, YM: 3, AF: 1, AM: 3 } 
         },
         "War with Sorcerers": {
-            category: "Theme & Event", art: -0.40, com: 0.30,
+            category: "Theme and Event", art: -0.40, com: 0.30,
             weights: { TF: 5, TM: 5, YF: 4, YM: 5, AF: 3, AM: 5 } 
         },
         "Wedding": {
-            category: "Theme & Event", art: 0.00, com: 0.00,
+            category: "Theme and Event", art: 0.00, com: 0.00,
             weights: { TF: 1, TM: -3, YF: 2, YM: 1, AF: 4, AM: 0 } 
         },
         "White Supremacy": {
-            category: "Theme & Event", art: 0.00, com: 0.05,
+            category: "Theme and Event", art: 0.00, com: 0.05,
             weights: { TF: 0, TM: 0, YF: 0, YM: 0, AF: 1, AM: 2 } 
         },
         "Winning the Beloved": {
-            category: "Theme & Event", art: 0.05, com: 0.00,
+            category: "Theme and Event", art: 0.05, com: 0.00,
             weights: { TF: 0, TM: -2, YF: 2, YM: 2, AF: 4, AM: 2 } 
         },
         "Worldwide Traveling": {
-            category: "Theme & Event", art: 0.00, com: 0.10,
+            category: "Theme and Event", art: 0.00, com: 0.10,
             weights: { TF: 2, TM: 3, YF: 2, YM: 2, AF: 2, AM: 1 } 
         },
         "Wrongfully Accused": {
-            category: "Theme & Event", art: 0.10, com: 0.05,
+            category: "Theme and Event", art: 0.10, com: 0.05,
             weights: { TF: 0, TM: 1, YF: 2, YM: 2, AF: 3, AM: 3 } 
         },
         "Antagonist Defeated Evil Persists": {
