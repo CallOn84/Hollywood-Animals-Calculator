@@ -1,0 +1,38 @@
+#selectors-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 600px) {
+    #selectors-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #d4af37;
+    font-size: 0.9em;
+    text-transform: uppercase;
+}
+
+select {
+    width: 100%;
+    padding: 12px;
+    background: #333;
+    border: 1px solid #555;
+    color: white;
+    border-radius: 4px;
+    font-size: 1rem;
+    appearance: none;
+    cursor: pointer;
+}
+
+select:focus {
+    outline: none;
+    border-color: #d4af37;
+}

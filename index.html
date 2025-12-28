@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hollywood Animal - Advertising Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Hollywood Animal</h1>
+            <h2>Advertising Tool</h2>
+        </header>
+
+        <div class="card">
+            <h3>Build Your Script</h3>
+            <p>Select your script elements below. Categories will appear automatically.</p>
+            
+            <!-- This is where the JS will inject the category boxes -->
+            <div id="selectors-container"></div>
+            
+            <button onclick="analyzeMovie()">Analyse</button>
+        </div>
+
+        <div id="results" class="results-container hidden">
+            <!-- Results Area -->
+            <div class="card result-card">
+                <h3>🎯 Target Audience</h3>
+                <div id="targetAudienceDisplay"></div>
+            </div>
+
+            <div class="card result-card">
+                <h3>Result</h3>
+                <p><strong>Predicted Lean:</strong> <span id="movieLeanDisplay"></span></p>
+                <p><strong>Recommended Advertiser:</strong></p>
+                <div id="adAgentDisplay" class="highlight-box"></div>
+            </div>
+
+            <div class="card result-card">
+                <h3>Best Holiday Release</h3>
+                <div id="holidayDisplay" class="highlight-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
