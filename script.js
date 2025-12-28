@@ -299,7 +299,7 @@ function analyzeMovie() {
     let validAgents = GAME_DATA.adAgents.filter(agent => {
         return agent.targets.includes(winner) && (agent.type === movieLean || agent.type === 0);
     });
-
+    
     if(validAgents.length === 0) {
         validAgents = GAME_DATA.adAgents.filter(a => a.targets.includes(winner) && a.type === 0);
     }
@@ -384,7 +384,6 @@ function displayResults(winner, weightedScores, leanText, movieLean, adResult, a
 
     document.getElementById('movieLeanDisplay').innerText = leanText;
 
-    // Generate HTML for ALL agents
     if (agentsList.length > 0) {
         let html = agentsList.map((agent, index) => {
             const isBest = index === 0;
@@ -428,15 +427,15 @@ function displayResults(winner, weightedScores, leanText, movieLean, adResult, a
                     <span class="big-unit">Weeks</span>
                 </div>
                 <div class="duration-details">
-                    <div class="detail-row">
+                    <div class="detail-block">
                         <span class="detail-label">Ticket Strategy</span>
                         <span class="detail-val">$${adResult.ticketPrice.toFixed(2)}</span>
                     </div>
-                    <div class="detail-row">
+                    <div class="detail-block">
                         <span class="detail-label">Weekly Ad Cost</span>
                         <span class="detail-val">$${adResult.weeklyCost.toLocaleString()}</span>
                     </div>
-                    <div class="detail-row">
+                    <div class="detail-block">
                         <span class="detail-label">Decay Rate</span>
                         <span class="detail-val">${(adResult.decay * 100).toFixed(0)}%</span>
                     </div>

@@ -45,7 +45,7 @@
                         <input type="radio" id="priceHigh" name="ticketPrice" value="0.58">
                         <label for="priceHigh">
                             <span class="price">$0.58</span>
-                            <span class="sub-text">FSAA</span>
+                            <span class="sub-text">High (From FSAA Policy)</span>
                         </label>
                     </div>
                 </div>
@@ -57,36 +57,38 @@
                 </div>
             </div>
 
-            <div id="results" class="results-grid hidden">
+            <div id="results" class="hidden">
                 
-                <div class="card result-card target-card">
-                    <h3>Target Audience</h3>
-                    <div id="targetAudienceDisplay"></div>
-                </div>
-
-                <div class="card result-card strategy-card">
-                    <h3>Advertisers</h3>
-                    <div class="strategy-content">
-                        <div class="stat-row">
-                            <span class="label">Commercial or Artistic Film?</span>
-                            <span id="movieLeanDisplay" class="value"></span>
-                        </div>
-                        <div class="stat-row vertical">
-                            <span class="label">Recommended Advertisers:</span>
-                            <div id="adAgentDisplay" class="highlight-box"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card result-card date-card">
-                    <h3>Best Holiday to Release</h3>
-                    <div id="holidayDisplay" class="highlight-box"></div>
-                </div>
-
                 <div class="card result-card duration-card">
                     <h3>Optimal Advertising Duration</h3>
                     <div id="adDurationDisplay" class="highlight-box"></div>
                     <p class="disclaimer">Calculated based on marginal revenue vs. cost decay.</p>
+                </div>
+
+                <div class="results-grid">
+                    <div class="card result-card target-card">
+                        <h3>Target Audience</h3>
+                        <div id="targetAudienceDisplay"></div>
+                    </div>
+
+                    <div class="card result-card strategy-card">
+                        <h3>Advertisers</h3>
+                        <div class="strategy-content">
+                            <div class="stat-row">
+                                <span class="label">Commercial or Artistic Film?</span>
+                                <span id="movieLeanDisplay" class="value"></span>
+                            </div>
+                            <div class="stat-row vertical">
+                                <span class="label">Recommended Advertisers:</span>
+                                <div id="adAgentDisplay" class="highlight-box"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card result-card date-card">
+                        <h3>Best Holiday to Release</h3>
+                        <div id="holidayDisplay" class="highlight-box"></div>
+                    </div>
                 </div>
             </div>
         </div>
