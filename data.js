@@ -2,6 +2,15 @@
 
 const GAME_DATA = {
     
+    constants: {
+        POPULATION: 30000000,
+        AD_EFFICIENCY: {
+            1: 0.15, // Level 1 (Quality 0)
+            2: 0.30, // Level 2 (Quality 1)
+            3: 0.50  // Level 3 (Quality 2)
+        }
+    },
+
     demographics: {
         "YM": { name: "Young Male", weight: 0.30 },
         "YF": { name: "Young Female", weight: 0.30 },
@@ -11,15 +20,17 @@ const GAME_DATA = {
         "AF": { name: "Adult Female", weight: 0.05 }
     },
 
+    // Types: 0 = Universal (Base), 1 = Art, 2 = Commercial
+    // Levels: 1 = 15%, 2 = 30%, 3 = 50% Reach
     adAgents: [
-        { name: "NBG", targets: ["AM", "AF"], type: 0 },
-        { name: "Ross&Ross Bros.", targets: ["AM", "AF"], type: 0 },
-        { name: "Vien Pascal", targets: ["YM", "YF", "AM", "AF"], type: 1 },
-        { name: "Spark", targets: ["YM", "YF", "AM", "AF"], type: 2 },
-        { name: "Nate Sparrow Press", targets: ["YM", "YF", "AM", "AF"], type: 0 },
-        { name: "Velvet Gloss", targets: ["TF", "YF", "AF"], type: 2 },
-        { name: "Pierre Zola Company", targets: ["TM", "TF", "YM", "YF", "AM", "AF"], type: 1 },
-        { name: "Spice Mice", targets: ["TM", "TF", "YM", "YF"], type: 2 }
+        { name: "NBG", targets: ["AM", "AF"], type: 0, level: 3 },
+        { name: "Ross&Ross Bros.", targets: ["AM", "AF"], type: 0, level: 2 },
+        { name: "Vien Pascal", targets: ["TM", "TF", "AM", "AF"], type: 1, level: 2 },
+        { name: "Spark", targets: ["YM", "YF", "AM", "AF"], type: 2, level: 3 },
+        { name: "Nate Sparrow Press", targets: ["YM", "YF", "AM", "AF"], type: 0, level: 3 },
+        { name: "Velvet Gloss", targets: ["TF", "YF", "AF"], type: 2, level: 3 },
+        { name: "Pierre Zola Company", targets: ["TM", "YM", "AM"], type: 0, level: 2 },
+        { name: "Spice Mice", targets: ["TM", "TF", "YM", "YF"], type: 2, level: 2 }
     ],
 
     holidays: [
