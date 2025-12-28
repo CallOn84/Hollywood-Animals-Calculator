@@ -1,5 +1,3 @@
-// script.js
-
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
 
@@ -301,10 +299,15 @@ function analyzeMovie() {
     let validAgents = GAME_DATA.adAgents.filter(agent => {
         return agent.targets.includes(winner) && (agent.type === movieLean || agent.type === 0);
     });
-    if(validAgents.length === 0) validAgents = GAME_DATA.adAgents.filter(a => a.targets.includes(winner) && a.type === 0);
 
-    let bestAgent = validAgents.sort((a,b) => b.type - a.type)[0];
-    if(!bestAgent) bestAgent = { name: "Fallback", type: 0, budgetFactor: 1.0 };
+    if(validAgents.length === 0) {
+        validAgents = GAME_DATA.adAgents.filter(a => a.targets.includes(winner) && a.type === 0);
+    }
+
+    validAgents.sort((a,b) => b.type - a.type);
+
+    let bestAgentForMath = validAgents[0];
+    if(!bestAgentForMath) bestAgentForMath = { name: "Fallback", type: 0, budgetFactor: 1.0 };
 
     const ticketPrice = parseFloat(document.querySelector('input[name="ticketPrice"]:checked').value);
     
@@ -312,9 +315,9 @@ function analyzeMovie() {
     if (movieLean === 1) decayRate = 0.95;
     if (movieLean === 2) decayRate = 0.85;
 
-    const adResult = estimateAdDuration(artTotal, comTotal, baseTotal, ticketPrice, decayRate, bestAgent);
+    const adResult = estimateAdDuration(artTotal, comTotal, baseTotal, ticketPrice, decayRate, bestAgentForMath);
 
-    displayResults(winner, weightedScores, leanText, movieLean, adResult, bestAgent);
+    displayResults(winner, weightedScores, leanText, movieLean, adResult, validAgents);
 }
 
 function estimateAdDuration(artScore, comScore, baseScore, ticketPrice, decayRate, agent) {
@@ -370,17 +373,38 @@ function estimateAdDuration(artScore, comScore, baseScore, ticketPrice, decayRat
     };
 }
 
-function displayResults(winner, weightedScores, leanText, movieLean, adResult, bestAgent) {
+function displayResults(winner, weightedScores, leanText, movieLean, adResult, agentsList) {
     document.getElementById('results').classList.remove('hidden');
 
     document.getElementById('targetAudienceDisplay').innerHTML = `
-        <span style="font-size: 1.8em; color: #ffd700; font-weight: 800;">${GAME_DATA.demographics[winner].name}</span>
+        <span style="font-size: 1.8em; color: #d4af37; font-weight: 800;">${GAME_DATA.demographics[winner].name}</span>
         <span style="color: #888; margin-left: 10px;">(${winner})</span><br>
         <div style="margin-top: 5px; color: #fff;">Weighted Score: <strong>${weightedScores[winner].toFixed(2)}</strong></div>
     `;
 
     document.getElementById('movieLeanDisplay').innerText = leanText;
-    document.getElementById('adAgentDisplay').innerText = bestAgent.name;
+
+    // Generate HTML for ALL agents
+    if (agentsList.length > 0) {
+        let html = agentsList.map((agent, index) => {
+            const isBest = index === 0;
+            const color = isBest ? "white" : "#aaa";
+            const weight = isBest ? "bold" : "normal";
+            const border = index !== agentsList.length - 1 ? "border-bottom: 1px solid #333;" : "";
+            
+            return `
+            <div style="padding: 8px 0; ${border} display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 1em; font-weight: ${weight}; color: ${color};">${agent.name}</div>
+                    <div style="font-size: 0.75em; color: #666;">Tier ${agent.type} • Targets: ${agent.targets.join(', ')}</div>
+                </div>
+                ${isBest ? '<span style="font-size:0.8em; color:#d4af37; background:rgba(212,175,55,0.1); padding:2px 6px; border-radius:4px;">BEST</span>' : ''}
+            </div>`;
+        }).join('');
+        document.getElementById('adAgentDisplay').innerHTML = html;
+    } else {
+        document.getElementById('adAgentDisplay').innerHTML = '<div style="color:#888;">No specific agent found. Use general marketing.</div>';
+    }
 
     let bestHoliday = GAME_DATA.holidays.find(h => {
         if(Array.isArray(h.target)) return h.target.includes(winner);
@@ -394,19 +418,39 @@ function displayResults(winner, weightedScores, leanText, movieLean, adResult, b
     `;
 
     const durationBox = document.getElementById('adDurationDisplay');
+    durationBox.className = 'highlight-box'; 
+
     if (adResult.weeks > 0) {
         durationBox.innerHTML = `
-            <div style="font-size: 2em; font-weight: 800; color: #fff;">${adResult.weeks} Weeks</div>
-            <div style="font-size: 0.9em; color: #aaa;">
-                At $${adResult.ticketPrice.toFixed(2)} ticket price.<br>
-                Estimated Weekly Cost: $${adResult.weeklyCost.toLocaleString()}
+            <div class="duration-layout">
+                <div class="duration-main">
+                    <span class="big-number">${adResult.weeks}</span>
+                    <span class="big-unit">Weeks</span>
+                </div>
+                <div class="duration-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Ticket Strategy</span>
+                        <span class="detail-val">$${adResult.ticketPrice.toFixed(2)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Weekly Ad Cost</span>
+                        <span class="detail-val">$${adResult.weeklyCost.toLocaleString()}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Decay Rate</span>
+                        <span class="detail-val">${(adResult.decay * 100).toFixed(0)}%</span>
+                    </div>
+                </div>
             </div>
         `;
     } else {
         durationBox.innerHTML = `
-            <div style="font-size: 1.5em; font-weight: 800; color: #ff5f5f;">Do Not Advertise</div>
-            <div style="font-size: 0.9em; color: #aaa;">
-                Revenue gain covers less than ad cost.
+            <div class="warning-box">
+                <span class="warning-icon">⚠️</span>
+                <span class="warning-title">Do Not Advertise</span>
+                <div style="font-size: 0.9em; color: #aaa; margin-top:5px;">
+                    Projected revenue gain is lower than the advertising cost.
+                </div>
             </div>
         `;
     }

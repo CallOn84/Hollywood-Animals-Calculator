@@ -20,7 +20,7 @@
         <div class="container">
             
             <div class="card search-card">
-                <h3>🔍 Quick Search</h3>
+                <h3>Quick Search</h3>
                 <div class="search-wrapper">
                     <input type="text" id="globalSearch" placeholder="Type to find a tag (e.g., 'Action', 'Cowboy')..." autocomplete="off">
                     <div id="searchResults" class="search-results hidden"></div>
@@ -33,21 +33,27 @@
                     <button class="reset-btn" onclick="location.reload()">Reset</button>
                 </div>
                 
-                <div class="ticket-section">
-                    <p class="label-small">Ticket Price Strategy:</p>
-                    <div class="ticket-toggle">
+                <div class="control-group">
+                    <label class="group-label">Pick the Ticket Price</label>
+                    <div class="segmented-control">
                         <input type="radio" id="priceLow" name="ticketPrice" value="0.23" checked>
-                        <label for="priceLow">$0.23</label>
-
+                        <label for="priceLow">
+                            <span class="price">$0.23</span>
+                            <span class="sub-text">Standard</span>
+                        </label>
+                
                         <input type="radio" id="priceHigh" name="ticketPrice" value="0.58">
-                        <label for="priceHigh">$0.58</label>
+                        <label for="priceHigh">
+                            <span class="price">$0.58</span>
+                            <span class="sub-text">FSAA Policy</span>
+                        </label>
                     </div>
                 </div>
-
+                
                 <div id="selectors-container"></div>
                 
                 <div class="action-area">
-                    <button class="analyze-btn" onclick="analyzeMovie()">Analyse</button>
+                    <button class="analyze-btn" onclick="analyzeMovie()">Analyze</button>
                 </div>
             </div>
 
@@ -62,11 +68,11 @@
                     <h3>Advertisers</h3>
                     <div class="strategy-content">
                         <div class="stat-row">
-                            <span class="label">Artistic or Commercial?</span>
+                            <span class="label">Commercial or Artistic Film?</span>
                             <span id="movieLeanDisplay" class="value"></span>
                         </div>
                         <div class="stat-row vertical">
-                            <span class="label">Recommended Advertisers</span>
+                            <span class="label">Recommended Advertisers:</span>
                             <div id="adAgentDisplay" class="highlight-box"></div>
                         </div>
                     </div>
@@ -78,12 +84,10 @@
                 </div>
 
                 <div class="card result-card duration-card">
-                    <h3>Optimal Ad Duration</h3>
-                    <div id="adDurationDisplay" class="highlight-box">
-                    </div>
+                    <h3>Optimal Advertising Duration</h3>
+                    <div id="adDurationDisplay" class="highlight-box"></div>
                     <p class="disclaimer">Calculated based on marginal revenue vs. cost decay.</p>
                 </div>
-
             </div>
         </div>
         

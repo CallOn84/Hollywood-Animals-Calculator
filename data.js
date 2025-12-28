@@ -1,5 +1,3 @@
-// data.js
-
 const GAME_DATA = {
 
     demographics: {
@@ -35,7 +33,6 @@ const GAME_DATA = {
         }
     },
 
-    // Agents with 'type' (0=Base, 1=Mid, 2=High) and estimated budgetFactor based on game economy
     adAgents: [
         { name: "NBG", targets: ["AM", "AF"], type: 0, budgetFactor: 1.0 },
         { name: "Ross&Ross Bros.", targets: ["AM", "AF"], type: 0, budgetFactor: 1.0 },
