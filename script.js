@@ -83,14 +83,14 @@ function analyzeMovie() {
     let winner = Object.keys(weightedScores).reduce((a, b) => weightedScores[a] > weightedScores[b] ? a : b);
     
     let movieLean = 0; 
-    let leanText = "Balanced / Base";
+    let leanText = "Balanced";
     
     if (artTotal > comTotal + 0.1) {
         movieLean = 1;
-        leanText = "Art House";
+        leanText = "Artistic";
     } else if (comTotal > artTotal + 0.1) {
         movieLean = 2;
-        leanText = "Commercial Blockbuster";
+        leanText = "Commercial";
     }
 
     let validAgents = GAME_DATA.adAgents.filter(agent => {
