@@ -1,6 +1,6 @@
 // script.js
 
-const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
+const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme and Event"];
 
 let searchIndex = [];
 
