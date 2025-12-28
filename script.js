@@ -1,5 +1,3 @@
-// script.js
-
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
 
@@ -9,55 +7,106 @@ window.onload = async function() {
         initializeSelectors();
         buildSearchIndex();
         setupSearchListener();
+        setupScoreSync(); // Initialize slider listeners
         console.log("Initialization Complete. Tags Loaded:", Object.keys(GAME_DATA.tags).length);
     } catch (error) {
         console.error("Failed to load data:", error);
-        alert("Error loading data files. Please ensure TagData.json and TagsAudienceWeights.json are in the repository.");
+        // Fallback if data is local or missing, though alerts might be annoying in some contexts
+        // alert("Error loading data files.");
     }
 };
 
-async function loadExternalData() {
-    const [tagRes, weightRes] = await Promise.all([
-        fetch('data/TagData.json'),
-        fetch('data/TagsAudienceWeights.json')
-    ]);
+// --- NEW FUNCTION: SYNC SLIDERS AND INPUTS ---
+function setupScoreSync() {
+    const pairs = [
+        { slider: 'artScoreSlider', input: 'artScoreInput' },
+        { slider: 'comScoreSlider', input: 'comScoreInput' }
+    ];
 
-    if (!tagRes.ok || !weightRes.ok) throw new Error("File not found");
+    pairs.forEach(pair => {
+        const slider = document.getElementById(pair.slider);
+        const input = document.getElementById(pair.input);
 
-    const tagDataRaw = await tagRes.json();
-    const weightDataRaw = await weightRes.json();
+        // When slider moves
+        slider.addEventListener('input', (e) => {
+            input.value = e.target.value;
+            updateSliderTrack(slider);
+        });
 
-    for (const [tagId, data] of Object.entries(tagDataRaw)) {
-        
-        if (!weightDataRaw[tagId]) continue;
-
-        let category = "Unknown";
-        
-        if (data.type === 0) {
-            category = "Genre";
-        } else if (data.type === 1) {
-            category = "Setting";
-        } else if (data.CategoryID) {
-            switch (data.CategoryID) {
-                case "Protagonist": category = "Protagonist"; break;
-                case "Antagonist": category = "Antagonist"; break;
-                case "SupportingCharacter": category = "Supporting Character"; break;
-                case "Theme": category = "Theme & Event"; break;
-                case "Finale": category = "Finale"; break;
-                default: category = data.CategoryID;
+        // When number typed
+        input.addEventListener('input', (e) => {
+            let val = parseFloat(e.target.value);
+            // Clamp values
+            if (val > 10) val = 10;
+            if (val < 0) val = 0;
+            // Update slider if valid number
+            if (!isNaN(val)) {
+                slider.value = val;
+                updateSliderTrack(slider);
             }
-        } 
-        
-        if (tagId.startsWith("EVENTS_")) category = "Theme & Event";
+        });
 
-        GAME_DATA.tags[tagId] = {
-            id: tagId,
-            name: beautifyTagName(tagId),
-            category: category,
-            art: parseFloat(data.artValue || 0),
-            com: parseFloat(data.commercialValue || 0),
-            weights: parseWeights(weightDataRaw[tagId].weights)
-        };
+        // Initialize visual state
+        updateSliderTrack(slider);
+    });
+}
+
+// Visual logic to make the track look "filled"
+function updateSliderTrack(slider) {
+    const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+    const color = slider.classList.contains('art-slider') ? '#a0a0ff' : '#d4af37'; 
+    
+    // CSS gradient trick to fill the track
+    slider.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${value}%, #444 ${value}%, #444 100%)`;
+}
+
+async function loadExternalData() {
+    // If files aren't found, we default to GAME_DATA defined in data.js if available
+    try {
+        const [tagRes, weightRes] = await Promise.all([
+            fetch('data/TagData.json'),
+            fetch('data/TagsAudienceWeights.json')
+        ]);
+
+        if (!tagRes.ok || !weightRes.ok) return; // Fail silently and use default GAME_DATA if set
+
+        const tagDataRaw = await tagRes.json();
+        const weightDataRaw = await weightRes.json();
+
+        for (const [tagId, data] of Object.entries(tagDataRaw)) {
+            
+            if (!weightDataRaw[tagId]) continue;
+
+            let category = "Unknown";
+            
+            if (data.type === 0) {
+                category = "Genre";
+            } else if (data.type === 1) {
+                category = "Setting";
+            } else if (data.CategoryID) {
+                switch (data.CategoryID) {
+                    case "Protagonist": category = "Protagonist"; break;
+                    case "Antagonist": category = "Antagonist"; break;
+                    case "SupportingCharacter": category = "Supporting Character"; break;
+                    case "Theme": category = "Theme & Event"; break;
+                    case "Finale": category = "Finale"; break;
+                    default: category = data.CategoryID;
+                }
+            } 
+            
+            if (tagId.startsWith("EVENTS_")) category = "Theme & Event";
+
+            GAME_DATA.tags[tagId] = {
+                id: tagId,
+                name: beautifyTagName(tagId),
+                category: category,
+                art: parseFloat(data.artValue || 0),
+                com: parseFloat(data.commercialValue || 0),
+                weights: parseWeights(weightDataRaw[tagId].weights)
+            };
+        }
+    } catch(e) {
+        console.warn("External JSON load failed, relying on data.js default", e);
     }
 }
 
@@ -71,7 +120,6 @@ function parseWeights(weightObj) {
 
 function beautifyTagName(raw) {
     let name = raw;
-    // Remove prefixes
     const prefixes = ["PROTAGONIST_", "ANTAGONIST_", "SUPPORTINGCHARACTER_", "THEME_", "EVENTS_", "FINALE_", "EVENT_"];
     prefixes.forEach(p => {
         if (name.startsWith(p)) name = name.substring(p.length);
@@ -274,6 +322,17 @@ function analyzeMovie() {
         return;
     }
 
+    // --- READ USER INPUTS ---
+    // User sees 0-10, Internal logic uses 0.0-1.0
+    // Updated to target IDs that match new HTML structure
+    const inputArt = parseFloat(document.getElementById('artScoreInput').value) || 0;
+    const inputCom = parseFloat(document.getElementById('comScoreInput').value) || 0;
+    
+    // Internal Factors
+    const factorArt = inputArt / 10;
+    const factorCom = inputCom / 10;
+
+    // --- CALCULATE DEMOGRAPHIC WEIGHTS ---
     let scores = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
     let artTotal = 0;
     let comTotal = 0;
@@ -291,56 +350,107 @@ function analyzeMovie() {
         comTotal += tagData.com;
     });
 
+    // Determine Winner based on Population Weight * Tag Score
     let weightedScores = {};
     for(let demo in scores) {
         weightedScores[demo] = scores[demo] * GAME_DATA.demographics[demo].weight;
     }
-
     let winner = Object.keys(weightedScores).reduce((a, b) => weightedScores[a] > weightedScores[b] ? a : b);
     
+    // --- DETERMINE MOVIE LEAN ---
+    // Logic: If Art > Com + 0.1 -> Art. If Com > Art + 0.1 -> Com. Else -> Balanced.
     let movieLean = 0; 
-    let leanText = "Balanced";
+    let leanText = "Balanced / Universal";
     
-    if (artTotal > comTotal + 0.1) {
+    if (inputArt > inputCom + 0.1) {
         movieLean = 1;
         leanText = "Artistic";
-    } else if (comTotal > artTotal + 0.1) {
+    } else if (inputCom > inputArt + 0.1) {
         movieLean = 2;
         leanText = "Commercial";
     }
 
+    // --- FILTER AGENTS ---
     let validAgents = GAME_DATA.adAgents.filter(agent => {
-        return agent.targets.includes(winner) && (agent.type === movieLean || agent.type === 0);
+        // Must target the winning demographic
+        if (!agent.targets.includes(winner)) return false;
+
+        // Must match the movie lean OR be universal
+        return agent.type === 0 || agent.type === movieLean;
     });
 
-    if(validAgents.length === 0) {
-        validAgents = GAME_DATA.adAgents.filter(agent => {
-            return agent.targets.includes(winner) && agent.type === 0;
-        });
-    }
+    // Sort by Level (Efficiency) Descending
+    validAgents.sort((a, b) => b.level - a.level);
 
-    let bestHoliday = GAME_DATA.holidays.find(h => {
-        if(Array.isArray(h.target)) return h.target.includes(winner);
-        return h.target === winner;
-    });
+    // --- CALCULATE TICKET SALES ---
+    // 1. Pool: Total People in that demographic
+    let populationPool = GAME_DATA.constants.POPULATION * GAME_DATA.demographics[winner].weight;
     
-    if(!bestHoliday) bestHoliday = { name: "Christmas or Any Generic Window", bonus: "Standard" };
+    // 2. Reach: Best Agent's Efficiency
+    let bestAgent = validAgents.length > 0 ? validAgents[0] : null;
+    let yieldPercentage = bestAgent ? GAME_DATA.constants.AD_EFFICIENCY[bestAgent.level] : 0;
+    
+    // 3. Conversion: Based on the relevant Score
+    let conversionFactor = 0;
+    if (movieLean === 1) conversionFactor = factorArt; 
+    else if (movieLean === 2) conversionFactor = factorCom; 
+    else conversionFactor = Math.max(factorArt, factorCom); 
+    
+    let finalAudience = Math.floor(populationPool * yieldPercentage * conversionFactor);
 
+    // --- RENDER RESULTS ---
     document.getElementById('results').classList.remove('hidden');
     
     document.getElementById('targetAudienceDisplay').innerHTML = `
         <span style="font-size: 1.8em; color: #ffd700; font-weight: 800;">${GAME_DATA.demographics[winner].name}</span>
         <span style="color: #888; margin-left: 10px;">(${winner})</span><br>
-        <div style="margin-top: 5px; color: #fff;">Weighted Score: <strong>${weightedScores[winner].toFixed(2)}</strong></div>
+        
+        <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; text-align: left;">
+            <div style="color: #aaa;">Total Pool:</div>
+            <div style="text-align: right; color: #fff;">${(populationPool / 1000000).toFixed(2)}M</div>
+            
+            <div style="color: #aaa;">Ad Reach (Lv ${bestAgent ? bestAgent.level : 0}):</div>
+            <div style="text-align: right; color: #daaa00;">${(yieldPercentage * 100).toFixed(0)}%</div>
+            
+            <div style="color: #aaa;">Conversion:</div>
+            <div style="text-align: right; color: #daaa00;">${(conversionFactor * 100).toFixed(0)}%</div>
+        </div>
+
+        <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #444; color: #fff;">
+            Est. Ticket Sales: <strong style="color: #0f0; font-size: 1.2em;">${(finalAudience / 1000000).toFixed(2)}M</strong>
+        </div>
     `;
 
-    document.getElementById('movieLeanDisplay').innerText = leanText;
+    document.getElementById('movieLeanDisplay').innerHTML = `
+        ${leanText} <br>
+        <span style="font-size:0.7em; color:#aaa;">(Score Art: ${inputArt.toFixed(1)} / Com: ${inputCom.toFixed(1)})</span>
+    `;
 
-    let agentHtml = validAgents.map(a => 
-        `<div style="padding: 5px 0; border-bottom: 1px solid #333;">${a.name}</div>`
-    ).join('');
-    if(!agentHtml) agentHtml = "Nate Sparrow Press (Fallback)";
+    let agentHtml = "";
+    if (validAgents.length === 0) {
+        agentHtml = `<div style="color:red; padding:10px; font-size: 0.9em;">No effective agents found.<br>Your movie lean does not match available agents for this demographic.</div>`;
+    } else {
+        agentHtml = validAgents.map(a => {
+            let eff = (GAME_DATA.constants.AD_EFFICIENCY[a.level] * 100).toFixed(0);
+            let typeLabel = a.type === 0 ? "Univ." : (a.type === 1 ? "Art" : "Com");
+            let color = a.level === 3 ? "#ffd700" : (a.level === 2 ? "#c0c0c0" : "#cd7f32");
+            
+            return `
+            <div style="padding: 8px 0; border-bottom: 1px solid #333; display:flex; justify-content:space-between; align-items:center;">
+                <span>${a.name} <span style="font-size:0.8em; color:#888;">[${typeLabel}]</span></span>
+                <span style="color:${color}; font-weight:bold;">Lv ${a.level} (${eff}%)</span>
+            </div>`;
+        }).join('');
+    }
     document.getElementById('adAgentDisplay').innerHTML = agentHtml;
+
+    // Holiday Logic
+    let bestHoliday = GAME_DATA.holidays.find(h => {
+        if(Array.isArray(h.target)) return h.target.includes(winner);
+        return h.target === winner || h.target === "ALL";
+    });
+    
+    if(!bestHoliday) bestHoliday = { name: "No specific holiday synergy", bonus: "None" };
 
     document.getElementById('holidayDisplay').innerHTML = `
         <div style="font-size: 1.2em; font-weight: bold; color: #fff;">${bestHoliday.name}</div>
