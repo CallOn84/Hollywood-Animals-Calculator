@@ -80,7 +80,7 @@ h3 {
 
 .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
 
-/* --- NEW SCORE CARD STYLES --- */
+/* SCORE CARD STYLES */
 .score-card {
     border-top: 4px solid var(--border);
 }
@@ -125,10 +125,6 @@ h3 {
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-.score-label-row .icon {
-    font-size: 1.2rem;
 }
 
 .score-number-display {
@@ -192,8 +188,6 @@ h3 {
 .com-slider::-webkit-slider-thumb {
     background: var(--accent); /* Commercial Color */
 }
-
-/* --- END SCORE CARD STYLES --- */
 
 /* Search Bar */
 .search-wrapper { position: relative; }
@@ -347,14 +341,70 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 .reset-btn:hover { border-color: var(--text-main); color: var(--text-main); }
 
-/* Results */
-.results-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+/* --- NEW RESULTS LAYOUT --- */
+
+.results-container {
+    display: flex;
+    flex-direction: column;
     gap: 20px;
 }
 
-.result-card h3 { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; }
+.results-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* Landscape Cards (Top Row) */
+.landscape-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 120px; /* Reduced height */
+    margin-bottom: 0;
+}
+
+.landscape-card h3 {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.landscape-content {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+/* Campaign Strategy Styles */
+.campaign-block {
+    background: #252525;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    border-left: 3px solid #444;
+}
+
+.campaign-block.pre { border-left-color: #a0a0ff; }
+.campaign-block.release { border-left-color: var(--accent); }
+.campaign-block.post { border-left-color: #ff5f5f; }
+
+.camp-title {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.camp-value {
+    font-size: 1.1rem;
+    color: #fff;
+    font-weight: bold;
+}
 
 .highlight-box {
     background: #252525;
@@ -385,8 +435,9 @@ footer {
 }
 
 /* Mobile Tweak */
-@media (max-width: 600px) {
+@media (max-width: 700px) {
     #selectors-container { grid-template-columns: 1fr; }
     h1 { font-size: 1.8rem; }
     .score-controls-wrapper { flex-direction: column; gap: 15px; }
+    .results-row { grid-template-columns: 1fr; }
 }
