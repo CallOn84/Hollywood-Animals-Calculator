@@ -1,5 +1,3 @@
-<img width="550" height="550" alt="Screenshot 2" src="https://github.com/user-attachments/assets/007d988d-446d-4ffd-9cb9-f290bd59d0fe" />
-
 # A companion tool for the game that helps players find the best advertisers for their movie.
 
 <img width="550" height="550" alt="Screenshot 1" src="https://github.com/user-attachments/assets/e100c207-dc28-4cd2-89cf-17c273c0e415" />
