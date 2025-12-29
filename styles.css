@@ -70,7 +70,7 @@ h3 {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 20px; /* Standard spacing */
+    margin-bottom: 20px;
 }
 
 /* SCORE CARD STYLES */
@@ -82,7 +82,7 @@ h3 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px; /* Adjusted for alignment */
+    margin-bottom: 10px;
 }
 
 .score-help {
@@ -381,6 +381,15 @@ select:focus { outline: none; border-color: var(--accent); }
     line-height: 1.2;
 }
 
+/* Specific styling for Holiday Bonus text to fix cramping */
+.holiday-bonus {
+    font-size: 0.75rem; 
+    color: #aaa; 
+    margin-top: 8px; /* Added spacing */
+    line-height: 1.4;
+    display: block;
+}
+
 /* Subtitle for Lists */
 .list-subtitle {
     font-size: 0.75rem;
@@ -393,52 +402,58 @@ select:focus { outline: none; border-color: var(--accent); }
     opacity: 0.7;
 }
 
-/* Campaign Strategy Blocks */
+/* --- CAMPAIGN STRATEGY BLOCKS (VERTICAL) --- */
 .strategy-row {
     display: flex;
-    gap: 10px; /* Space between boxes */
+    flex-direction: column; /* Vertical Stack */
+    gap: 12px; /* Space between boxes */
     margin-bottom: 15px;
 }
 
 .campaign-block {
     background: #252525;
-    padding: 10px 5px; /* Compact padding */
-    border-radius: 4px;
-    border-top: 3px solid #444; /* Top border for timeline look */
-    flex: 1; /* Resize equally */
+    padding: 15px 20px; /* Spacious padding */
+    border-radius: 6px;
+    border-left: 4px solid #444; /* Left border for list look */
+    border-top: none; /* Removed top border */
+    
+    /* Internal Flex Layout */
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* Content is horizontal */
     align-items: center;
-    justify-content: center;
-    text-align: center;
-    min-width: 0;
+    justify-content: space-between; /* Pushes Title Left, Value Right */
+    
+    transition: background 0.2s;
 }
 
-.campaign-block.pre { border-top-color: #a0a0ff; }
-.campaign-block.release { border-top-color: var(--accent); }
-.campaign-block.post { border-top-color: #ff5f5f; }
+.campaign-block:hover {
+    background: #2a2a2a;
+}
+
+/* Border Colors */
+.campaign-block.pre { border-left-color: #a0a0ff; }
+.campaign-block.release { border-left-color: var(--accent); }
+.campaign-block.post { border-left-color: #ff5f5f; }
 
 .camp-title {
-    font-size: 0.65rem;
+    font-size: 0.8rem;
     color: var(--text-muted);
     text-transform: uppercase;
     font-weight: 700;
-    margin-bottom: 4px;
-    white-space: nowrap;
+    margin-bottom: 0; /* Reset margin for horizontal align */
 }
 
 .camp-value {
     font-size: 1.2rem;
     color: #fff;
     font-weight: 800;
-    line-height: 1.1;
 }
 
 .camp-unit {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     color: var(--text-muted);
     font-weight: 400;
-    margin-left: 2px;
+    margin-left: 4px;
 }
 
 /* Generic Highlight Box */
