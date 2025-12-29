@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hollywood Animal Calculator</title>
-    <!-- Added the missing link to styles.css below -->
     <link rel="stylesheet" href="styles.css">
+    <!-- Google Fonts for modern typography -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -57,9 +57,16 @@
                     
                     <div class="results-row top-row">
                         <div class="card result-card landscape-card">
-                            <h3>Total Compatibility Score</h3>
-                            <div id="synergyTotalDisplay" class="landscape-content">0.0</div>
-                            <span class="holiday-bonus">Base Score</span>
+                            <h3>Average Compatibility</h3>
+                            <div id="synergyAverageDisplay" class="landscape-content">0.0 <span style="font-size: 0.5em; color: #888;">/ 5.0</span></div>
+                            
+                            <!-- Context Block -->
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
+                                <div style="font-size: 0.85rem; color: #aaa;">Base Movie Quality Score: <span id="synergyTotalDisplay" style="font-weight: bold; color: #fff;">0.00</span></div>
+                                <div style="font-size: 0.75rem; color: #666; margin-top: 4px; line-height: 1.3;">
+                                    This score is added to your movie's base quality. This score will likely increase as you advance through Pre-Production, Production, and Post-Production.
+                                </div>
+                            </div>
                         </div>
 
                         <div class="card result-card landscape-card">
