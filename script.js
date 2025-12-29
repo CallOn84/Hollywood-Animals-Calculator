@@ -1,6 +1,7 @@
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
-let currentTab = 'advertisers';
+// CHANGED: Default is now synergy
+let currentTab = 'synergy'; 
 
 window.onload = async function() {
     try {
@@ -24,9 +25,12 @@ function switchTab(tabName) {
     
     // Update Buttons
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    // Find button that calls this function (simple approximation)
+    
     const btns = document.querySelectorAll('.tab-btn');
-    if(tabName === 'advertisers') btns[0].classList.add('active');
+    
+    // CHANGED: Logic flipped because HTML order flipped
+    // Index 0 is now Synergy, Index 1 is Advertisers
+    if(tabName === 'synergy') btns[0].classList.add('active');
     else btns[1].classList.add('active');
 
     // Update Content
@@ -69,7 +73,6 @@ function updateSliderTrack(slider) {
     slider.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${value}%, #444 ${value}%, #444 100%)`;
 }
 
-// Reuse this logic for percentage sliders
 function updatePercentSliderTrack(slider) {
     const value = slider.value; // min is 0, max is 100
     const color = '#d4af37';
@@ -147,7 +150,6 @@ function beautifyTagName(raw) {
                .join(' ');
 }
 
-// Updated to accept a container context (advertisers vs synergy)
 function initializeSelectors(context) {
     const container = document.getElementById(`selectors-container-${context}`);
     container.innerHTML = ''; 
@@ -210,7 +212,6 @@ function addDropdown(category, selectedId = null, context = currentTab) {
     row.className = 'select-row';
     if (category === 'Genre') row.classList.add('genre-row'); 
 
-    // SELECT DROPDOWN
     const select = document.createElement('select');
     select.className = 'tag-selector';
     select.dataset.category = category;
@@ -230,7 +231,6 @@ function addDropdown(category, selectedId = null, context = currentTab) {
     if (selectedId) select.value = selectedId;
     row.appendChild(select);
 
-    // GENRE SPECIFIC: PERCENTAGE CONTROLS
     if (category === 'Genre') {
         const percentWrapper = document.createElement('div');
         percentWrapper.className = 'genre-percent-wrapper hidden'; 
@@ -254,7 +254,6 @@ function addDropdown(category, selectedId = null, context = currentTab) {
         label.style.fontSize = '0.8rem';
         label.style.color = '#888';
 
-        // Sync Logic
         numInput.addEventListener('input', (e) => {
             slider.value = e.target.value;
             updatePercentSliderTrack(slider);
@@ -290,15 +289,12 @@ function addDropdown(category, selectedId = null, context = currentTab) {
     }
 }
 
-// Logic to handle 1 genre vs multiple genres UI
 function updateGenreControls(context) {
     const container = document.getElementById(`inputs-Genre-${context}`);
     if (!container) return;
 
     const rows = container.querySelectorAll('.genre-row');
     const count = rows.length;
-
-    // Calculate even split
     const evenSplit = Math.floor(100 / count);
 
     rows.forEach(row => {
@@ -308,7 +304,6 @@ function updateGenreControls(context) {
 
         if (count > 1) {
             wrapper.classList.remove('hidden');
-            // Only auto-balance if value is 100 (new/reset) to respect user changes
             if (input.value == 100 && count > 1) {
                 input.value = evenSplit;
                 slider.value = evenSplit;
@@ -332,9 +327,7 @@ function buildSearchIndex() {
 }
 
 function setupSearchListeners() {
-    // Advertisers Search
     setupSingleSearch('globalSearchAdvertisers', 'searchResultsAdvertisers', 'advertisers');
-    // Synergy Search
     setupSingleSearch('globalSearchSynergy', 'searchResultsSynergy', 'synergy');
 }
 
@@ -391,7 +384,6 @@ function selectTagFromSearch(tagObj, context) {
     const selects = container.querySelectorAll('select.tag-selector');
     let filled = false;
 
-    // Try to fill empty slot first
     for (let select of selects) {
         if (select.value === "") {
             select.value = tagObj.id;
@@ -404,7 +396,6 @@ function selectTagFromSearch(tagObj, context) {
         if (MULTI_SELECT_CATEGORIES.includes(category)) {
             addDropdown(category, tagObj.id, context);
         } else {
-            // Single select category, replace value
             if (selects.length > 0) selects[0].value = tagObj.id;
         }
     }
@@ -419,7 +410,6 @@ function selectTagFromSearch(tagObj, context) {
 
 function collectTagInputs(context) {
     const tagInputs = []; 
-    // Genre Processing
     const genreContainer = document.getElementById(`inputs-Genre-${context}`);
     const genreRows = genreContainer ? genreContainer.querySelectorAll('.genre-row') : [];
     
@@ -452,7 +442,6 @@ function collectTagInputs(context) {
         });
     });
 
-    // Other Categories
     const container = document.getElementById(`selectors-container-${context}`);
     container.querySelectorAll('.tag-selector').forEach(sel => {
         if (sel.dataset.category === "Genre") return; 
@@ -613,13 +602,9 @@ function calculateSynergy() {
         return;
     }
 
-    // 1. Matrix Calculation
     const matrixResult = calculateMatrixScore(selectedTags);
-    
-    // 2. Genre Bonus Calculation
     const genreResult = calculateGenrePairScore(selectedTags);
 
-    // Render
     renderSynergyResults(matrixResult, genreResult);
 }
 
@@ -630,25 +615,21 @@ function calculateMatrixScore(tags) {
     tags.forEach(tagA => {
         let rowSum = 0;
         let rowWeight = 0;
-        let worstVal = 1.0; 
+        let worstVal = 6.0; 
         let worstPartner = "";
 
         tags.forEach(tagB => {
             if (tagA.id === tagB.id) return;
 
-            // Get Raw Score (Default 3.0)
             let rawVal = 3.0;
             if (GAME_DATA.compatibility[tagA.id] && GAME_DATA.compatibility[tagA.id][tagB.id]) {
                 rawVal = parseFloat(GAME_DATA.compatibility[tagA.id][tagB.id]);
             } else if (GAME_DATA.compatibility[tagB.id] && GAME_DATA.compatibility[tagB.id][tagA.id]) {
-                // Check reverse just in case
                 rawVal = parseFloat(GAME_DATA.compatibility[tagB.id][tagA.id]);
             }
 
-            // Transform Formula: (Value - 3.0) / 2.0
             let score = (rawVal - 3.0) / 2.0;
 
-            // Weights
             let weight = 1.0;
             if (score < 0) {
                 if (tagB.category === "Genre") {
@@ -680,15 +661,13 @@ function calculateMatrixScore(tags) {
         let rowAverage = 0;
         if (rowWeight > 0) rowAverage = rowSum / rowWeight;
 
-        // Spoiling Logic Check
         let transformedWorst = (worstVal - 3.0) / 2.0;
-        
         let finalRowScore = rowAverage;
         
-        // If worst value is significantly worse than average (logic simplified to catch 1.0s)
         if (worstVal <= 1.0) {
-            spoilers.push(`${GAME_DATA.tags[tagA.id].name} conflicts with ${GAME_DATA.tags[worstPartner].name}`);
-            finalRowScore = -1.0; // Cap at bad
+            let partnerName = worstPartner && GAME_DATA.tags[worstPartner] ? GAME_DATA.tags[worstPartner].name : "another selected tag";
+            spoilers.push(`${GAME_DATA.tags[tagA.id].name} conflicts with ${partnerName}`);
+            finalRowScore = -1.0; 
         } else if (transformedWorst < rowAverage) {
              finalRowScore = transformedWorst;
         }
@@ -696,7 +675,6 @@ function calculateMatrixScore(tags) {
         totalScore += finalRowScore * tagA.percent;
     });
 
-    // Final Multipliers
     if (totalScore >= 0) totalScore *= 0.9;
     else totalScore *= 1.25;
 
@@ -711,12 +689,10 @@ function calculateGenrePairScore(tags) {
     const g1 = genres[0];
     const g2 = genres[1];
 
-    // Check thresholds from GameVariables
     if ((g1.percent + g2.percent < 0.7) || (g2.percent < 0.35)) {
         return null;
     }
 
-    // Lookup
     let pairData = null;
     if (GAME_DATA.genrePairs[g1.id] && GAME_DATA.genrePairs[g1.id][g2.id]) {
         pairData = GAME_DATA.genrePairs[g1.id][g2.id];
@@ -726,7 +702,6 @@ function calculateGenrePairScore(tags) {
 
     if (!pairData) return null;
 
-    // pairData is { Item1: "0.250", Item2: "0.100" } (Com, Art)
     return {
         com: parseFloat(pairData.Item1),
         art: parseFloat(pairData.Item2),
@@ -753,7 +728,8 @@ function renderSynergyResults(matrix, genre) {
 
     const spoilerEl = document.getElementById('spoilerDisplay');
     if (matrix.spoilers.length > 0) {
-        spoilerEl.innerHTML = matrix.spoilers.map(s => 
+        let uniqueSpoilers = [...new Set(matrix.spoilers)];
+        spoilerEl.innerHTML = uniqueSpoilers.map(s => 
             `<div style="color:var(--danger); padding: 4px 0; border-bottom:1px solid #444;">${s}</div>`
         ).join('');
     } else {
@@ -768,20 +744,13 @@ function resetSelectors(context) {
     document.getElementById(`results-${context}`).classList.add('hidden');
 }
 
-// ---------------------------------------------
-// TRANSFER FUNCTIONALITY
-// ---------------------------------------------
 function transferTagsToAdvertisers() {
     const inputs = collectTagInputs('synergy');
     if (inputs.length === 0) return;
 
-    // Switch Tabs
     switchTab('advertisers');
-
-    // Clear Advertiser Inputs
     initializeSelectors('advertisers');
 
-    // Populate Advertiser Inputs
     inputs.forEach(input => {
         const category = input.category;
         const containerId = `inputs-${category.replace(/\s/g, '-')}-advertisers`;
@@ -789,7 +758,6 @@ function transferTagsToAdvertisers() {
         
         if (!container) return;
 
-        // Find empty slot or create new one
         const existingSelects = container.querySelectorAll('select');
         let placed = false;
 
@@ -806,11 +774,9 @@ function transferTagsToAdvertisers() {
         }
     });
 
-    // Update Genre Percentages if multiple genres transferred
     const genreInputs = inputs.filter(i => i.category === 'Genre');
     if (genreInputs.length > 1) {
         updateGenreControls('advertisers');
-        // Set values based on synergy input
         const genreRows = document.querySelectorAll('#inputs-Genre-advertisers .genre-row');
         genreRows.forEach((row, index) => {
             if (genreInputs[index]) {
@@ -822,6 +788,5 @@ function transferTagsToAdvertisers() {
         });
     }
 
-    // Trigger analysis
     analyzeMovie();
 }
