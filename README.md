@@ -1,4 +1,4 @@
-# A companion tool for the game that helps players find the best advertisers for their movie.
+# A tool for Hollywood Animal helps players find the best advertisers for their movie.
 
 <img width="550" height="550" alt="Screenshot 1" src="https://github.com/user-attachments/assets/e100c207-dc28-4cd2-89cf-17c273c0e415" />
 
