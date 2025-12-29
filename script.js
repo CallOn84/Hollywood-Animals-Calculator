@@ -400,12 +400,10 @@ function analyzeMovie() {
     let releaseDuration = 4;
     let postDuration = 0;
     let totalWeeks = 10;
-    let strategyTitle = "Standard Distribution";
 
     if (inputCom >= 9.0) {
         postDuration = 4;
         totalWeeks = 14;
-        strategyTitle = "Extended Distribution";
     }
 
     document.getElementById('campaignStrategyDisplay').innerHTML = `
