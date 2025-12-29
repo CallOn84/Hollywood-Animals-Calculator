@@ -423,12 +423,12 @@ function analyzeMovie() {
 
     document.getElementById('movieLeanDisplay').innerHTML = `
         ${leanText} <br>
-        <span style="font-size:0.7em; color:#aaa;">(Score Art: ${inputArt.toFixed(1)} / Com: ${inputCom.toFixed(1)})</span>
+        <span style="font-size:0.7em; color:#aaa;">(Score - Com: ${inputCom.toFixed(1)} / Art: ${inputArt.toFixed(1)})</span>
     `;
 
     let agentHtml = "";
     if (validAgents.length === 0) {
-        agentHtml = `<div style="color:red; padding:10px; font-size: 0.9em;">No effective agents found.<br>Your movie lean does not match available agents for this demographic.</div>`;
+        agentHtml = `<div style="color:red; padding:10px; font-size: 0.9em;">No effective advertisers found.<br>Your movie lean does not match available advertisers for this demographic.</div>`;
     } else {
         agentHtml = validAgents.map(a => {
             let eff = (GAME_DATA.constants.AD_EFFICIENCY[a.level] * 100).toFixed(0);
