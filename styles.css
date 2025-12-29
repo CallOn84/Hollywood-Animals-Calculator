@@ -379,31 +379,53 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 
 /* Campaign Strategy Styles */
-.campaign-block {
-    background: #252525;
-    padding: 12px;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    border-left: 3px solid #444;
+.strategy-row {
+    display: flex;
+    gap: 10px; /* Space between boxes */
+    margin-bottom: 15px;
 }
 
-.campaign-block.pre { border-left-color: #a0a0ff; }
-.campaign-block.release { border-left-color: var(--accent); }
-.campaign-block.post { border-left-color: #ff5f5f; }
+.campaign-block {
+    background: #252525;
+    padding: 10px 5px; /* Compact padding */
+    border-radius: 4px;
+    border-top: 3px solid #444; /* Moved border to TOP for timeline look */
+    border-left: none; /* Remove side border */
+    flex: 1; /* Makes them resize equally to fill space */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-width: 0; /* Prevents flex overflow */
+}
 
+/* Color coding for the top borders */
+.campaign-block.pre { border-top-color: #a0a0ff; }
+.campaign-block.release { border-top-color: var(--accent); }
+.campaign-block.post { border-top-color: #ff5f5f; }
+
+/* Adjust font sizes for compact horizontal layout */
 .camp-title {
-    display: block;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    font-weight: bold;
-    margin-bottom: 2px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    white-space: nowrap; /* Prevents wrapping */
 }
 
 .camp-value {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: #fff;
-    font-weight: bold;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.camp-unit {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 400;
 }
 
 .highlight-box {
