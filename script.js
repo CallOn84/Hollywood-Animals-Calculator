@@ -1,18 +1,38 @@
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
+let currentTab = 'advertisers';
 
 window.onload = async function() {
     try {
         await loadExternalData();
-        initializeSelectors();
+        // Initialize selectors for BOTH tabs
+        initializeSelectors('advertisers');
+        initializeSelectors('synergy');
+        
         buildSearchIndex();
-        setupSearchListener();
+        setupSearchListeners();
         setupScoreSync(); 
+        
         console.log("Initialization Complete.");
     } catch (error) {
         console.error("Failed to load data:", error);
     }
 };
+
+function switchTab(tabName) {
+    currentTab = tabName;
+    
+    // Update Buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    // Find button that calls this function (simple approximation)
+    const btns = document.querySelectorAll('.tab-btn');
+    if(tabName === 'advertisers') btns[0].classList.add('active');
+    else btns[1].classList.add('active');
+
+    // Update Content
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+    document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+}
 
 function setupScoreSync() {
     const pairs = [
@@ -58,15 +78,20 @@ function updatePercentSliderTrack(slider) {
 
 async function loadExternalData() {
     try {
-        const [tagRes, weightRes] = await Promise.all([
+        const [tagRes, weightRes, compRes, genreRes] = await Promise.all([
             fetch('data/TagData.json'),
-            fetch('data/TagsAudienceWeights.json')
+            fetch('data/TagsAudienceWeights.json'),
+            fetch('data/TagCompatibilityData.json'),
+            fetch('data/GenrePairs.json')
         ]);
 
         if (!tagRes.ok || !weightRes.ok) return;
 
         const tagDataRaw = await tagRes.json();
         const weightDataRaw = await weightRes.json();
+        
+        if (compRes.ok) GAME_DATA.compatibility = await compRes.json();
+        if (genreRes.ok) GAME_DATA.genrePairs = await genreRes.json();
 
         for (const [tagId, data] of Object.entries(tagDataRaw)) {
             if (!weightDataRaw[tagId]) continue;
@@ -122,8 +147,9 @@ function beautifyTagName(raw) {
                .join(' ');
 }
 
-function initializeSelectors() {
-    const container = document.getElementById('selectors-container');
+// Updated to accept a container context (advertisers vs synergy)
+function initializeSelectors(context) {
+    const container = document.getElementById(`selectors-container-${context}`);
     container.innerHTML = ''; 
 
     GAME_DATA.categories.forEach(category => {
@@ -135,7 +161,7 @@ function initializeSelectors() {
 
         const groupDiv = document.createElement('div');
         groupDiv.className = 'category-group';
-        groupDiv.id = `group-${category.replace(/\s/g, '-')}`;
+        groupDiv.id = `group-${category.replace(/\s/g, '-')}-${context}`;
 
         const header = document.createElement('div');
         header.className = 'category-header';
@@ -149,7 +175,7 @@ function initializeSelectors() {
             const addBtn = document.createElement('button');
             addBtn.className = 'add-btn';
             addBtn.innerHTML = '+';
-            addBtn.onclick = () => addDropdown(category);
+            addBtn.onclick = () => addDropdown(category, null, context);
             header.appendChild(addBtn);
         }
 
@@ -157,17 +183,17 @@ function initializeSelectors() {
 
         const inputsContainer = document.createElement('div');
         inputsContainer.className = 'inputs-container';
-        inputsContainer.id = `inputs-${category.replace(/\s/g, '-')}`;
+        inputsContainer.id = `inputs-${category.replace(/\s/g, '-')}-${context}`;
         groupDiv.appendChild(inputsContainer);
 
         container.appendChild(groupDiv);
 
-        addDropdown(category);
+        addDropdown(category, null, context);
     });
 }
 
-function addDropdown(category, selectedId = null) {
-    const containerId = `inputs-${category.replace(/\s/g, '-')}`;
+function addDropdown(category, selectedId = null, context = currentTab) {
+    const containerId = `inputs-${category.replace(/\s/g, '-')}-${context}`;
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -182,7 +208,7 @@ function addDropdown(category, selectedId = null) {
 
     const row = document.createElement('div');
     row.className = 'select-row';
-    if (category === 'Genre') row.classList.add('genre-row'); // Tag for easy finding
+    if (category === 'Genre') row.classList.add('genre-row'); 
 
     // SELECT DROPDOWN
     const select = document.createElement('select');
@@ -207,7 +233,7 @@ function addDropdown(category, selectedId = null) {
     // GENRE SPECIFIC: PERCENTAGE CONTROLS
     if (category === 'Genre') {
         const percentWrapper = document.createElement('div');
-        percentWrapper.className = 'genre-percent-wrapper hidden'; // Hidden by default (if only 1)
+        percentWrapper.className = 'genre-percent-wrapper hidden'; 
         
         const numInput = document.createElement('input');
         numInput.type = 'number';
@@ -252,7 +278,7 @@ function addDropdown(category, selectedId = null) {
         removeBtn.innerHTML = '×';
         removeBtn.onclick = () => {
             row.remove();
-            if (category === 'Genre') updateGenreControls();
+            if (category === 'Genre') updateGenreControls(context);
         };
         row.appendChild(removeBtn);
     }
@@ -260,13 +286,13 @@ function addDropdown(category, selectedId = null) {
     container.appendChild(row);
 
     if (category === 'Genre') {
-        updateGenreControls();
+        updateGenreControls(context);
     }
 }
 
 // Logic to handle 1 genre vs multiple genres UI
-function updateGenreControls() {
-    const container = document.getElementById('inputs-Genre');
+function updateGenreControls(context) {
+    const container = document.getElementById(`inputs-Genre-${context}`);
     if (!container) return;
 
     const rows = container.querySelectorAll('.genre-row');
@@ -281,19 +307,16 @@ function updateGenreControls() {
         const slider = row.querySelector('.percent-slider');
 
         if (count > 1) {
-            // Show controls
             wrapper.classList.remove('hidden');
-            // If checking specifically on ADD action, we might want to auto-distribute. 
-            // For simplicity, we auto-distribute if the value is currently 100 (meaning it was a single or new)
-            // But to avoid overwriting user manual changes, we only set if it seems like a reset state or new item
-            // A simple approach: Always auto-balance on add/remove for V1 UX.
-            input.value = evenSplit;
-            slider.value = evenSplit;
+            // Only auto-balance if value is 100 (new/reset) to respect user changes
+            if (input.value == 100 && count > 1) {
+                input.value = evenSplit;
+                slider.value = evenSplit;
+            }
             updatePercentSliderTrack(slider);
         } else {
-            // Hide controls (Implicitly 100%)
             wrapper.classList.add('hidden');
-            input.value = 100; // Reset to 100 for calculation logic
+            input.value = 100; 
         }
     });
 }
@@ -308,9 +331,16 @@ function buildSearchIndex() {
     });
 }
 
-function setupSearchListener() {
-    const input = document.getElementById('globalSearch');
-    const resultsBox = document.getElementById('searchResults');
+function setupSearchListeners() {
+    // Advertisers Search
+    setupSingleSearch('globalSearchAdvertisers', 'searchResultsAdvertisers', 'advertisers');
+    // Synergy Search
+    setupSingleSearch('globalSearchSynergy', 'searchResultsSynergy', 'synergy');
+}
+
+function setupSingleSearch(inputId, resultId, context) {
+    const input = document.getElementById(inputId);
+    const resultsBox = document.getElementById(resultId);
 
     input.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
@@ -333,7 +363,7 @@ function setupSearchListener() {
                 div.className = 'search-item';
                 div.innerHTML = `<strong>${match.name}</strong> <small>${match.category}</small>`;
                 div.onclick = () => {
-                    selectTagFromSearch(match);
+                    selectTagFromSearch(match, context);
                     input.value = '';
                     resultsBox.classList.add('hidden');
                 };
@@ -351,9 +381,9 @@ function setupSearchListener() {
     });
 }
 
-function selectTagFromSearch(tagObj) {
+function selectTagFromSearch(tagObj, context) {
     const category = tagObj.category;
-    const containerId = `inputs-${category.replace(/\s/g, '-')}`;
+    const containerId = `inputs-${category.replace(/\s/g, '-')}-${context}`;
     const container = document.getElementById(containerId);
 
     if (!container) return;
@@ -372,14 +402,14 @@ function selectTagFromSearch(tagObj) {
 
     if (!filled) {
         if (MULTI_SELECT_CATEGORIES.includes(category)) {
-            addDropdown(category, tagObj.id);
+            addDropdown(category, tagObj.id, context);
         } else {
             // Single select category, replace value
             if (selects.length > 0) selects[0].value = tagObj.id;
         }
     }
     
-    const group = document.getElementById(`group-${category.replace(/\s/g, '-')}`);
+    const group = document.getElementById(`group-${category.replace(/\s/g, '-')}-${context}`);
     if (group) {
         group.style.borderColor = '#d4af37';
         setTimeout(() => group.style.borderColor = '', 500);
@@ -387,14 +417,12 @@ function selectTagFromSearch(tagObj) {
     }
 }
 
-function analyzeMovie() {
-    // --- COLLECT SELECTED TAGS AND PERCENTAGES ---
-    const tagInputs = []; // Objects: { id: string, percent: number (0-1), category: string }
-
+function collectTagInputs(context) {
+    const tagInputs = []; 
     // Genre Processing
-    const genreRows = document.querySelectorAll('#inputs-Genre .genre-row');
+    const genreContainer = document.getElementById(`inputs-Genre-${context}`);
+    const genreRows = genreContainer ? genreContainer.querySelectorAll('.genre-row') : [];
     
-    // Calculate Total Percentage Input by user for Normalization
     let totalGenreInput = 0;
     const genreData = [];
 
@@ -414,47 +442,52 @@ function analyzeMovie() {
         }
     });
 
-    // Avoid division by zero
     if (totalGenreInput === 0 && genreData.length > 0) totalGenreInput = 1;
 
     genreData.forEach(g => {
         tagInputs.push({
             id: g.id,
-            percent: g.inputVal / totalGenreInput, // Normalized (e.g., 50/100 = 0.5)
+            percent: g.inputVal / totalGenreInput,
             category: "Genre"
         });
     });
 
-    // Other Categories Processing
-    document.querySelectorAll('.tag-selector').forEach(sel => {
-        if (sel.dataset.category === "Genre") return; // Already handled
+    // Other Categories
+    const container = document.getElementById(`selectors-container-${context}`);
+    container.querySelectorAll('.tag-selector').forEach(sel => {
+        if (sel.dataset.category === "Genre") return; 
         if (sel.value) {
             tagInputs.push({
                 id: sel.value,
-                percent: 1.0, // Non-genres are additive (100% impact)
+                percent: 1.0, 
                 category: sel.dataset.category
             });
         }
     });
+
+    return tagInputs;
+}
+
+// ---------------------------------------------
+// ADVERTISER CALCULATOR LOGIC
+// ---------------------------------------------
+function analyzeMovie() {
+    const tagInputs = collectTagInputs('advertisers');
 
     if(tagInputs.length === 0) {
         alert("Please select at least one tag.");
         return;
     }
 
-    // --- READ USER INPUTS ---
     const inputCom = parseFloat(document.getElementById('comScoreInput').value) || 0;
     const inputArt = parseFloat(document.getElementById('artScoreInput').value) || 0;
 
-    // --- CALCULATE DEMOGRAPHIC WEIGHTS ---
     let scores = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
 
     tagInputs.forEach(item => {
         const tagData = GAME_DATA.tags[item.id];
         if(!tagData) return;
 
-        // Apply weights based on category logic (Genre = Fractional, Others = Additive)
-        // Note: item.percent is already calculated correctly above based on category
         const multiplier = item.percent;
 
         for(let demo in scores) {
@@ -464,7 +497,6 @@ function analyzeMovie() {
         }
     });
 
-    // Determine Winner based on Population Weight * Tag Score
     let weightedScores = {};
     for(let demo in scores) {
         weightedScores[demo] = scores[demo] * GAME_DATA.demographics[demo].weight;
@@ -472,7 +504,6 @@ function analyzeMovie() {
     let winner = Object.keys(weightedScores).reduce((a, b) => weightedScores[a] > weightedScores[b] ? a : b);
     let winnerName = GAME_DATA.demographics[winner].name;
     
-    // --- DETERMINE MOVIE LEAN ---
     let movieLean = 0; 
     let leanText = "Balanced";
     
@@ -484,25 +515,20 @@ function analyzeMovie() {
         leanText = "Commercial";
     }
 
-    // --- FILTER AGENTS ---
     let validAgents = GAME_DATA.adAgents.filter(agent => {
         if (!agent.targets.includes(winner)) return false;
         return agent.type === 0 || agent.type === movieLean;
     });
 
-    // Sort by Level (Efficiency) Descending
     validAgents.sort((a, b) => b.level - a.level);
 
-    // --- RENDER RESULTS ---
-    document.getElementById('results').classList.remove('hidden');
+    document.getElementById('results-advertisers').classList.remove('hidden');
     
-    // 1. Target Audience Display
     document.getElementById('targetAudienceDisplay').innerHTML = `
         <span style="color: #ffd700;">${winnerName}</span>
         <span style="font-size: 0.5em; color: #888; vertical-align: middle;">(${winner})</span>
     `;
 
-    // 2. Advertisers Display
     let agentHtml = "";
     if (validAgents.length === 0) {
         agentHtml = `<div style="color:red; padding:10px; font-size: 0.9em;">No effective advertisers match this demographic and movie type.</div>`;
@@ -518,12 +544,10 @@ function analyzeMovie() {
     }
     document.getElementById('adAgentDisplay').innerHTML = agentHtml;
     
-    // 3. Movie Lean
     document.getElementById('movieLeanDisplay').innerHTML = `
         <span style="color: ${movieLean === 1 ? '#a0a0ff' : (movieLean === 2 ? '#d4af37' : '#fff')}">${leanText}</span>
     `;
 
-    // 4. Preferred Holiday
     let bestHoliday = GAME_DATA.holidays.find(h => {
         if(Array.isArray(h.target)) return h.target.includes(winner);
         return h.target === winner || h.target === "ALL";
@@ -543,7 +567,6 @@ function analyzeMovie() {
         <div class="holiday-bonus">${bonusText}</div>
     `;
 
-    // 5. Campaign Strategy
     let preDuration = 6;
     let releaseDuration = 4;
     let postDuration = 0;
@@ -577,5 +600,228 @@ function analyzeMovie() {
         </div>
     `;
     
-    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('results-advertisers').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ---------------------------------------------
+// SYNERGY CALCULATOR LOGIC
+// ---------------------------------------------
+function calculateSynergy() {
+    const selectedTags = collectTagInputs('synergy');
+    if (selectedTags.length === 0) {
+        alert("Please select at least one tag.");
+        return;
+    }
+
+    // 1. Matrix Calculation
+    const matrixResult = calculateMatrixScore(selectedTags);
+    
+    // 2. Genre Bonus Calculation
+    const genreResult = calculateGenrePairScore(selectedTags);
+
+    // Render
+    renderSynergyResults(matrixResult, genreResult);
+}
+
+function calculateMatrixScore(tags) {
+    let totalScore = 0;
+    let spoilers = [];
+
+    tags.forEach(tagA => {
+        let rowSum = 0;
+        let rowWeight = 0;
+        let worstVal = 1.0; 
+        let worstPartner = "";
+
+        tags.forEach(tagB => {
+            if (tagA.id === tagB.id) return;
+
+            // Get Raw Score (Default 3.0)
+            let rawVal = 3.0;
+            if (GAME_DATA.compatibility[tagA.id] && GAME_DATA.compatibility[tagA.id][tagB.id]) {
+                rawVal = parseFloat(GAME_DATA.compatibility[tagA.id][tagB.id]);
+            } else if (GAME_DATA.compatibility[tagB.id] && GAME_DATA.compatibility[tagB.id][tagA.id]) {
+                // Check reverse just in case
+                rawVal = parseFloat(GAME_DATA.compatibility[tagB.id][tagA.id]);
+            }
+
+            // Transform Formula: (Value - 3.0) / 2.0
+            let score = (rawVal - 3.0) / 2.0;
+
+            // Weights
+            let weight = 1.0;
+            if (score < 0) {
+                if (tagB.category === "Genre") {
+                    score *= 20.0 * tagB.percent;
+                    weight = 20.0 * tagB.percent;
+                } else if (tagB.category === "Setting") {
+                    score *= 5.0;
+                    weight = 5.0;
+                } else {
+                    score *= 3.0;
+                    weight = 3.0;
+                }
+            } else {
+                if (tagB.category === "Genre") {
+                    score *= tagB.percent;
+                    weight = tagB.percent;
+                }
+            }
+
+            rowSum += score;
+            rowWeight += weight;
+
+            if (rawVal < worstVal) {
+                worstVal = rawVal;
+                worstPartner = tagB.id;
+            }
+        });
+
+        let rowAverage = 0;
+        if (rowWeight > 0) rowAverage = rowSum / rowWeight;
+
+        // Spoiling Logic Check
+        let transformedWorst = (worstVal - 3.0) / 2.0;
+        
+        let finalRowScore = rowAverage;
+        
+        // If worst value is significantly worse than average (logic simplified to catch 1.0s)
+        if (worstVal <= 1.0) {
+            spoilers.push(`${GAME_DATA.tags[tagA.id].name} conflicts with ${GAME_DATA.tags[worstPartner].name}`);
+            finalRowScore = -1.0; // Cap at bad
+        } else if (transformedWorst < rowAverage) {
+             finalRowScore = transformedWorst;
+        }
+
+        totalScore += finalRowScore * tagA.percent;
+    });
+
+    // Final Multipliers
+    if (totalScore >= 0) totalScore *= 0.9;
+    else totalScore *= 1.25;
+
+    return { totalScore, spoilers };
+}
+
+function calculateGenrePairScore(tags) {
+    const genres = tags.filter(t => t.category === "Genre").sort((a, b) => b.percent - a.percent);
+    
+    if (genres.length < 2) return null;
+
+    const g1 = genres[0];
+    const g2 = genres[1];
+
+    // Check thresholds from GameVariables
+    if ((g1.percent + g2.percent < 0.7) || (g2.percent < 0.35)) {
+        return null;
+    }
+
+    // Lookup
+    let pairData = null;
+    if (GAME_DATA.genrePairs[g1.id] && GAME_DATA.genrePairs[g1.id][g2.id]) {
+        pairData = GAME_DATA.genrePairs[g1.id][g2.id];
+    } else if (GAME_DATA.genrePairs[g2.id] && GAME_DATA.genrePairs[g2.id][g1.id]) {
+        pairData = GAME_DATA.genrePairs[g2.id][g1.id];
+    }
+
+    if (!pairData) return null;
+
+    // pairData is { Item1: "0.250", Item2: "0.100" } (Com, Art)
+    return {
+        com: parseFloat(pairData.Item1),
+        art: parseFloat(pairData.Item2),
+        names: `${GAME_DATA.tags[g1.id].name} + ${GAME_DATA.tags[g2.id].name}`
+    };
+}
+
+function renderSynergyResults(matrix, genre) {
+    document.getElementById('results-synergy').classList.remove('hidden');
+
+    const scoreEl = document.getElementById('synergyTotalDisplay');
+    scoreEl.innerText = matrix.totalScore.toFixed(2);
+    scoreEl.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
+
+    const genreEl = document.getElementById('genreBonusDisplay');
+    if (genre) {
+        let comSign = genre.com > 0 ? "+" : "";
+        let artSign = genre.art > 0 ? "+" : "";
+        genreEl.innerHTML = `<span style="font-size:0.8em; color:#aaa;">${genre.names}</span><br>
+                             <span class="text-success">Com: ${comSign}${genre.com}</span> | <span style="color:#a0a0ff">Art: ${artSign}${genre.art}</span>`;
+    } else {
+        genreEl.innerText = "None applied";
+    }
+
+    const spoilerEl = document.getElementById('spoilerDisplay');
+    if (matrix.spoilers.length > 0) {
+        spoilerEl.innerHTML = matrix.spoilers.map(s => 
+            `<div style="color:var(--danger); padding: 4px 0; border-bottom:1px solid #444;">${s}</div>`
+        ).join('');
+    } else {
+        spoilerEl.innerHTML = `<div style="color: #888; font-style: italic;">No severe conflicts found.</div>`;
+    }
+    
+    document.getElementById('results-synergy').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetSelectors(context) {
+    initializeSelectors(context);
+    document.getElementById(`results-${context}`).classList.add('hidden');
+}
+
+// ---------------------------------------------
+// TRANSFER FUNCTIONALITY
+// ---------------------------------------------
+function transferTagsToAdvertisers() {
+    const inputs = collectTagInputs('synergy');
+    if (inputs.length === 0) return;
+
+    // Switch Tabs
+    switchTab('advertisers');
+
+    // Clear Advertiser Inputs
+    initializeSelectors('advertisers');
+
+    // Populate Advertiser Inputs
+    inputs.forEach(input => {
+        const category = input.category;
+        const containerId = `inputs-${category.replace(/\s/g, '-')}-advertisers`;
+        const container = document.getElementById(containerId);
+        
+        if (!container) return;
+
+        // Find empty slot or create new one
+        const existingSelects = container.querySelectorAll('select');
+        let placed = false;
+
+        for (let sel of existingSelects) {
+            if (sel.value === "") {
+                sel.value = input.id;
+                placed = true;
+                break;
+            }
+        }
+
+        if (!placed) {
+            addDropdown(category, input.id, 'advertisers');
+        }
+    });
+
+    // Update Genre Percentages if multiple genres transferred
+    const genreInputs = inputs.filter(i => i.category === 'Genre');
+    if (genreInputs.length > 1) {
+        updateGenreControls('advertisers');
+        // Set values based on synergy input
+        const genreRows = document.querySelectorAll('#inputs-Genre-advertisers .genre-row');
+        genreRows.forEach((row, index) => {
+            if (genreInputs[index]) {
+                const percentVal = Math.round(genreInputs[index].percent * 100);
+                row.querySelector('.percent-input').value = percentVal;
+                row.querySelector('.percent-slider').value = percentVal;
+                updatePercentSliderTrack(row.querySelector('.percent-slider'));
+            }
+        });
+    }
+
+    // Trigger analysis
+    analyzeMovie();
 }

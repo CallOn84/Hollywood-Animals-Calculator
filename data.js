@@ -52,5 +52,7 @@ const GAME_DATA = {
         "Finale"
     ],
 
-    tags: {} 
+    tags: {},
+    compatibility: {},
+    genrePairs: {}
 };
