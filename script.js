@@ -328,6 +328,7 @@ function analyzeMovie() {
         weightedScores[demo] = scores[demo] * GAME_DATA.demographics[demo].weight;
     }
     let winner = Object.keys(weightedScores).reduce((a, b) => weightedScores[a] > weightedScores[b] ? a : b);
+    let winnerName = GAME_DATA.demographics[winner].name;
     
     // --- DETERMINE MOVIE LEAN ---
     let movieLean = 0; 
@@ -355,7 +356,7 @@ function analyzeMovie() {
     
     // 1. Target Audience Display (Simplified - Name Only)
     document.getElementById('targetAudienceDisplay').innerHTML = `
-        <span style="color: #ffd700;">${GAME_DATA.demographics[winner].name}</span>
+        <span style="color: #ffd700;">${winnerName}</span>
         <span style="font-size: 0.5em; color: #888; vertical-align: middle;">(${winner})</span>
     `;
 
@@ -388,12 +389,20 @@ function analyzeMovie() {
     
     if(!bestHoliday) bestHoliday = { name: "None", bonus: "0%" };
 
+    // Format bonus text to include the target audience
+    let bonusText = "";
+    if (bestHoliday.name === "None") {
+        bonusText = "No specific holiday synergy.";
+    } else {
+        bonusText = `${bestHoliday.bonus} Bonus Towards ${winnerName} (${winner})`;
+    }
+
     document.getElementById('holidayDisplay').innerHTML = `
         <div style="color: #fff;">${bestHoliday.name}</div>
-        <div style="font-size: 0.4em; color: #aaa; margin-top:-5px;">Bonus: ${bestHoliday.bonus}</div>
+        <div class="holiday-bonus">${bonusText}</div>
     `;
 
-    // 5. Campaign Strategy Logic (Horizontal Layout)
+    // 5. Campaign Strategy Logic (Vertical List Layout)
     let preDuration = 6;
     let releaseDuration = 4;
     let postDuration = 0;
