@@ -79,31 +79,44 @@
             </div>
 
             <!-- RESULTS SECTION -->
-            <div id="results" class="results-grid hidden">
+            <div id="results" class="results-container hidden">
                 
-                <div class="card result-card target-card">
-                    <h3>Target Audience</h3>
-                    <div id="targetAudienceDisplay"></div>
-                </div>
+                <!-- ROW 1: Landscape Info -->
+                <div class="results-row top-row">
+                    <div class="card result-card landscape-card">
+                        <h3>Target Audience</h3>
+                        <div id="targetAudienceDisplay" class="landscape-content"></div>
+                    </div>
 
-                <div class="card result-card strategy-card">
-                    <h3>Result</h3>
-                    <div class="strategy-content">
-                        <div class="stat-row">
-                            <span class="label">Commercial or Artistic?</span>
-                            <span id="movieLeanDisplay" class="value"></span>
-                        </div>
-                        <div class="stat-row vertical">
-                            <span class="label">Recommended Advertiser:</span>
-                            <div id="adAgentDisplay" class="highlight-box"></div>
-                        </div>
+                    <div class="card result-card landscape-card">
+                        <h3>Preferred Holiday to Release</h3>
+                        <div id="holidayDisplay" class="landscape-content"></div>
                     </div>
                 </div>
 
-                <div class="card result-card date-card">
-                    <h3>Preferred Holiday</h3>
-                    <div id="holidayDisplay" class="highlight-box"></div>
+                <!-- ROW 2: Detailed Info -->
+                <div class="results-row bottom-row">
+                    <div class="card result-card">
+                        <h3>Recommended Advertisers</h3>
+                        <div class="list-subtitle">Ranked from Highest to Lowest</div>
+                        <div class="strategy-content">
+                            <div class="stat-row">
+                                <span class="label">Movie Lean Towards:</span>
+                                <span id="movieLeanDisplay" class="value"></span>
+                            </div>
+                            <div class="stat-row vertical">
+                                <div id="adAgentDisplay" class="highlight-box"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NEW STRATEGY CARD -->
+                    <div class="card result-card strategy-card">
+                        <h3>Recommended Advertisement Duration</h3>
+                        <div id="campaignStrategyDisplay"></div>
+                    </div>
                 </div>
+
             </div>
         </div>
         
