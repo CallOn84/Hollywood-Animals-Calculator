@@ -353,20 +353,19 @@ function analyzeMovie() {
     // --- RENDER RESULTS ---
     document.getElementById('results').classList.remove('hidden');
     
-    // 1. Target Audience Display (Simplified)
+    // 1. Target Audience Display (Simplified - Name Only)
     document.getElementById('targetAudienceDisplay').innerHTML = `
         <span style="color: #ffd700;">${GAME_DATA.demographics[winner].name}</span>
         <span style="font-size: 0.5em; color: #888; vertical-align: middle;">(${winner})</span>
     `;
 
-    // 2. Advertisers Display (Simplified)
+    // 2. Advertisers Display (Simplified - Name + Type Only)
     let agentHtml = "";
     if (validAgents.length === 0) {
         agentHtml = `<div style="color:red; padding:10px; font-size: 0.9em;">No effective advertisers match this demographic and movie type.</div>`;
     } else {
         agentHtml = validAgents.map(a => {
             let typeLabel = a.type === 0 ? "Univ." : (a.type === 1 ? "Art" : "Com");
-            // Only name and type, no Level or %
             return `
             <div style="padding: 8px 0; border-bottom: 1px solid #333; display:flex; justify-content:space-between; align-items:center;">
                 <span>${a.name}</span>
@@ -394,38 +393,38 @@ function analyzeMovie() {
         <div style="font-size: 0.4em; color: #aaa; margin-top:-5px;">Bonus: ${bestHoliday.bonus}</div>
     `;
 
-    // 5. NEW: Campaign Strategy Logic
-    // Threshold is 9.0 Commercial Score for Extended Run
+    // 5. Campaign Strategy Logic (Horizontal Layout)
     let preDuration = 6;
     let releaseDuration = 4;
     let postDuration = 0;
     let totalWeeks = 10;
-
+    
+    // Logic: If Commercial Score >= 9.0, we extend
     if (inputCom >= 9.0) {
         postDuration = 4;
         totalWeeks = 14;
     }
 
     document.getElementById('campaignStrategyDisplay').innerHTML = `
-        <div style="margin-bottom: 10px; color:#fff; font-weight:bold;">${strategyTitle}</div>
-        
-        <div class="campaign-block pre">
-            <span class="camp-title">Pre-Release</span>
-            <span class="camp-value">${preDuration} Weeks</span>
-        </div>
-        
-        <div class="campaign-block release">
-            <span class="camp-title">Release</span>
-            <span class="camp-value">${releaseDuration} Weeks</span>
+        <div class="strategy-row">
+            <div class="campaign-block pre">
+                <span class="camp-title">Pre-Release</span>
+                <div class="camp-value">${preDuration}<span class="camp-unit">wks</span></div>
+            </div>
+            
+            <div class="campaign-block release">
+                <span class="camp-title">Release</span>
+                <div class="camp-value">${releaseDuration}<span class="camp-unit">wks</span></div>
+            </div>
+
+            <div class="campaign-block post" style="opacity: ${postDuration > 0 ? 1 : 0.3}">
+                <span class="camp-title">Post-Release</span>
+                <div class="camp-value">${postDuration}<span class="camp-unit">wks</span></div>
+            </div>
         </div>
 
-        <div class="campaign-block post" style="opacity: ${postDuration > 0 ? 1 : 0.4}">
-            <span class="camp-title">Post-Release</span>
-            <span class="camp-value">${postDuration} Weeks</span>
-        </div>
-
-        <div style="text-align:right; font-size:0.9em; color:#888; border-top:1px solid #444; padding-top:5px;">
-            Total Duration: <span style="color:#fff;">${totalWeeks} Weeks</span>
+        <div style="text-align:center; font-size:0.85rem; color:#888; border-top:1px solid #333; padding-top:8px;">
+            Total Duration: <strong style="color:#fff;">${totalWeeks} Weeks</strong>
         </div>
     `;
     
