@@ -461,31 +461,41 @@ function analyzeMovie() {
     const inputCom = parseFloat(document.getElementById('comScoreInput').value) || 0;
     const inputArt = parseFloat(document.getElementById('artScoreInput').value) || 0;
 
-    const isArtMovie = inputArt > (inputCom + 0.1); 
+    let tagAffinity = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
 
-    let scores = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
-
+    // 1. Calculate Tag Affinity (How much the script content appeals to each group)
     tagInputs.forEach(item => {
         const tagData = GAME_DATA.tags[item.id];
         if(!tagData) return;
 
         const multiplier = item.percent;
 
-        for(let demo in scores) {
+        for(let demo in tagAffinity) {
             if(tagData.weights[demo]) {
-                scores[demo] += (tagData.weights[demo] * multiplier);
+                tagAffinity[demo] += (tagData.weights[demo] * multiplier);
             }
         }
     });
 
+    // 2. Calculate Final Weighted Audience Volume based on Scores and Turnout Defaults
     let weightedScores = {};
+    const artFactor = inputArt / 10.0;
+    const comFactor = inputCom / 10.0;
+    const baseFactor = 1.0; // Assuming base quality is adequate for base audience
 
-    for(let demo in scores) {
-        const demoData = GAME_DATA.demographics[demo];
-        const preferenceMultiplier = isArtMovie ? demoData.artPref : demoData.comPref;
-        weightedScores[demo] = scores[demo] * demoData.weight * preferenceMultiplier;
+    for(let demo in tagAffinity) {
+        const d = GAME_DATA.demographics[demo];
+        
+        // Calculate Organic Turnout Volume (Potential Audience)
+        // Formula: (BasePop * BaseDefault) + (ArtPop * ArtDefault * ArtScore) + (ComPop * ComDefault * ComScore)
+        const audienceTurnoutPotential = (d.baseW * d.baseD * baseFactor) + 
+                                         (d.artW * d.artD * artFactor) + 
+                                         (d.comW * d.comD * comFactor);
+        
+        // Final Score = Tag Affinity * Turnout Potential
+        weightedScores[demo] = tagAffinity[demo] * audienceTurnoutPotential;
     }
-    
+
     let winner = Object.keys(weightedScores).reduce((a, b) => weightedScores[a] > weightedScores[b] ? a : b);
     let winnerName = GAME_DATA.demographics[winner].name;
     
