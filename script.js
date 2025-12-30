@@ -461,6 +461,8 @@ function analyzeMovie() {
     const inputCom = parseFloat(document.getElementById('comScoreInput').value) || 0;
     const inputArt = parseFloat(document.getElementById('artScoreInput').value) || 0;
 
+    const isArtMovie = inputArt > (inputCom + 0.1); 
+
     let scores = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
 
     tagInputs.forEach(item => {
@@ -477,9 +479,13 @@ function analyzeMovie() {
     });
 
     let weightedScores = {};
+
     for(let demo in scores) {
-        weightedScores[demo] = scores[demo] * GAME_DATA.demographics[demo].weight;
+        const demoData = GAME_DATA.demographics[demo];
+        const preferenceMultiplier = isArtMovie ? demoData.artPref : demoData.comPref;
+        weightedScores[demo] = scores[demo] * demoData.weight * preferenceMultiplier;
     }
+    
     let winner = Object.keys(weightedScores).reduce((a, b) => weightedScores[a] > weightedScores[b] ? a : b);
     let winnerName = GAME_DATA.demographics[winner].name;
     

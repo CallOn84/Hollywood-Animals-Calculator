@@ -12,12 +12,12 @@ const GAME_DATA = {
     },
 
     demographics: {
-        "YM": { name: "Young Male", weight: 0.30 },
-        "YF": { name: "Young Female", weight: 0.30 },
-        "TM": { name: "Teen Male", weight: 0.15 },
-        "TF": { name: "Teen Female", weight: 0.15 },
-        "AM": { name: "Adult Male", weight: 0.05 },
-        "AF": { name: "Adult Female", weight: 0.05 }
+        "YM": { name: "Young Male", weight: 0.30, artPref: 0.40, comPref: 0.25 },
+        "YF": { name: "Young Female", weight: 0.30, artPref: 0.30, comPref: 0.25 },
+        "TM": { name: "Teen Male", weight: 0.15, artPref: 0.05, comPref: 0.20 },
+        "TF": { name: "Teen Female", weight: 0.15, artPref: 0.05, comPref: 0.20 },
+        "AM": { name: "Adult Male", weight: 0.05, artPref: 0.10, comPref: 0.10 },
+        "AF": { name: "Adult Female", weight: 0.05, artPref: 0.10, comPref: 0.10 }
     },
 
     // Agent Types: 0 = Universal, 1 = Artistic, 2 = Commercial
