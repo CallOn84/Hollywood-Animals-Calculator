@@ -415,109 +415,192 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 .reset-btn:hover { border-color: var(--text-main); color: var(--text-main); }
 
-/* --- RESULTS LAYOUT FIX --- */
+/* --- RESULTS LAYOUT (Dashboard Grid) --- */
 
 .results-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
+    margin-top: 20px;
 }
 
 .results-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    /* KEY FIX: align-items: start prevents the Holiday card from stretching vertically to match the Audience card */
-    align-items: start; 
+    gap: 24px;
+    /* This ensures cards in the same row are equal height */
+    align-items: stretch; 
 }
 
-/* Landscape Cards (Top Row) */
-.landscape-card {
+/* Card Typography & Spacing Updates */
+.result-card {
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    margin-bottom: 0;
+    height: 100%; /* Fills the grid cell */
+    min-height: 200px; /* Minimum height for consistency */
+    box-sizing: border-box;
+    padding: 30px; /* More breathing room */
 }
 
-.landscape-card h3 {
-    font-size: 0.9rem;
+.result-card h3 {
+    font-size: 0.75rem;
+    letter-spacing: 1px;
     color: var(--text-muted);
-    margin-bottom: 15px;
-    border-bottom: 1px solid #333;
-    padding-bottom: 8px;
+    margin-bottom: 20px;
+    border-bottom: none; /* Cleaner look */
+    opacity: 0.8;
 }
 
+/* TARGET AUDIENCE (Minimalist Chips) */
 .landscape-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-content: flex-start;
+}
+
+.audience-pill {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-main);
+    transition: background 0.2s;
+    /* Removed borders and icons per request */
+}
+
+.audience-pill:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.pill-code {
+    color: #666;
+    font-size: 0.8em;
+    margin-left: 6px;
+}
+
+/* PREFERRED HOLIDAY (Hero Text) */
+.holiday-hero {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.holiday-name {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 8px;
+}
+
+.holiday-sub {
+    font-size: 0.9rem;
+    color: var(--accent);
+    line-height: 1.5;
+}
+
+/* ADVERTISERS LIST */
+.strategy-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.advertiser-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.advertiser-row:last-child {
+    border-bottom: none;
+}
+
+.advertiser-name {
+    font-weight: 600;
     font-size: 1rem;
     color: #fff;
 }
 
-/* TARGET AUDIENCE GRID (Clean Look) */
-.audience-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.audience-pill {
-    background: #252525;
-    border: 1px solid #444;
-    border-radius: 6px;
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-main);
-    transition: transform 0.2s, border-color 0.2s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.audience-pill:hover {
-    transform: translateY(-2px);
-    border-color: var(--success);
-}
-
-.pill-icon {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    background-color: var(--success);
-    border-radius: 50%;
-    box-shadow: 0 0 5px rgba(76, 217, 100, 0.6);
-}
-
-.pill-code {
+.advertiser-type {
     font-size: 0.75rem;
-    color: #888;
-    font-weight: 400;
-    margin-left: 4px;
-}
-
-/* Holiday Bonus Styling */
-.holiday-bonus {
-    font-size: 0.85rem; 
-    color: #aaa; 
-    margin-top: 8px;
-    line-height: 1.4;
-    display: block;
-    background: #252525;
-    padding: 8px;
+    background: rgba(255,255,255,0.1);
+    padding: 4px 8px;
     border-radius: 4px;
-    border-left: 2px solid var(--accent);
+    color: #aaa;
+    text-transform: uppercase;
 }
 
-/* List Subtitle */
-.list-subtitle {
+/* CAMPAIGN DURATION (Timeline Visualization) */
+#campaignStrategyDisplay {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-grow: 1;
+}
+
+.strategy-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+/* Connecting line design */
+.strategy-row::before {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 20px;
+    bottom: 20px;
+    width: 2px;
+    background: #333;
+    z-index: 0;
+}
+
+.campaign-block {
+    position: relative;
+    z-index: 1;
+    background: #252525;
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid transparent;
+}
+
+.campaign-block.pre { border-left: 4px solid #a0a0ff; }
+.campaign-block.release { border-left: 4px solid var(--accent); }
+.campaign-block.post { border-left: 4px solid #ff5f5f; }
+
+.camp-title {
     font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: -10px;
-    margin-bottom: 15px;
     text-transform: uppercase;
+    color: #888;
     letter-spacing: 0.5px;
     font-weight: 600;
-    opacity: 0.7;
+}
+
+.camp-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.total-duration-footer {
+    text-align: center;
+    color: #666;
+    font-size: 0.9rem;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255,255,255,0.1);
 }
 
 /* --- SYNERGY RESULTS --- */
@@ -622,49 +705,6 @@ select:focus { outline: none; border-color: var(--accent); }
     font-style: italic;
 }
 
-/* Campaign Blocks */
-.strategy-row {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 15px;
-}
-
-.campaign-block {
-    background: #252525;
-    padding: 15px 20px;
-    border-radius: 6px;
-    border-left: 4px solid #444;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    transition: background 0.2s;
-}
-
-.campaign-block:hover { background: #2a2a2a; }
-.campaign-block.pre { border-left-color: #a0a0ff; }
-.campaign-block.release { border-left-color: var(--accent); }
-.campaign-block.post { border-left-color: #ff5f5f; }
-
-.camp-title {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    font-weight: 700;
-}
-
-.camp-value { font-size: 1.2rem; color: #fff; font-weight: 800; }
-.camp-unit { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 4px; }
-
-.highlight-box {
-    background: #252525;
-    padding: 15px;
-    border-radius: 4px;
-    border-left: 3px solid var(--accent);
-    margin-top: 5px;
-}
-
 .stat-row {
     display: flex;
     justify-content: space-between;
@@ -686,11 +726,19 @@ footer {
     margin-top: 40px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 800px) {
     #selectors-container-advertisers, #selectors-container-synergy { grid-template-columns: 1fr; }
     h1 { font-size: 1.8rem; }
     .score-controls-wrapper { flex-direction: column; gap: 15px; }
-    .results-row { grid-template-columns: 1fr; }
+    
+    .results-row { 
+        grid-template-columns: 1fr; /* Stack vertically */
+    }
+    
+    .result-card {
+        min-height: auto;
+    }
+
     .summary-row { flex-direction: column; align-items: flex-start; gap: 20px; }
     .summary-divider { display: none; }
     .summary-item.right { align-items: flex-start; text-align: left; }

@@ -582,18 +582,13 @@ function analyzeMovie() {
         targetAudiences.forEach(d => {
             const chip = document.createElement('div');
             chip.className = 'audience-pill';
-            chip.style.borderColor = 'var(--success)'; // Green border
-            chip.innerHTML = `
-                <span class="pill-icon"></span>
-                ${d.name}
-            `;
+            chip.innerHTML = `${d.name}`;
             audienceContainer.appendChild(chip);
         });
     } else {
         audienceContainer.innerHTML = `
-            <div style="color: #aaa; font-style: italic; font-size: 0.9em; padding: 5px;">
-                No audience group will "Most Enjoy" this film.<br>
-                <span style="opacity:0.7">Try removing conflicting themes or changing genre.</span>
+            <div style="color: #666; font-style: italic; font-size: 0.95rem;">
+                No audience fits the criteria.
             </div>
         `;
     }
@@ -643,39 +638,28 @@ function analyzeMovie() {
 
     // Render Advertisers
     const agentContainer = document.getElementById('adAgentDisplay');
+    const leanDisplay = document.getElementById('movieLeanDisplay');
     
+    // Update Lean Text
+    leanDisplay.innerHTML = `<span style="color: ${movieLean === 1 ? '#a0a0ff' : (movieLean === 2 ? '#d4af37' : '#fff')}">${leanText}</span>`;
+
     if (validTargetIds.length === 0) {
-        agentContainer.innerHTML = `
-            <div style="color:#888; padding:15px; font-size: 0.9em; text-align:center; font-style:italic;">
-                Identify a target audience (Green) to see recommended advertisers.
-            </div>`;
+        agentContainer.innerHTML = `<div style="color:#666; font-style:italic; padding:10px 0;">Identify a target audience first.</div>`;
     } else if (validAgents.length === 0) {
-        agentContainer.innerHTML = `
-            <div style="color:#d4af37; padding:15px; font-size: 0.9em; text-align:center;">
-                No specialized advertisers found for this specific combination.
-            </div>`;
+        agentContainer.innerHTML = `<div style="color:#d4af37; padding:10px 0;">No specific advertisers found.</div>`;
     } else {
         const agentHtml = validAgents.slice(0, 4).map(a => {
             let typeLabel = a.type === 0 ? "Univ." : (a.type === 1 ? "Art" : "Com");
-            let targetsStr = a.targets.filter(t => validTargetIds.includes(t)).join(", ");
             
+            // Cleaner HTML structure for the new CSS
             return `
-            <div style="padding: 10px 0; border-bottom: 1px solid #333; display:flex; flex-direction:column;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight:600; color:#e0e0e0;">${a.name}</span>
-                    <span style="font-size:0.75em; background:#333; padding:2px 6px; border-radius:4px; color:#aaa;">${typeLabel}</span>
-                </div>
-                <div style="font-size:0.75em; color:#666; margin-top:2px;">
-                    Targets: <span style="color:#4cd964;">${targetsStr}</span>
-                </div>
+            <div class="advertiser-row">
+                <span class="advertiser-name">${a.name}</span>
+                <span class="advertiser-type">${typeLabel}</span>
             </div>`;
         }).join('');
         agentContainer.innerHTML = agentHtml;
     }
-
-    document.getElementById('movieLeanDisplay').innerHTML = `
-        <span style="color: ${movieLean === 1 ? '#a0a0ff' : (movieLean === 2 ? '#d4af37' : '#fff')}">${leanText}</span>
-    `;
 
     // 7. Holiday Logic (Strict)
     let bestHoliday = null;
@@ -690,19 +674,26 @@ function analyzeMovie() {
         });
     }
 
+    const holidayContainer = document.getElementById('holidayDisplay');
+
     if(!bestHoliday) {
-        bestHoliday = { name: "None", bonus: "0%" };
-        document.getElementById('holidayDisplay').innerHTML = `
-            <div style="color: #666; font-size: 0.9rem; font-style: italic;">No specific holiday synergy.</div>
+        holidayContainer.innerHTML = `
+            <div class="holiday-hero">
+                <div class="holiday-name" style="color:#666;">None</div>
+                <div class="holiday-sub" style="color:#555;">No specific holiday synergy.</div>
+            </div>
         `;
     } else {
         let bonusText = bestHoliday.name === "Christmas" 
             ? "Small Bonus for Everyone" 
             : `Bonus for ${validTargetIds.join(' & ')}`;
             
-        document.getElementById('holidayDisplay').innerHTML = `
-            <div style="color: #fff; font-weight:700; font-size:1.1rem; margin-bottom:4px;">${bestHoliday.name}</div>
-            <div style="color: #aaa; font-size: 0.85rem;">${bestHoliday.bonus} ${bonusText}</div>
+        // Cleaner HTML for "Hero" style
+        holidayContainer.innerHTML = `
+            <div class="holiday-hero">
+                <div class="holiday-name">${bestHoliday.name}</div>
+                <div class="holiday-sub">${bestHoliday.bonus} ${bonusText}</div>
+            </div>
         `;
     }
 
@@ -721,21 +712,21 @@ function analyzeMovie() {
         <div class="strategy-row">
             <div class="campaign-block pre">
                 <span class="camp-title">Pre-Release</span>
-                <div class="camp-value">${preDuration}<span class="camp-unit">wks</span></div>
+                <span class="camp-value">${preDuration} wks</span>
             </div>
             
             <div class="campaign-block release">
                 <span class="camp-title">Release</span>
-                <div class="camp-value">${releaseDuration}<span class="camp-unit">wks</span></div>
+                <span class="camp-value">${releaseDuration} wks</span>
             </div>
 
             <div class="campaign-block post" style="opacity: ${postDuration > 0 ? 1 : 0.3}">
                 <span class="camp-title">Post-Release</span>
-                <div class="camp-value">${postDuration}<span class="camp-unit">wks</span></div>
+                <span class="camp-value">${postDuration} wks</span>
             </div>
         </div>
 
-        <div style="text-align:center; font-size:0.85rem; color:#888; border-top:1px solid #333; padding-top:8px;">
+        <div class="total-duration-footer">
             Total Duration: <strong style="color:#fff;">${totalWeeks} Weeks</strong>
         </div>
     `;
