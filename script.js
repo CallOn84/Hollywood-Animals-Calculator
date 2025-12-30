@@ -22,55 +22,11 @@ window.onload = async function() {
         setupSearchListeners();
         setupScoreSync(); 
         
-        // 4. Update UI Labels to new terminology immediately
-        updateSynergyLabels();
-        
         console.log("Initialization Complete.");
     } catch (error) {
         console.error("Failed to load data:", error);
     }
 };
-
-// --- HELPER: UPDATE LABELS TO NEW TERMINOLOGY ---
-function updateSynergyLabels() {
-    // This function updates the HTML text to match the new terms
-    // "Script Synergy", "Tag Bonuses", "Forecasted Ratings"
-    
-    // 1. Update Section Headers
-    const headers = document.querySelectorAll('.col-header');
-    if(headers.length >= 2) {
-        headers[0].innerText = "Bonuses";
-        headers[1].innerText = "Forecasted Movie Score";
-    }
-
-    // 2. Update Row Labels - Breakdown
-    const breakdownLabels = document.querySelectorAll('.b-label');
-    if(breakdownLabels.length >= 3) {
-        breakdownLabels[0].innerText = "Script Synergy:";
-        breakdownLabels[1].innerText = "Commercial Bonus:";
-        breakdownLabels[2].innerText = "Artistic Bonus:";
-    }
-
-    // 3. Update Row Labels - Totals
-    const totalLabels = document.querySelectorAll('.t-label');
-    if(totalLabels.length >= 2) {
-        totalLabels[0].innerText = "Commercial Score:";
-        totalLabels[1].innerText = "Artistic Scpre:";
-    }
-    
-    // 4. Update Summary Cards
-    const summaryItems = document.querySelectorAll('.summary-item h3');
-    if(summaryItems.length >= 2) {
-        summaryItems[0].innerText = "Average Compatibility";
-        summaryItems[1].innerText = "Script Synergy";
-    }
-    
-    // 5. Update Explanatory Text
-    const contextText = document.querySelector('.context-text');
-    if(contextText) {
-        contextText.innerText = "Script synergy is the foundation of your movie score, scaled by your scriptwriter's skill. A high synergy allows a skilled scriptwriter to reach these forecasted movie scores; a poor scriptwriter will result in lower scores regardless of these stats. The movie score are not final, and are subject to change as you advance through Pre-Production, Production, and Post-Production.";
-    }
-}
 
 // --- LOCALIZATION LOGIC ---
 
@@ -110,9 +66,6 @@ async function changeLanguage(langName, shouldRender = true) {
                 
                 restoreSelection('synergy', savedSynergy);
                 restoreSelection('advertisers', savedAdvertisers);
-                
-                // Re-apply label updates in case DOM was reset
-                updateSynergyLabels();
             }
         }
 
@@ -871,8 +824,6 @@ function analyzeMovie() {
 // SYNERGY CALCULATOR LOGIC
 // ---------------------------------------------
 function calculateSynergy() {
-    updateSynergyLabels(); // Ensure terminology is correct
-    
     const selectedTags = collectTagInputs('synergy');
     if (selectedTags.length === 0) {
         alert("Please select at least one tag.");
