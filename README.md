@@ -1,4 +1,4 @@
-# A tool for Hollywood Animal helps players know what story elements are compatible with each other and find the best advertisers for their movie.
+# A tool that helps players know what story elements are compatible with each other and find the best advertisers for their movie.
 
 <img width="500" height="500" alt="callon84 github io_Hollywood-Animal-Calculator_ (1)" src="https://github.com/user-attachments/assets/a70fac90-49a5-4e75-b783-3dfb53c7bb8b" />
 
