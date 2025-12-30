@@ -2,9 +2,19 @@ const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event
 let searchIndex = [];
 let currentTab = 'synergy'; 
 
+// --- LOCALIZATION VARIABLES ---
+let localizationMap = {}; // Stores ID -> "Clean Name"
+let currentLanguage = 'English';
+
 window.onload = async function() {
     try {
+        // 1. Load the default localization FIRST (Critical for initial naming)
+        await changeLanguage('English', false); // false = don't re-render yet
+
+        // 2. Load Game Data
         await loadExternalData();
+        
+        // 3. Initialize UI
         initializeSelectors('advertisers');
         initializeSelectors('synergy');
         
@@ -17,6 +27,120 @@ window.onload = async function() {
         console.error("Failed to load data:", error);
     }
 };
+
+// --- LOCALIZATION LOGIC ---
+
+async function changeLanguage(langName, shouldRender = true) {
+    currentLanguage = langName;
+    const fileName = `localization/${langName}.json`;
+    
+    try {
+        const res = await fetch(fileName);
+        if (!res.ok) throw new Error(`Could not load ${fileName}`);
+        
+        const locData = await res.json();
+        
+        // Clear old map
+        localizationMap = {};
+
+        // Build new map: IdMap["TAG_ID"] = Index -> locStrings[Index]
+        if (locData.IdMap && locData.locStrings) {
+            for (const [tagId, index] of Object.entries(locData.IdMap)) {
+                if (locData.locStrings[index]) {
+                    localizationMap[tagId] = locData.locStrings[index];
+                }
+            }
+        }
+
+        // If the game data is already loaded, we need to update the names in memory
+        if (Object.keys(GAME_DATA.tags).length > 0) {
+            updateAllTagNames();
+            buildSearchIndex(); // Rebuild search with new language
+            
+            if (shouldRender) {
+                // Re-initialize dropdowns to show new names
+                // We save current selections to restore them if possible (simple re-init clears them, 
+                // but advanced logic could map IDs back to values)
+                const savedSynergy = collectTagInputs('synergy');
+                const savedAdvertisers = collectTagInputs('advertisers');
+
+                initializeSelectors('synergy');
+                initializeSelectors('advertisers');
+                
+                // Attempt to restore values (simple attempt)
+                restoreSelection('synergy', savedSynergy);
+                restoreSelection('advertisers', savedAdvertisers);
+            }
+        }
+
+    } catch (e) {
+        console.error("Localization Error:", e);
+        // Fallback: If loading fails, we might just stick to ID formatting or previous language
+    }
+}
+
+function updateAllTagNames() {
+    for (const tagId in GAME_DATA.tags) {
+        GAME_DATA.tags[tagId].name = beautifyTagName(tagId);
+    }
+}
+
+function restoreSelection(context, savedInputs) {
+    // This is a helper to try and set values back after re-init
+    // It's basic and handles single selects mostly. 
+    // Multi-select categories usually default to empty on init, so we'd need to re-add dropdowns.
+    
+    if(!savedInputs || savedInputs.length === 0) return;
+
+    savedInputs.forEach(input => {
+        const category = input.category;
+        
+        // Check if existing empty select available
+        const containerId = `inputs-${category.replace(/\s/g, '-')}-${context}`;
+        const container = document.getElementById(containerId);
+        if(!container) return;
+
+        // For multi-selects, we might need to add a dropdown if it's not the first one
+        // Simpler approach for this specific tool: Just re-add dropdowns if needed.
+        const selects = container.querySelectorAll('select');
+        let placed = false;
+        
+        // Try to find an empty slot
+        for(let sel of selects) {
+            if(sel.value === "") {
+                sel.value = input.id;
+                placed = true;
+                break;
+            }
+        }
+
+        // If no empty slot and it's a multi category, add new
+        if(!placed && MULTI_SELECT_CATEGORIES.includes(category)) {
+            addDropdown(category, input.id, context);
+            placed = true;
+        }
+        
+        // Handle Genre Percentage slider restoration if needed
+        if(category === 'Genre' && placed) {
+             // Logic to restore percentage would go here, but might be complex due to auto-balancing
+        }
+    });
+    
+    if(savedInputs.some(i => i.category === 'Genre')) {
+        updateGenreControls(context);
+        // Restore slider values (approximate)
+        const genreRows = document.querySelectorAll(`#inputs-Genre-${context} .genre-row`);
+        const genres = savedInputs.filter(i => i.category === 'Genre');
+        genreRows.forEach((row, idx) => {
+            if(genres[idx]) {
+                const val = Math.round(genres[idx].percent * 100);
+                row.querySelector('.percent-input').value = val;
+                row.querySelector('.percent-slider').value = val;
+                updatePercentSliderTrack(row.querySelector('.percent-slider'));
+            }
+        });
+    }
+}
 
 function switchTab(tabName) {
     currentTab = tabName;
@@ -106,7 +230,7 @@ async function loadExternalData() {
 
             GAME_DATA.tags[tagId] = {
                 id: tagId,
-                name: beautifyTagName(tagId),
+                name: beautifyTagName(tagId), // Uses localization map now
                 category: category,
                 art: parseFloat(data.artValue || 0),
                 com: parseFloat(data.commercialValue || 0),
@@ -126,8 +250,14 @@ function parseWeights(weightObj) {
     return clean;
 }
 
-function beautifyTagName(raw) {
-    let name = raw;
+function beautifyTagName(rawId) {
+    // 1. Try to find exact match in Localization Map
+    if (localizationMap[rawId]) {
+        return localizationMap[rawId];
+    }
+
+    // 2. Fallback: Old regex logic if translation is missing
+    let name = rawId;
     const prefixes = ["PROTAGONIST_", "ANTAGONIST_", "SUPPORTINGCHARACTER_", "THEME_", "EVENTS_", "FINALE_", "EVENT_"];
     prefixes.forEach(p => {
         if (name.startsWith(p)) name = name.substring(p.length);
@@ -459,16 +589,12 @@ function analyzeMovie() {
     const inputArt = parseFloat(document.getElementById('artScoreInput').value) || 0;
 
     // 1. RAW SUMMATION
-    // Sum up the raw weights from all tags.
-    // In the actual game code, they do not multiply categories by 0.5/0.25 etc.
-    // They rely on the weights in the JSON data being balanced.
     let tagAffinity = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
     
     tagInputs.forEach(item => {
         const tagData = GAME_DATA.tags[item.id];
         if(!tagData) return;
 
-        // Genres are multiplied by their fraction (slider value), others are flat
         const multiplier = item.percent;
 
         for(let demo in tagAffinity) {
@@ -478,9 +604,7 @@ function analyzeMovie() {
         }
     });
 
-    // 2. THE "LIFT" (From MovieProcessor.cs GetDropRates)
-    // Find the lowest score. If it's < 1.0, shift EVERYONE up so the lowest becomes 1.0.
-    // This preserves the gap between groups but removes negatives.
+    // 2. THE "LIFT"
     let minVal = Number.MAX_VALUE;
     for (let demo in tagAffinity) {
         if (tagAffinity[demo] < minVal) minVal = tagAffinity[demo];
@@ -494,8 +618,6 @@ function analyzeMovie() {
     }
 
     // 3. NORMALIZATION & MAGIC NUMBER
-    // Calculate the total sum of all scores, then divide each by the sum.
-    // Then multiply by the ReleaseMagicNumber (which is 3 in GameVariables.json).
     let totalSum = 0;
     for (let demo in tagAffinity) totalSum += tagAffinity[demo];
 
@@ -504,11 +626,9 @@ function analyzeMovie() {
     let baselineScores = {};
     for(let demo in tagAffinity) {
         if (totalSum === 0) {
-            baselineScores[demo] = 0; // Edge case safety
+            baselineScores[demo] = 0; 
         } else {
-            // (Value / Total) * MagicNumber
             let normalized = (tagAffinity[demo] / totalSum) * RELEASE_MAGIC_NUMBER;
-            // Clamp between 0 and 1
             baselineScores[demo] = Math.min(1.0, Math.max(0, normalized));
         }
     }
@@ -521,11 +641,9 @@ function analyzeMovie() {
     
     for(let demo in GAME_DATA.demographics) {
         const d = GAME_DATA.demographics[demo];
-        
-        // This 'baseline' is now the "Drop Rate" calculated above
         const dropRate = baselineScores[demo]; 
 
-        // -- PART A: SATISFACTION (The skew logic) --
+        // -- PART A: SATISFACTION --
         const skew = normalizedArt - normalizedCom;
         let satArt, satBase, satCom;
 
@@ -549,8 +667,6 @@ function analyzeMovie() {
         // -- PART C: FINAL UTILITY SCORE --
         const aw = GAME_DATA.constants.KINOMARK.audienceWeight;
         
-        // Note: In the game, if affinity is super low, the score is tanked.
-        // We simulate this by checking the dropRate.
         let finalScore = (satisfaction * aw) + (quality * (1 - aw));
         
         if (dropRate <= 0.1) {
@@ -560,14 +676,12 @@ function analyzeMovie() {
         demoGrades.push({
             id: demo,
             name: d.name,
-            score: dropRate, // We use the Affinity DropRate for categorization
-            utility: finalScore // We use the Final Utility for calculating Advertisers
+            score: dropRate, 
+            utility: finalScore 
         });
     }
 
     // 4. CATEGORIZATION THRESHOLDS
-    // Based on MoviesManager.cs GetAudienceGrade
-    // Green >= 0.67, Yellow > 0.33, Red <= 0.33
     const THRESHOLD_GOOD = 0.67;
     const targetAudiences = demoGrades.filter(d => d.score >= THRESHOLD_GOOD);
 
@@ -577,7 +691,6 @@ function analyzeMovie() {
     audienceContainer.innerHTML = '';
     
     if (targetAudiences.length > 0) {
-        // Sort highest affinity first
         targetAudiences.sort((a, b) => b.score - a.score);
         targetAudiences.forEach(d => {
             const chip = document.createElement('div');
@@ -594,7 +707,6 @@ function analyzeMovie() {
     }
 
     // 6. Advertisers Logic
-    // We filter agents based on the GREEN audiences.
     const validTargetIds = targetAudiences.map(t => t.id);
 
     // Determine Movie Lean
@@ -607,23 +719,16 @@ function analyzeMovie() {
 
     if (validTargetIds.length > 0) {
         validAgents = GAME_DATA.adAgents.filter(agent => {
-            // STRICT FILTER: Agent must target a Green audience
             return agent.targets.some(t => validTargetIds.includes(t));
         }).map(agent => {
             let score = 0;
-            
-            // +5 for every Green audience hit
             validTargetIds.forEach(targetId => {
                 if (agent.targets.includes(targetId)) {
                     score += 5; 
                 }
             });
-
-            // -10 penalty for type mismatch
             if(agent.type !== 0 && agent.type !== movieLean) score -= 10;
-            
             score += agent.level;
-
             return { ...agent, score };
         });
 
@@ -636,11 +741,9 @@ function analyzeMovie() {
         });
     }
 
-    // Render Advertisers
     const agentContainer = document.getElementById('adAgentDisplay');
     const leanDisplay = document.getElementById('movieLeanDisplay');
     
-    // Update Lean Text
     leanDisplay.innerHTML = `<span style="color: ${movieLean === 1 ? '#a0a0ff' : (movieLean === 2 ? '#d4af37' : '#fff')}">${leanText}</span>`;
 
     if (validTargetIds.length === 0) {
@@ -650,8 +753,6 @@ function analyzeMovie() {
     } else {
         const agentHtml = validAgents.slice(0, 4).map(a => {
             let typeLabel = a.type === 0 ? "Univ." : (a.type === 1 ? "Art" : "Com");
-            
-            // Cleaner HTML structure for the new CSS
             return `
             <div class="advertiser-row">
                 <span class="advertiser-name">${a.name}</span>
@@ -661,7 +762,7 @@ function analyzeMovie() {
         agentContainer.innerHTML = agentHtml;
     }
 
-    // 7. Holiday Logic (Strict)
+    // 7. Holiday Logic
     let bestHoliday = null;
     
     if (validTargetIds.length > 0) {
@@ -684,19 +785,13 @@ function analyzeMovie() {
             </div>
         `;
     } else {
-        // --- NAME FORMATTING LOGIC ---
-        
-        // 1. Get readable names from the IDs (e.g., "Women", "Men")
         const targetNames = validTargetIds.map(id => GAME_DATA.demographics[id].name);
-
-        // 2. Format as natural language list (A, B, and C)
         let formattedTargets = "";
         if (targetNames.length === 1) {
             formattedTargets = targetNames[0];
         } else if (targetNames.length === 2) {
             formattedTargets = `${targetNames[0]} and ${targetNames[1]}`;
         } else {
-            // Oxford comma style: "Boys, Girls, and Young Men"
             const last = targetNames.pop();
             formattedTargets = `${targetNames.join(', ')}, and ${last}`;
         }
