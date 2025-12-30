@@ -1065,7 +1065,7 @@ function renderSynergyResults(matrix, bonuses) {
     else if (matrix.rawAverage < 2.5) avgEl.style.color = 'var(--danger)';
     else avgEl.style.color = '#fff';
 
-    // Script Synergy (Keep the + here, as it's a component)
+    // Script Synergy (Keep raw or multiply? Raw is better for Synergy)
     const baseScoreEl = document.getElementById('synergyTotalDisplay');
     baseScoreEl.innerText = formatScore(matrix.totalScore);
     baseScoreEl.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
@@ -1085,18 +1085,33 @@ function renderSynergyResults(matrix, bonuses) {
     breakdownArt.innerText = formatSimpleScore(bonuses.art);
     breakdownArt.style.color = bonuses.art > 0 ? '#a0a0ff' : (bonuses.art < 0 ? 'var(--danger)' : '#fff');
 
-    // Totals (Forecasted Ratings)
-    const totalCom = matrix.totalScore + bonuses.com;
-    const totalArt = matrix.totalScore + bonuses.art;
+    // --- UPDATED LOGIC HERE ---
+    const MAX_GAME_SCORE = 9.9; 
+
+    // Calculate raw totals
+    const totalComRaw = matrix.totalScore + bonuses.com;
+    const totalArtRaw = matrix.totalScore + bonuses.art;
+
+    // Convert to Game Scale (0 - 9.9)
+    let displayCom = totalComRaw * MAX_GAME_SCORE;
+    let displayArt = totalArtRaw * MAX_GAME_SCORE;
 
     const totalComEl = document.getElementById('totalComScore');
-    // CHANGE: Removed formatScore, using toFixed(2) to remove the "+" sign
-    totalComEl.innerText = totalCom.toFixed(2);
+    const totalArtEl = document.getElementById('totalArtScore');
+
+    // Helper to format the final string
+    // If it's over 9.9, show 9.9 but indicate the overflow
+    function formatFinalRating(val) {
+        if (val > MAX_GAME_SCORE) {
+            return `${MAX_GAME_SCORE} <span style="font-size:0.6em; opacity:0.7;">(Potential: ${val.toFixed(1)})</span>`;
+        }
+        return val.toFixed(1);
+    }
+
+    totalComEl.innerHTML = formatFinalRating(displayCom);
     totalComEl.style.color = 'var(--accent)'; 
 
-    const totalArtEl = document.getElementById('totalArtScore');
-    // CHANGE: Removed formatScore, using toFixed(2) to remove the "+" sign
-    totalArtEl.innerText = totalArt.toFixed(2);
+    totalArtEl.innerHTML = formatFinalRating(displayArt);
     totalArtEl.style.color = '#a0a0ff'; 
 
     // Spoilers / Conflicts
