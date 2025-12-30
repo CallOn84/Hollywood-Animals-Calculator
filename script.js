@@ -684,11 +684,27 @@ function analyzeMovie() {
             </div>
         `;
     } else {
+        // --- NAME FORMATTING LOGIC ---
+        
+        // 1. Get readable names from the IDs (e.g., "Women", "Men")
+        const targetNames = validTargetIds.map(id => GAME_DATA.demographics[id].name);
+
+        // 2. Format as natural language list (A, B, and C)
+        let formattedTargets = "";
+        if (targetNames.length === 1) {
+            formattedTargets = targetNames[0];
+        } else if (targetNames.length === 2) {
+            formattedTargets = `${targetNames[0]} and ${targetNames[1]}`;
+        } else {
+            // Oxford comma style: "Boys, Girls, and Young Men"
+            const last = targetNames.pop();
+            formattedTargets = `${targetNames.join(', ')}, and ${last}`;
+        }
+
         let bonusText = bestHoliday.name === "Christmas" 
             ? "Small Bonus for Everyone" 
-            : `Bonus for ${validTargetIds.join(' & ')}`;
+            : `Bonus for ${formattedTargets}`;
             
-        // Cleaner HTML for "Hero" style
         holidayContainer.innerHTML = `
             <div class="holiday-hero">
                 <div class="holiday-name">${bestHoliday.name}</div>

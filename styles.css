@@ -28,10 +28,10 @@ body {
     padding: 40px 20px;
 }
 
-/* Header */
+/* --- HEADER --- */
 header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
 }
 
 h1 {
@@ -65,8 +65,8 @@ h2 {
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text-muted);
-    padding: 10px 20px;
-    font-size: 1rem;
+    padding: 10px 24px;
+    font-size: 0.95rem;
     font-weight: 600;
     border-radius: 20px;
     cursor: pointer;
@@ -89,7 +89,7 @@ h2 {
     display: none;
 }
 
-/* Cards */
+/* --- CARDS --- */
 .card {
     background: var(--card-bg);
     padding: 25px;
@@ -110,7 +110,7 @@ h3 {
     margin-bottom: 20px;
 }
 
-/* SCORE CARD STYLES */
+/* --- SCORE CONTROLS --- */
 .score-card { border-top: 4px solid var(--border); }
 
 .card-header {
@@ -155,9 +155,6 @@ h3 {
 .score-label-row label {
     font-weight: 700;
     color: var(--text-main);
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
 .score-number-display {
@@ -207,14 +204,14 @@ h3 {
     border: 2px solid #252525;
     cursor: grab;
     transition: transform 0.1s;
-    margin-top: -6px; /* center thumb */
+    margin-top: -6px;
 }
 
 .styled-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .art-slider::-webkit-slider-thumb { background: #a0a0ff; }
 .com-slider::-webkit-slider-thumb { background: var(--accent); }
 
-/* Search Bar */
+/* --- SEARCH BAR --- */
 .search-wrapper { position: relative; }
 
 input[type="text"] {
@@ -252,7 +249,7 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
 .search-item:hover { background-color: var(--accent); color: #000; }
 .search-item small { display: block; font-size: 0.75rem; opacity: 0.7; }
 
-/* Selectors Grid */
+/* --- SELECTORS GRID --- */
 .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
 
 #selectors-container-advertisers, #selectors-container-synergy {
@@ -338,7 +335,7 @@ select:focus { outline: none; border-color: var(--accent); }
 
 .remove-btn:hover { color: #ff8888; }
 
-/* GENRE PERCENTAGE CONTROLS */
+/* Genre Percentage Inputs */
 .genre-percent-wrapper {
     display: flex;
     align-items: center;
@@ -376,7 +373,7 @@ select:focus { outline: none; border-color: var(--accent); }
 
 .percent-input:focus { outline: none; border-color: var(--accent); }
 
-/* Action Buttons */
+/* --- ACTION BUTTONS --- */
 .action-area { margin-top: 20px; }
 
 .analyze-btn {
@@ -415,7 +412,9 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 .reset-btn:hover { border-color: var(--text-main); color: var(--text-main); }
 
+/* ========================================= */
 /* --- RESULTS LAYOUT (Dashboard Grid) --- */
+/* ========================================= */
 
 .results-container {
     display: flex;
@@ -428,18 +427,17 @@ select:focus { outline: none; border-color: var(--accent); }
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 24px;
-    /* This ensures cards in the same row are equal height */
+    /* Ensures cards in the same row are equal height */
     align-items: stretch; 
 }
 
-/* Card Typography & Spacing Updates */
 .result-card {
     display: flex;
     flex-direction: column;
-    height: 100%; /* Fills the grid cell */
-    min-height: 200px; /* Minimum height for consistency */
+    height: 100%;
+    min-height: 200px;
     box-sizing: border-box;
-    padding: 30px; /* More breathing room */
+    padding: 30px;
 }
 
 .result-card h3 {
@@ -447,11 +445,11 @@ select:focus { outline: none; border-color: var(--accent); }
     letter-spacing: 1px;
     color: var(--text-muted);
     margin-bottom: 20px;
-    border-bottom: none; /* Cleaner look */
+    border-bottom: none;
     opacity: 0.8;
 }
 
-/* TARGET AUDIENCE (Minimalist Chips) */
+/* --- TARGET AUDIENCE (Chips) --- */
 .landscape-content {
     display: flex;
     flex-wrap: wrap;
@@ -467,20 +465,13 @@ select:focus { outline: none; border-color: var(--accent); }
     font-weight: 500;
     color: var(--text-main);
     transition: background 0.2s;
-    /* Removed borders and icons per request */
 }
 
 .audience-pill:hover {
     background: rgba(255, 255, 255, 0.15);
 }
 
-.pill-code {
-    color: #666;
-    font-size: 0.8em;
-    margin-left: 6px;
-}
-
-/* PREFERRED HOLIDAY (Hero Text) */
+/* --- PREFERRED HOLIDAY (Hero Text) --- */
 .holiday-hero {
     flex-grow: 1;
     display: flex;
@@ -502,7 +493,7 @@ select:focus { outline: none; border-color: var(--accent); }
     line-height: 1.5;
 }
 
-/* ADVERTISERS LIST */
+/* --- ADVERTISERS LIST --- */
 .strategy-content {
     flex-grow: 1;
     display: flex;
@@ -537,7 +528,26 @@ select:focus { outline: none; border-color: var(--accent); }
     text-transform: uppercase;
 }
 
-/* CAMPAIGN DURATION (Timeline Visualization) */
+.list-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: -10px;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    opacity: 0.7;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.label { color: var(--text-muted); font-size: 0.9rem; }
+.value { font-weight: bold; color: var(--text-main); }
+
+/* --- CAMPAIGN DURATION (Timeline) --- */
 #campaignStrategyDisplay {
     display: flex;
     flex-direction: column;
@@ -548,33 +558,21 @@ select:focus { outline: none; border-color: var(--accent); }
 .strategy-row {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     margin-bottom: 20px;
-    position: relative;
-}
-
-/* Connecting line design */
-.strategy-row::before {
-    content: '';
-    position: absolute;
-    left: 24px;
-    top: 20px;
-    bottom: 20px;
-    width: 2px;
-    background: #333;
-    z-index: 0;
 }
 
 .campaign-block {
     position: relative;
     z-index: 1;
     background: #252525;
-    padding: 12px 20px;
+    padding: 16px 24px;
     border-radius: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border: 1px solid transparent;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .campaign-block.pre { border-left: 4px solid #a0a0ff; }
@@ -582,17 +580,18 @@ select:focus { outline: none; border-color: var(--accent); }
 .campaign-block.post { border-left: 4px solid #ff5f5f; }
 
 .camp-title {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
-    color: #888;
-    letter-spacing: 0.5px;
+    color: #aaa;
+    letter-spacing: 1px;
     font-weight: 600;
 }
 
 .camp-value {
-    font-size: 1.1rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: #fff;
+    font-family: 'Inter', monospace;
 }
 
 .total-duration-footer {
@@ -603,99 +602,129 @@ select:focus { outline: none; border-color: var(--accent); }
     border-top: 1px solid rgba(255,255,255,0.1);
 }
 
-/* --- SYNERGY RESULTS --- */
+/* ========================================= */
+/* --- SYNERGY RESULTS (Score Dashboard) --- */
+/* ========================================= */
+
 .summary-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 25px 40px; 
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    background: transparent;
+    box-shadow: none;
+    border: none;
 }
 
 .summary-item {
-    flex: 1;
+    background: #252525;
+    padding: 25px 20px;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    position: relative;
+    overflow: hidden;
 }
 
-.summary-item.left { align-items: flex-start; }
-.summary-item.right { align-items: flex-end; text-align: right; }
+/* Subtle glowing top border */
+.summary-item::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+}
 
-.summary-divider {
-    width: 1px;
-    background: #333;
-    height: 60px;
-    margin: 0 30px;
+.summary-item h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #888;
+    margin-bottom: 10px;
+    font-weight: 600;
 }
 
 .summary-value {
-    font-size: 2.2rem;
+    font-size: 3rem;
     font-weight: 800;
     color: #fff;
     line-height: 1;
+    letter-spacing: -1px;
 }
 
-.sub-value { font-size: 1rem; color: #666; font-weight: 400; }
+.sub-value { 
+    font-size: 1.2rem; 
+    color: #555; 
+    font-weight: 500;
+    margin-left: 4px;
+}
 
+/* Breakdown Grid */
 .breakdown-container {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
     padding: 0;
+    border: 1px solid var(--border);
     overflow: hidden;
 }
 
 .breakdown-col {
-    flex: 1;
     padding: 30px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
 }
 
-.vertical-divider {
-    width: 1px;
-    background: #333;
-    margin: 30px 0;
-}
+.left-col { background: rgba(255,255,255,0.02); }
+.right-col { background: #1e1e1e; }
 
 .col-header {
-    margin: 0 0 10px 0;
-    font-size: 1.1rem;
+    margin: 0 0 15px 0;
+    font-size: 0.9rem;
     color: #fff;
     text-transform: uppercase;
-    border-bottom: 1px solid #333;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
     padding-bottom: 10px;
 }
 
-.highlight-header { color: var(--accent); }
+.highlight-header { color: var(--accent); border-bottom-color: var(--accent); }
 
 .breakdown-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #2a2a2a;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
     padding-bottom: 8px;
 }
 .breakdown-row:last-child { border-bottom: none; }
 
 .b-label { font-size: 0.9rem; color: #aaa; }
-.b-value { font-weight: bold; font-size: 1rem; }
+.b-value { font-weight: 600; font-size: 1rem; font-family: 'Inter', monospace; }
 
 .total-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #252525;
-    padding: 10px 15px;
-    border-radius: 4px;
-    border-left: 3px solid transparent;
+    background: rgba(0,0,0,0.2);
+    padding: 12px 15px;
+    border-radius: 6px;
+    border-left: 4px solid transparent;
+    margin-bottom: 8px;
 }
 
 .total-row:nth-child(2) { border-left-color: var(--accent); }
 .total-row:nth-child(3) { border-left-color: #a0a0ff; }
 
-.t-label { font-size: 0.95rem; color: #ddd; font-weight: 600; }
-.t-value { font-size: 1.4rem; font-weight: 800; }
+.t-label { font-size: 0.9rem; color: #ddd; font-weight: 600; }
+.t-value { font-size: 1.3rem; font-weight: 800; }
 
 .context-text {
     font-size: 0.8rem;
@@ -705,19 +734,9 @@ select:focus { outline: none; border-color: var(--accent); }
     font-style: italic;
 }
 
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-}
-.stat-row.vertical { flex-direction: column; gap: 5px; }
-
-.label { color: var(--text-muted); font-size: 0.9rem; }
-.value { font-weight: bold; color: var(--text-main); }
-
+/* Helpers */
 .hidden { display: none; }
-.text-danger { color: var(--danger); }
-.text-success { color: var(--success); }
+.vertical-divider, .summary-divider { display: none; }
 
 footer {
     text-align: center;
@@ -726,22 +745,21 @@ footer {
     margin-top: 40px;
 }
 
+/* --- RESPONSIVE --- */
 @media (max-width: 800px) {
     #selectors-container-advertisers, #selectors-container-synergy { grid-template-columns: 1fr; }
     h1 { font-size: 1.8rem; }
     .score-controls-wrapper { flex-direction: column; gap: 15px; }
     
     .results-row { 
-        grid-template-columns: 1fr; /* Stack vertically */
+        grid-template-columns: 1fr;
     }
     
     .result-card {
         min-height: auto;
     }
 
-    .summary-row { flex-direction: column; align-items: flex-start; gap: 20px; }
-    .summary-divider { display: none; }
-    .summary-item.right { align-items: flex-start; text-align: left; }
-    .breakdown-container { flex-direction: column; }
-    .vertical-divider { width: 100%; height: 1px; margin: 0; }
+    .summary-row { grid-template-columns: 1fr; gap: 15px; }
+    .breakdown-container { grid-template-columns: 1fr; }
+    .right-col { border-top: 1px solid var(--border); }
 }

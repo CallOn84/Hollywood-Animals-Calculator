@@ -4,46 +4,41 @@ const GAME_DATA = {
     
     constants: {
         POPULATION: 30000000, 
-        
-        // --- NEW: Game Logic Constants ---
         KINOMARK: {
             audienceWeight: 0.4, 
             scoreWeights: [0.25, 0.5, 0.25], 
-            // 0.16 to 0.93 thresholds used by the game to determine grade index (0-12)
             thresholds: [0.16, 0.23, 0.30, 0.37, 0.44, 0.51, 0.58, 0.65, 0.72, 0.79, 0.86, 0.93] 
         }
     },
 
     demographics: {
         "YM": { 
-            name: "Young Male",
-            // Population Weights (Subgroup size)
+            name: "Young Men",
             baseW: 0.300, artW: 0.400, comW: 0.250,
-            // Default Audience (Turnout rates)
             baseD: 0.100, artD: 0.050, comD: 0.050
         },
         "YF": { 
-            name: "Young Female",
+            name: "Young Women",
             baseW: 0.300, artW: 0.300, comW: 0.250,
             baseD: 0.100, artD: 0.050, comD: 0.050
         },
         "TM": { 
-            name: "Teen Male",
+            name: "Boys",
             baseW: 0.150, artW: 0.050, comW: 0.200,
             baseD: 0.100, artD: 0.050, comD: 0.050
         },
         "TF": { 
-            name: "Teen Female",
+            name: "Girls",
             baseW: 0.150, artW: 0.050, comW: 0.200,
             baseD: 0.100, artD: 0.050, comD: 0.050
         },
         "AM": { 
-            name: "Adult Male",
+            name: "Men",
             baseW: 0.050, artW: 0.100, comW: 0.100,
             baseD: 0.100, artD: 0.050, comD: 0.050
         },
         "AF": { 
-            name: "Adult Female",
+            name: "Women",
             baseW: 0.050, artW: 0.100, comW: 0.100,
             baseD: 0.100, artD: 0.050, comD: 0.050
         }
@@ -70,13 +65,7 @@ const GAME_DATA = {
     ],
 
     categories: [
-        "Genre", 
-        "Setting", 
-        "Protagonist", 
-        "Antagonist", 
-        "Supporting Character", 
-        "Theme & Event", 
-        "Finale"
+        "Genre", "Setting", "Protagonist", "Antagonist", "Supporting Character", "Theme & Event", "Finale"
     ],
 
     tags: {},
