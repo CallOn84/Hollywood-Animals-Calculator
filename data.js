@@ -5,7 +5,7 @@ const GAME_DATA = {
     constants: {
         POPULATION: 30000000, 
         
-        // --- NEW: Game Logic Constants from GameVariables.json ---
+        // --- Game Logic Constants from GameVariables.json ---
         KINOMARK: {
             audienceWeight: 0.4, // kinomark_audience_weight
             // [Baseline, Commercial, Art] -> 0.25, 0.5, 0.25

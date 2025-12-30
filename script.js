@@ -448,7 +448,7 @@ function collectTagInputs(context) {
 }
 
 // ---------------------------------------------
-// ADVERTISER CALCULATOR LOGIC (Refined for Mostly Enjoy)
+// ADVERTISER CALCULATOR LOGIC (Final Fix)
 // ---------------------------------------------
 function analyzeMovie() {
     const tagInputs = collectTagInputs('advertisers');
@@ -461,7 +461,7 @@ function analyzeMovie() {
     const inputCom = parseFloat(document.getElementById('comScoreInput').value) || 0;
     const inputArt = parseFloat(document.getElementById('artScoreInput').value) || 0;
 
-    // 1. Calculate Baseline Affinity
+    // 1. Calculate Tag Affinity
     let tagAffinity = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
     tagInputs.forEach(item => {
         const tagData = GAME_DATA.tags[item.id];
@@ -474,15 +474,18 @@ function analyzeMovie() {
         }
     });
 
+    // 2. Normalize Baseline 
+    // This represents the "Script Quality" before production
     let baselineScores = {};
     for(let demo in tagAffinity) {
-        baselineScores[demo] = Math.min(1.0, tagAffinity[demo] / 1.5); 
+        // Simple normalization for calculation purposes
+        baselineScores[demo] = Math.min(1.0, Math.max(0, tagAffinity[demo] / 1.5)); 
     }
 
     const normalizedArt = inputArt / 10.0;
     const normalizedCom = inputCom / 10.0;
 
-    // 2. Calculate Kinomark/Grades
+    // 3. Calculate Kinomark/Grades for Each Demographic
     let demoGrades = [];
     
     for(let demo in GAME_DATA.demographics) {
@@ -512,9 +515,16 @@ function analyzeMovie() {
 
         // -- PART C: FINAL SCORE --
         const aw = GAME_DATA.constants.KINOMARK.audienceWeight;
-        const finalScore = (satisfaction * aw) + (quality * (1 - aw));
+        let finalScore = (satisfaction * aw) + (quality * (1 - aw));
 
-        // -- PART D: DETERMINE GRADE INDEX --
+        // -- PART D: OVERRIDE FOR TAG MISMATCH --
+        // Critical Fix: If Tag Affinity is low/negative (meaning they hate the content),
+        // we force the grade to F, regardless of Quality score.
+        if (tagAffinity[demo] <= 0.05) {
+            finalScore = 0;
+        }
+
+        // -- PART E: DETERMINE GRADE INDEX --
         const thresholds = GAME_DATA.constants.KINOMARK.thresholds;
         let gradeIndex = 0;
         for (let i = 0; i < thresholds.length; i++) {
@@ -532,28 +542,28 @@ function analyzeMovie() {
         });
     }
 
+    // Sort by Score Descending
     demoGrades.sort((a, b) => b.score - a.score);
 
-    // 3. Filter for "Mostly Enjoy" (Grade B, Index 8 and above)
-    // The user strictly wants only the audiences that will "Mostly Enjoy" the film
-    const MOSTLY_ENJOY_THRESHOLD = 8; // B, A, S
+    // 4. Filter for "Target Audience" (Only Mostly Enjoy / Grade B+)
+    // Grade Indices: 0-3 (Red), 4-7 (Yellow), 8-12 (Green)
+    const MOSTLY_ENJOY_THRESHOLD = 8; 
     
     const targetAudiences = demoGrades.filter(d => d.gradeIndex >= MOSTLY_ENJOY_THRESHOLD);
 
-    // 4. UI Rendering
+    // 5. UI Rendering
     document.getElementById('results-advertisers').classList.remove('hidden');
     const audienceContainer = document.getElementById('targetAudienceDisplay');
     audienceContainer.innerHTML = '';
     
-    // Helper for Badges
     const getBadge = (idx) => {
         if(idx >= 12) return { l: 'S', c: 'grade-s' };
         if(idx >= 10) return { l: 'A', c: 'grade-a' };
         if(idx >= 8)  return { l: 'B', c: 'grade-b' };
-        if(idx >= 6)  return { l: 'C', c: 'grade-c' }; // Moderate
-        if(idx >= 4)  return { l: 'D', c: 'grade-d' }; // Moderate/Low
-        if(idx >= 2)  return { l: 'E', c: 'grade-e' }; // Least
-        return { l: 'F', c: 'grade-f' }; // Least
+        if(idx >= 6)  return { l: 'C', c: 'grade-c' };
+        if(idx >= 4)  return { l: 'D', c: 'grade-d' };
+        if(idx >= 2)  return { l: 'E', c: 'grade-e' };
+        return { l: 'F', c: 'grade-f' };
     };
 
     if (targetAudiences.length > 0) {
@@ -571,24 +581,21 @@ function analyzeMovie() {
             audienceContainer.appendChild(row);
         });
     } else {
-        // Fallback message if no one "Mostly Enjoys" it
         audienceContainer.innerHTML = `
             <div style="color: #aaa; font-style: italic; padding: 10px;">
-                No audience fits the "Mostly Enjoy" criteria (Grade B+).<br>
-                <small>Try increasing script compatibility or scores.</small>
+                No audience fits the "Mostly Enjoy" criteria.<br>
+                <small>Try changing tags or improving scores.</small>
             </div>
         `;
     }
 
-    // 5. Advertisers Logic (Updated to target ALL valid groups)
-    // If we have "Mostly Enjoy" groups, prioritize agents hitting them.
-    // If not, fallback to the top ranked demographic from the raw list.
-    
+    // 6. Advertisers Logic
+    // Logic: Prioritize agents targeting the valid "Target Audiences".
+    // If none exist, fallback to the top scorer (even if score is bad) just to show something.
     let targetsToConsider = [];
     if (targetAudiences.length > 0) {
         targetsToConsider = targetAudiences.map(t => t.id);
     } else {
-        // Fallback: Just take the #1 demographic even if they hate it, to give SOME suggestion
         targetsToConsider = [demoGrades[0].id];
     }
 
@@ -600,8 +607,7 @@ function analyzeMovie() {
     let validAgents = GAME_DATA.adAgents.map(agent => {
         let score = 0;
         
-        // Bonus for hitting ANY targeted audience
-        // Weighting higher if they hit multiple targets
+        // Bonus for hitting targeted audiences
         targetsToConsider.forEach(targetId => {
             if (agent.targets.includes(targetId)) {
                 score += 5; 
@@ -638,8 +644,7 @@ function analyzeMovie() {
         <span style="color: ${movieLean === 1 ? '#a0a0ff' : (movieLean === 2 ? '#d4af37' : '#fff')}">${leanText}</span>
     `;
 
-    // 6. Holiday Logic (Best match for the #1 demographic in the list)
-    // Use the primary target from our list (either the top "Mostly Enjoy" or the fallback)
+    // 7. Holiday Logic
     const primaryHolidayTarget = targetsToConsider[0];
     
     let bestHoliday = GAME_DATA.holidays.find(h => {
@@ -655,7 +660,7 @@ function analyzeMovie() {
         <div class="holiday-bonus">${bonusText}</div>
     `;
 
-    // 7. Campaign Duration Logic
+    // 8. Campaign Duration Logic
     let preDuration = 6;
     let releaseDuration = 4;
     let postDuration = 0;
