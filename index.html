@@ -12,9 +12,27 @@
 
     <div class="main-wrapper">
         <header>
-            <div class="logo-area">
-                <h1>Hollywood <span class="accent">Animal</span></h1>
-                <h2>Calculator</h2>
+            <div class="header-content">
+                <div class="logo-area">
+                    <h1>Hollywood <span class="accent">Animal</span></h1>
+                    <h2>Calculator</h2>
+                </div>
+
+                <!-- LANGUAGE SELECTOR -->
+                <div class="lang-wrapper">
+                    <select id="languageSelector" class="lang-dropdown" onchange="changeLanguage(this.value)">
+                        <option value="English">🇺🇸 English</option>
+                        <option value="Belarusian">🇧🇾 Belarusian</option>
+                        <option value="Chinese">🇨🇳 Chinese</option>
+                        <option value="French">🇫🇷 French</option>
+                        <option value="German">🇩🇪 German</option>
+                        <option value="Japanese">🇯🇵 Japanese</option>
+                        <option value="Portuguese">🇧🇷 Portuguese</option>
+                        <option value="Russian">🇷🇺 Russian</option>
+                        <option value="Spanish">🇪🇸 Spanish</option>
+                        <option value="Ukrainian">🇺🇦 Ukrainian</option>
+                    </select>
+                </div>
             </div>
         </header>
 
