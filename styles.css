@@ -457,7 +457,7 @@ select:focus { outline: none; border-color: var(--accent); }
 .landscape-card {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start; /* Align top for lists */
     min-height: 120px;
     margin-bottom: 0;
 }
@@ -465,17 +465,96 @@ select:focus { outline: none; border-color: var(--accent); }
 .landscape-card h3 {
     font-size: 0.9rem;
     color: var(--text-muted);
-    margin-bottom: 5px;
-    border-bottom: none;
-    padding-bottom: 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 8px;
 }
 
 .landscape-content {
-    font-size: 1.8rem;
-    font-weight: 800;
+    /* Reset font for container, children will handle sizing */
+    font-size: 1rem;
     color: #fff;
-    line-height: 1.2;
 }
+
+/* AUDIENCE ROWS (New Styles) */
+.audience-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.audience-row:last-child { 
+    border-bottom: none; 
+    margin-bottom: 0;
+}
+
+.aud-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    min-width: 120px;
+}
+
+.aud-name small {
+    color: #888;
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+.aud-grade-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-grow: 1;
+    justify-content: flex-end;
+}
+
+.grade-bar-bg {
+    width: 80px;
+    height: 6px;
+    background: #333;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-right: 5px;
+}
+
+.grade-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+}
+
+.grade-badge {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #000;
+}
+
+/* Grade Colors */
+.grade-s { background-color: #d4af37; color: #000; box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); }
+.grade-a { background-color: #4cd964; color: #000; }
+.grade-b { background-color: #92d94c; color: #000; }
+.grade-c { background-color: #d9d94c; color: #000; }
+.grade-d { background-color: #d9924c; color: #000; }
+.grade-e { background-color: #d9644c; color: #fff; }
+.grade-f { background-color: #8b0000; color: #fff; }
+
+.grade-bar-fill.grade-s { background: #d4af37; }
+.grade-bar-fill.grade-a { background: #4cd964; }
+.grade-bar-fill.grade-b { background: #92d94c; }
+.grade-bar-fill.grade-c { background: #d9d94c; }
+.grade-bar-fill.grade-d { background: #d9924c; }
+.grade-bar-fill.grade-e { background: #d9644c; }
+.grade-bar-fill.grade-f { background: #8b0000; }
+
 
 /* Specific styling for Holiday Bonus text to fix cramping */
 .holiday-bonus {
