@@ -498,6 +498,143 @@ select:focus { outline: none; border-color: var(--accent); }
     opacity: 0.7;
 }
 
+/* --- NEW SYNERGY RESULTS STYLING --- */
+
+/* 1. Summary Row (Top Card) */
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 40px; /* Wider padding for balance */
+}
+
+.summary-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.summary-item.left { align-items: flex-start; }
+.summary-item.right { align-items: flex-end; text-align: right; }
+
+.summary-divider {
+    width: 1px;
+    background: #333;
+    height: 60px;
+    margin: 0 30px;
+}
+
+.summary-item h3 {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.summary-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+}
+
+.sub-value {
+    font-size: 1rem;
+    color: #666;
+    font-weight: 400;
+}
+
+/* 2. Breakdown Container (Bottom Split Card) */
+.breakdown-container {
+    display: flex;
+    flex-direction: row;
+    padding: 0; /* Reset padding to handle internal spacing */
+    overflow: hidden; /* Rounded corners */
+}
+
+.breakdown-col {
+    flex: 1;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.vertical-divider {
+    width: 1px;
+    background: #333;
+    margin: 30px 0; /* Top/Bottom margins match padding */
+}
+
+.col-header {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    color: #fff;
+    text-transform: uppercase;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.highlight-header {
+    color: var(--accent);
+}
+
+/* Breakdown Row Styles (Left Side) */
+.breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 8px;
+}
+
+.breakdown-row:last-child { border-bottom: none; }
+
+.b-label {
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.b-value {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+/* Total Row Styles (Right Side) */
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #252525;
+    padding: 10px 15px;
+    border-radius: 4px;
+    border-left: 3px solid transparent;
+}
+
+.total-row:nth-child(2) { border-left-color: var(--accent); } /* Commercial */
+.total-row:nth-child(3) { border-left-color: #a0a0ff; } /* Art */
+
+.t-label {
+    font-size: 0.95rem;
+    color: #ddd;
+    font-weight: 600;
+}
+
+.t-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+}
+
+.context-text {
+    font-size: 0.8rem;
+    color: #666;
+    line-height: 1.5;
+    margin-top: 15px;
+    font-style: italic;
+}
+
 /* --- CAMPAIGN STRATEGY BLOCKS (VERTICAL) --- */
 .strategy-row {
     display: flex;
@@ -590,4 +727,20 @@ footer {
     h1 { font-size: 1.8rem; }
     .score-controls-wrapper { flex-direction: column; gap: 15px; }
     .results-row { grid-template-columns: 1fr; }
+    
+    /* New Synergy Mobile Tweaks */
+    .summary-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .summary-divider { display: none; }
+    .summary-item.right { align-items: flex-start; text-align: left; }
+    
+    .breakdown-container { flex-direction: column; }
+    .vertical-divider { 
+        width: 100%; 
+        height: 1px; 
+        margin: 0; 
+    }
 }

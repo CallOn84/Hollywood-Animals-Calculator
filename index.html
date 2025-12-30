@@ -55,26 +55,67 @@
                 <!-- SYNERGY RESULTS -->
                 <div id="results-synergy" class="results-container hidden">
                     
-                    <div class="results-row top-row">
-                        <div class="card result-card landscape-card">
+                    <!-- SECTION 1: Top Summary Card (Avg & Base Score) -->
+                    <div class="card result-card summary-row">
+                        <div class="summary-item left">
                             <h3>Average Compatibility</h3>
-                            <div id="synergyAverageDisplay" class="landscape-content">0.0 <span style="font-size: 0.5em; color: #888;">/ 5.0</span></div>
-                            
-                            <!-- Context Block -->
-                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
-                                <div style="font-size: 0.85rem; color: #aaa;">Base Movie Quality Score: <span id="synergyTotalDisplay" style="font-weight: bold; color: #fff;">0.00</span></div>
-                                <div style="font-size: 0.75rem; color: #666; margin-top: 4px; line-height: 1.3;">
-                                    This score is added to your movie's base quality. This score will likely increase as you advance through Pre-Production, Production, and Post-Production.
-                                </div>
-                            </div>
+                            <div id="synergyAverageDisplay" class="summary-value">0.0 <span class="sub-value">/ 5.0</span></div>
                         </div>
-
-                        <div class="card result-card landscape-card">
-                            <h3>Genre Pair Bonus</h3>
-                            <div id="genreBonusDisplay" class="landscape-content" style="font-size: 1.2rem;">-</div>
+                        <div class="summary-divider"></div>
+                        <div class="summary-item right">
+                            <h3>Base Compatibility Score</h3>
+                            <div id="synergyTotalDisplay" class="summary-value">+0.00</div>
                         </div>
                     </div>
 
+                    <!-- SECTION 2: Detailed Breakdown (Split View) -->
+                    <div class="card result-card breakdown-container">
+                        
+                        <!-- Left Side: The Inputs -->
+                        <div class="breakdown-col left-col">
+                            <h4 class="col-header">Score Components</h4>
+                            
+                            <div class="breakdown-row">
+                                <span class="b-label">Base Movie Score:</span>
+                                <span class="b-value" id="breakdownBaseScore">+0.00</span>
+                            </div>
+                            
+                            <div class="breakdown-row">
+                                <span class="b-label">base Commercial Score from Genre Pair Bonus:</span>
+                                <span class="b-value" id="breakdownComBonus">0</span>
+                            </div>
+
+                            <div class="breakdown-row">
+                                <span class="b-label">Base Artistic Score from Genre Pair Bonus:</span>
+                                <span class="b-value" id="breakdownArtBonus">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Divider Line -->
+                        <div class="vertical-divider"></div>
+
+                        <!-- Right Side: The Totals -->
+                        <div class="breakdown-col right-col">
+                            <h4 class="col-header highlight-header">Total Base Movie Score</h4>
+                            
+                            <div class="total-row">
+                                <span class="t-label">Commercial Movie Score:</span>
+                                <span class="t-value" id="totalComScore">0.00</span>
+                            </div>
+
+                            <div class="total-row">
+                                <span class="t-label">Artistic Movie Score:</span>
+                                <span class="t-value" id="totalArtScore">0.00</span>
+                            </div>
+
+                            <p class="context-text">
+                                This score is your total starting commercial and artistic movie score. The score will likely increase as you advance through Pre-Production, Production, and Post-Production.
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <!-- Conflicts / Spoilers -->
                     <div class="card result-card" style="border-left: 4px solid var(--danger);">
                         <h3>Conflicts</h3>
                         <div class="list-subtitle">Severe clashes that ruin the script</div>

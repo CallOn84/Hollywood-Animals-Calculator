@@ -1,12 +1,10 @@
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
-// CHANGED: Default is now synergy
 let currentTab = 'synergy'; 
 
 window.onload = async function() {
     try {
         await loadExternalData();
-        // Initialize selectors for BOTH tabs
         initializeSelectors('advertisers');
         initializeSelectors('synergy');
         
@@ -22,17 +20,10 @@ window.onload = async function() {
 
 function switchTab(tabName) {
     currentTab = tabName;
-    
-    // Update Buttons
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    
     const btns = document.querySelectorAll('.tab-btn');
-    
-    // Index 0 is now Synergy, Index 1 is Advertisers based on new HTML
     if(tabName === 'synergy') btns[0].classList.add('active');
     else btns[1].classList.add('active');
-
-    // Update Content
     document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
     document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 }
@@ -73,7 +64,7 @@ function updateSliderTrack(slider) {
 }
 
 function updatePercentSliderTrack(slider) {
-    const value = slider.value; // min is 0, max is 100
+    const value = slider.value;
     const color = '#d4af37';
     slider.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${value}%, #444 ${value}%, #444 100%)`;
 }
@@ -611,7 +602,6 @@ function calculateMatrixScore(tags) {
     let totalScore = 0;
     let spoilers = [];
 
-    // --- 1. User-Friendly Average (Unique Pairs Only) ---
     let rawSum = 0;
     let pairCount = 0;
 
@@ -620,12 +610,10 @@ function calculateMatrixScore(tags) {
             let tA = tags[i];
             let tB = tags[j];
             
-            // Lookup A->B
             let rawVal = 3.0;
             if (GAME_DATA.compatibility[tA.id] && GAME_DATA.compatibility[tA.id][tB.id]) {
                 rawVal = parseFloat(GAME_DATA.compatibility[tA.id][tB.id]);
             } else if (GAME_DATA.compatibility[tB.id] && GAME_DATA.compatibility[tB.id][tA.id]) {
-                // If not found, check B->A (should be symmetric, but safe fallback)
                 rawVal = parseFloat(GAME_DATA.compatibility[tB.id][tA.id]);
             }
             
@@ -634,9 +622,8 @@ function calculateMatrixScore(tags) {
         }
     }
 
-    let rawAverage = pairCount > 0 ? (rawSum / pairCount) : 3.0; // Default to neutral if single tag
+    let rawAverage = pairCount > 0 ? (rawSum / pairCount) : 3.0; 
 
-    // --- 2. Game Logic Score (Asymmetric Weighted) ---
     tags.forEach(tagA => {
         let rowSum = 0;
         let rowWeight = 0;
@@ -646,7 +633,6 @@ function calculateMatrixScore(tags) {
         tags.forEach(tagB => {
             if (tagA.id === tagB.id) return;
 
-            // Get Raw Score (Default 3.0)
             let rawVal = 3.0;
             if (GAME_DATA.compatibility[tagA.id] && GAME_DATA.compatibility[tagA.id][tagB.id]) {
                 rawVal = parseFloat(GAME_DATA.compatibility[tagA.id][tagB.id]);
@@ -654,10 +640,8 @@ function calculateMatrixScore(tags) {
                 rawVal = parseFloat(GAME_DATA.compatibility[tagB.id][tagA.id]);
             }
 
-            // Transform Formula: (Value - 3.0) / 2.0
             let score = (rawVal - 3.0) / 2.0;
 
-            // Weights
             let weight = 1.0;
             if (score < 0) {
                 if (tagB.category === "Genre") {
@@ -689,9 +673,7 @@ function calculateMatrixScore(tags) {
         let rowAverage = 0;
         if (rowWeight > 0) rowAverage = rowSum / rowWeight;
 
-        // Spoiling Logic Check
         let transformedWorst = (worstVal - 3.0) / 2.0;
-        
         let finalRowScore = rowAverage;
         
         if (worstVal <= 1.0) {
@@ -739,35 +721,78 @@ function calculateGenrePairScore(tags) {
     };
 }
 
+function formatScore(num) {
+    // Ensures a plus sign for positive numbers (except strictly 0 if you prefer)
+    // Here we will use + for positive, - for negative, 0 for 0.
+    if (Math.abs(num) < 0.005) return "0";
+    return (num > 0 ? "+" : "") + num.toFixed(2);
+}
+
+function formatSimpleScore(num) {
+    if (Math.abs(num) < 0.005) return "0";
+    return (num > 0 ? "+" : "") + parseFloat(num);
+}
+
 function renderSynergyResults(matrix, genre) {
     document.getElementById('results-synergy').classList.remove('hidden');
 
-    // 1. Average Display
+    // --- 1. Top Section (Summary Row) ---
+    // Average Compatibility
     const avgEl = document.getElementById('synergyAverageDisplay');
-    avgEl.innerHTML = `${matrix.rawAverage.toFixed(1)} <span style="font-size: 0.5em; color: #888;">/ 5.0</span>`;
-    // Color code average: 3.0 is white, >3 is green/gold, <3 is red
+    avgEl.innerHTML = `${matrix.rawAverage.toFixed(1)} <span class="sub-value">/ 5.0</span>`;
+    
+    // Color coding for Average
     if (matrix.rawAverage >= 3.5) avgEl.style.color = 'var(--success)';
     else if (matrix.rawAverage < 2.5) avgEl.style.color = 'var(--danger)';
     else avgEl.style.color = '#fff';
 
-    // 2. Script Quality Modifier (Sub-text)
-    const scoreEl = document.getElementById('synergyTotalDisplay');
-    let sign = matrix.totalScore > 0 ? "+" : "";
-    scoreEl.innerText = `${sign}${matrix.totalScore.toFixed(2)}`;
-    scoreEl.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
+    // Base Compatibility Score (Right side of top bar)
+    const baseScoreEl = document.getElementById('synergyTotalDisplay');
+    baseScoreEl.innerText = formatScore(matrix.totalScore);
+    baseScoreEl.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
 
-    // 3. Genre Pair
-    const genreEl = document.getElementById('genreBonusDisplay');
+    // --- 2. Bottom Section (Breakdown) ---
+    // Left Side Inputs
+    const breakdownBase = document.getElementById('breakdownBaseScore');
+    breakdownBase.innerText = formatScore(matrix.totalScore);
+    breakdownBase.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
+
+    const breakdownCom = document.getElementById('breakdownComBonus');
+    const breakdownArt = document.getElementById('breakdownArtBonus');
+    
+    let genreComVal = 0;
+    let genreArtVal = 0;
+
     if (genre) {
-        let comSign = genre.com > 0 ? "+" : "";
-        let artSign = genre.art > 0 ? "+" : "";
-        genreEl.innerHTML = `<span style="font-size:0.8em; color:#aaa;">${genre.names}</span><br>
-                             <span class="text-success">Com: ${comSign}${genre.com}</span> | <span style="color:#a0a0ff">Art: ${artSign}${genre.art}</span>`;
+        genreComVal = genre.com;
+        genreArtVal = genre.art;
+        
+        breakdownCom.innerText = formatSimpleScore(genreComVal);
+        breakdownCom.style.color = genreComVal > 0 ? 'var(--success)' : (genreComVal < 0 ? 'var(--danger)' : '#fff');
+        
+        breakdownArt.innerText = formatSimpleScore(genreArtVal);
+        breakdownArt.style.color = genreArtVal > 0 ? '#a0a0ff' : (genreArtVal < 0 ? 'var(--danger)' : '#fff');
     } else {
-        genreEl.innerText = "None applied";
+        breakdownCom.innerText = "0";
+        breakdownCom.style.color = "#888";
+        
+        breakdownArt.innerText = "0";
+        breakdownArt.style.color = "#888";
     }
 
-    // 4. Spoilers
+    // Right Side Totals (Calculation)
+    const totalCom = matrix.totalScore + genreComVal;
+    const totalArt = matrix.totalScore + genreArtVal;
+
+    const totalComEl = document.getElementById('totalComScore');
+    totalComEl.innerText = formatScore(totalCom);
+    totalComEl.style.color = 'var(--accent)'; // Gold for Commercial Total
+
+    const totalArtEl = document.getElementById('totalArtScore');
+    totalArtEl.innerText = formatScore(totalArt);
+    totalArtEl.style.color = '#a0a0ff'; // Blue for Art Total
+
+    // --- 3. Spoilers ---
     const spoilerEl = document.getElementById('spoilerDisplay');
     if (matrix.spoilers.length > 0) {
         let uniqueSpoilers = [...new Set(matrix.spoilers)];
