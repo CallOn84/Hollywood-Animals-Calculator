@@ -1054,7 +1054,7 @@ function renderSynergyResults(matrix, bonuses) {
     // Helper to format the final string
     function formatFinalRating(val) {
         if (val > MAX_GAME_SCORE) {
-            return `${MAX_GAME_SCORE} <span style="font-size:0.6em; opacity:0.7;">(Potential: ${val.toFixed(1)})</span>`;
+            return `${MAX_GAME_SCORE}`;
         }
         return val.toFixed(1);
     }
