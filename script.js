@@ -1065,7 +1065,7 @@ function renderSynergyResults(matrix, bonuses) {
     else if (matrix.rawAverage < 2.5) avgEl.style.color = 'var(--danger)';
     else avgEl.style.color = '#fff';
 
-    // Script Synergy (Keep raw or multiply? Raw is better for Synergy)
+    // Script Synergy (Keep raw so user sees how bad the penalty is)
     const baseScoreEl = document.getElementById('synergyTotalDisplay');
     baseScoreEl.innerText = formatScore(matrix.totalScore);
     baseScoreEl.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
@@ -1092,15 +1092,15 @@ function renderSynergyResults(matrix, bonuses) {
     const totalComRaw = matrix.totalScore + bonuses.com;
     const totalArtRaw = matrix.totalScore + bonuses.art;
 
-    // Convert to Game Scale (0 - 9.9)
-    let displayCom = totalComRaw * MAX_GAME_SCORE;
-    let displayArt = totalArtRaw * MAX_GAME_SCORE;
+    // Convert to Game Scale (0 - 9.9) AND CLAMP TO MINIMUM 0
+    // Math.max(0, ...) ensures we never go below zero.
+    let displayCom = Math.max(0, totalComRaw * MAX_GAME_SCORE);
+    let displayArt = Math.max(0, totalArtRaw * MAX_GAME_SCORE);
 
     const totalComEl = document.getElementById('totalComScore');
     const totalArtEl = document.getElementById('totalArtScore');
 
     // Helper to format the final string
-    // If it's over 9.9, show 9.9 but indicate the overflow
     function formatFinalRating(val) {
         if (val > MAX_GAME_SCORE) {
             return `${MAX_GAME_SCORE} <span style="font-size:0.6em; opacity:0.7;">(Potential: ${val.toFixed(1)})</span>`;
@@ -1109,10 +1109,10 @@ function renderSynergyResults(matrix, bonuses) {
     }
 
     totalComEl.innerHTML = formatFinalRating(displayCom);
-    totalComEl.style.color = 'var(--accent)'; 
+    totalComEl.style.color = displayCom > 0 ? 'var(--accent)' : 'var(--danger)'; 
 
     totalArtEl.innerHTML = formatFinalRating(displayArt);
-    totalArtEl.style.color = '#a0a0ff'; 
+    totalArtEl.style.color = displayArt > 0 ? '#a0a0ff' : 'var(--danger)'; 
 
     // Spoilers / Conflicts
     const spoilerEl = document.getElementById('spoilerDisplay');
