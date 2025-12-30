@@ -12,12 +12,38 @@ const GAME_DATA = {
     },
 
     demographics: {
-        "YM": { name: "Young Male", weight: 0.30 },
-        "YF": { name: "Young Female", weight: 0.30 },
-        "TM": { name: "Teen Male", weight: 0.15 },
-        "TF": { name: "Teen Female", weight: 0.15 },
-        "AM": { name: "Adult Male", weight: 0.05 },
-        "AF": { name: "Adult Female", weight: 0.05 }
+        "YM": { 
+            name: "Young Male",
+            // Population Weights (Subgroup size relative to demographic total)
+            baseW: 0.300, artW: 0.400, comW: 0.250,
+            // Default Audience (Turnout rates)
+            baseD: 0.100, artD: 0.050, comD: 0.050
+        },
+        "YF": { 
+            name: "Young Female",
+            baseW: 0.300, artW: 0.300, comW: 0.250,
+            baseD: 0.100, artD: 0.050, comD: 0.050
+        },
+        "TM": { 
+            name: "Teen Male",
+            baseW: 0.150, artW: 0.050, comW: 0.200,
+            baseD: 0.100, artD: 0.050, comD: 0.050
+        },
+        "TF": { 
+            name: "Teen Female",
+            baseW: 0.150, artW: 0.050, comW: 0.200,
+            baseD: 0.100, artD: 0.050, comD: 0.050
+        },
+        "AM": { 
+            name: "Adult Male",
+            baseW: 0.050, artW: 0.100, comW: 0.100,
+            baseD: 0.100, artD: 0.050, comD: 0.050
+        },
+        "AF": { 
+            name: "Adult Female",
+            baseW: 0.050, artW: 0.100, comW: 0.100,
+            baseD: 0.100, artD: 0.050, comD: 0.050
+        }
     },
 
     // Agent Types: 0 = Universal, 1 = Artistic, 2 = Commercial
@@ -52,5 +78,7 @@ const GAME_DATA = {
         "Finale"
     ],
 
-    tags: {} 
+    tags: {},
+    compatibility: {},
+    genrePairs: {}
 };

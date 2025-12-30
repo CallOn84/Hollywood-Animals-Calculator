@@ -8,6 +8,7 @@
     --accent-hover: #f4cf57;
     --border: #333;
     --danger: #ff5f5f;
+    --success: #4cd964;
     --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     --radius: 8px;
 }
@@ -30,7 +31,7 @@ body {
 /* Header */
 header {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 20px; /* Reduced to make room for tabs */
 }
 
 h1 {
@@ -50,6 +51,42 @@ h2 {
     margin-top: 5px;
     letter-spacing: 1px;
     text-transform: uppercase;
+}
+
+/* --- TABS --- */
+.tab-nav {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.tab-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 20px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    border-color: var(--text-main);
+    color: var(--text-main);
+}
+
+.tab-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+}
+
+.tab-content.hidden {
+    display: none;
 }
 
 /* Cards */
@@ -233,7 +270,7 @@ input[type="text"]:focus {
 /* Selectors Grid */
 .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
 
-#selectors-container {
+#selectors-container-advertisers, #selectors-container-synergy {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
@@ -380,6 +417,17 @@ select:focus { outline: none; border-color: var(--accent); }
 .analyze-btn:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
 .analyze-btn:active { transform: translateY(0); }
 
+.secondary-btn {
+    background-color: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    margin-top: 20px;
+}
+.secondary-btn:hover {
+    background-color: var(--accent);
+    color: #000;
+}
+
 .reset-btn {
     background: transparent;
     border: 1px solid var(--text-muted);
@@ -448,6 +496,143 @@ select:focus { outline: none; border-color: var(--accent); }
     letter-spacing: 0.5px;
     font-weight: 600;
     opacity: 0.7;
+}
+
+/* --- NEW SYNERGY RESULTS STYLING --- */
+
+/* 1. Summary Row (Top Card) */
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 40px; /* Wider padding for balance */
+}
+
+.summary-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.summary-item.left { align-items: flex-start; }
+.summary-item.right { align-items: flex-end; text-align: right; }
+
+.summary-divider {
+    width: 1px;
+    background: #333;
+    height: 60px;
+    margin: 0 30px;
+}
+
+.summary-item h3 {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.summary-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+}
+
+.sub-value {
+    font-size: 1rem;
+    color: #666;
+    font-weight: 400;
+}
+
+/* 2. Breakdown Container (Bottom Split Card) */
+.breakdown-container {
+    display: flex;
+    flex-direction: row;
+    padding: 0; /* Reset padding to handle internal spacing */
+    overflow: hidden; /* Rounded corners */
+}
+
+.breakdown-col {
+    flex: 1;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.vertical-divider {
+    width: 1px;
+    background: #333;
+    margin: 30px 0; /* Top/Bottom margins match padding */
+}
+
+.col-header {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    color: #fff;
+    text-transform: uppercase;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.highlight-header {
+    color: var(--accent);
+}
+
+/* Breakdown Row Styles (Left Side) */
+.breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 8px;
+}
+
+.breakdown-row:last-child { border-bottom: none; }
+
+.b-label {
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.b-value {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+/* Total Row Styles (Right Side) */
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #252525;
+    padding: 10px 15px;
+    border-radius: 4px;
+    border-left: 3px solid transparent;
+}
+
+.total-row:nth-child(2) { border-left-color: var(--accent); } /* Commercial */
+.total-row:nth-child(3) { border-left-color: #a0a0ff; } /* Art */
+
+.t-label {
+    font-size: 0.95rem;
+    color: #ddd;
+    font-weight: 600;
+}
+
+.t-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+}
+
+.context-text {
+    font-size: 0.8rem;
+    color: #666;
+    line-height: 1.5;
+    margin-top: 15px;
+    font-style: italic;
 }
 
 /* --- CAMPAIGN STRATEGY BLOCKS (VERTICAL) --- */
@@ -526,6 +711,9 @@ select:focus { outline: none; border-color: var(--accent); }
 
 .hidden { display: none; }
 
+.text-danger { color: var(--danger); }
+.text-success { color: var(--success); }
+
 footer {
     text-align: center;
     color: #555;
@@ -535,8 +723,24 @@ footer {
 
 /* Mobile Tweak */
 @media (max-width: 700px) {
-    #selectors-container { grid-template-columns: 1fr; }
+    #selectors-container-advertisers, #selectors-container-synergy { grid-template-columns: 1fr; }
     h1 { font-size: 1.8rem; }
     .score-controls-wrapper { flex-direction: column; gap: 15px; }
     .results-row { grid-template-columns: 1fr; }
+    
+    /* New Synergy Mobile Tweaks */
+    .summary-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .summary-divider { display: none; }
+    .summary-item.right { align-items: flex-start; text-align: left; }
+    
+    .breakdown-container { flex-direction: column; }
+    .vertical-divider { 
+        width: 100%; 
+        height: 1px; 
+        margin: 0; 
+    }
 }
