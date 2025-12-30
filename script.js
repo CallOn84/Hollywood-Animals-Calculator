@@ -458,12 +458,19 @@ function analyzeMovie() {
     const inputCom = parseFloat(document.getElementById('comScoreInput').value) || 0;
     const inputArt = parseFloat(document.getElementById('artScoreInput').value) || 0;
 
-    // 1. Calculate Tag Affinity
+    // 1. RAW SUMMATION
+    // Sum up the raw weights from all tags.
+    // In the actual game code, they do not multiply categories by 0.5/0.25 etc.
+    // They rely on the weights in the JSON data being balanced.
     let tagAffinity = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
+    
     tagInputs.forEach(item => {
         const tagData = GAME_DATA.tags[item.id];
         if(!tagData) return;
+
+        // Genres are multiplied by their fraction (slider value), others are flat
         const multiplier = item.percent;
+
         for(let demo in tagAffinity) {
             if(tagData.weights[demo]) {
                 tagAffinity[demo] += (tagData.weights[demo] * multiplier);
@@ -471,23 +478,54 @@ function analyzeMovie() {
         }
     });
 
-    // 2. Normalize Baseline 
-    let baselineScores = {};
-    for(let demo in tagAffinity) {
-        baselineScores[demo] = Math.min(1.0, Math.max(0, tagAffinity[demo] / 1.5)); 
+    // 2. THE "LIFT" (From MovieProcessor.cs GetDropRates)
+    // Find the lowest score. If it's < 1.0, shift EVERYONE up so the lowest becomes 1.0.
+    // This preserves the gap between groups but removes negatives.
+    let minVal = Number.MAX_VALUE;
+    for (let demo in tagAffinity) {
+        if (tagAffinity[demo] < minVal) minVal = tagAffinity[demo];
     }
 
+    if (minVal < 1.0) {
+        const liftAmount = 1.0 - minVal;
+        for (let demo in tagAffinity) {
+            tagAffinity[demo] += liftAmount;
+        }
+    }
+
+    // 3. NORMALIZATION & MAGIC NUMBER
+    // Calculate the total sum of all scores, then divide each by the sum.
+    // Then multiply by the ReleaseMagicNumber (which is 3 in GameVariables.json).
+    let totalSum = 0;
+    for (let demo in tagAffinity) totalSum += tagAffinity[demo];
+
+    const RELEASE_MAGIC_NUMBER = 3.0;
+    
+    let baselineScores = {};
+    for(let demo in tagAffinity) {
+        if (totalSum === 0) {
+            baselineScores[demo] = 0; // Edge case safety
+        } else {
+            // (Value / Total) * MagicNumber
+            let normalized = (tagAffinity[demo] / totalSum) * RELEASE_MAGIC_NUMBER;
+            // Clamp between 0 and 1
+            baselineScores[demo] = Math.min(1.0, Math.max(0, normalized));
+        }
+    }
+
+    // -- SCORING LOGIC --
     const normalizedArt = inputArt / 10.0;
     const normalizedCom = inputCom / 10.0;
 
-    // 3. Calculate Scores for Each Demographic
     let demoGrades = [];
     
     for(let demo in GAME_DATA.demographics) {
         const d = GAME_DATA.demographics[demo];
-        const baseline = baselineScores[demo];
+        
+        // This 'baseline' is now the "Drop Rate" calculated above
+        const dropRate = baselineScores[demo]; 
 
-        // -- PART A: SATISFACTION (Drop Rate Logic) --
+        // -- PART A: SATISFACTION (The skew logic) --
         const skew = normalizedArt - normalizedCom;
         let satArt, satBase, satCom;
 
@@ -506,44 +544,45 @@ function analyzeMovie() {
 
         // -- PART B: QUALITY --
         const qw = GAME_DATA.constants.KINOMARK.scoreWeights;
-        const quality = (baseline * qw[0]) + (normalizedCom * qw[1]) + (normalizedArt * qw[2]);
+        const quality = (dropRate * qw[0]) + (normalizedCom * qw[1]) + (normalizedArt * qw[2]);
 
-        // -- PART C: FINAL SCORE --
+        // -- PART C: FINAL UTILITY SCORE --
         const aw = GAME_DATA.constants.KINOMARK.audienceWeight;
+        
+        // Note: In the game, if affinity is super low, the score is tanked.
+        // We simulate this by checking the dropRate.
         let finalScore = (satisfaction * aw) + (quality * (1 - aw));
-
-        // -- PART D: OVERRIDE FOR TAG MISMATCH --
-        if (tagAffinity[demo] <= 0.05) {
+        
+        if (dropRate <= 0.1) {
             finalScore = 0;
         }
 
         demoGrades.push({
             id: demo,
             name: d.name,
-            score: finalScore,
-            rawAffinity: tagAffinity[demo] 
+            score: dropRate, // We use the Affinity DropRate for categorization
+            utility: finalScore // We use the Final Utility for calculating Advertisers
         });
     }
 
-    // Sort by Score Descending
-    demoGrades.sort((a, b) => b.score - a.score);
+    // 4. CATEGORIZATION THRESHOLDS
+    // Based on MoviesManager.cs GetAudienceGrade
+    // Green >= 0.67, Yellow > 0.33, Red <= 0.33
+    const THRESHOLD_GOOD = 0.67;
+    const targetAudiences = demoGrades.filter(d => d.score >= THRESHOLD_GOOD);
 
-    // 4. Filter for "Target Audience" (Strict Green Threshold)
-    // 0.67 is the exact float used in-game to grant "Good" status.
-    const GAME_GOOD_THRESHOLD = 0.67; 
-    const targetAudiences = demoGrades.filter(d => d.score >= GAME_GOOD_THRESHOLD);
-
-    // 5. UI Rendering: Target Audience
+    // 5. UI Rendering
     document.getElementById('results-advertisers').classList.remove('hidden');
     const audienceContainer = document.getElementById('targetAudienceDisplay');
     audienceContainer.innerHTML = '';
     
     if (targetAudiences.length > 0) {
+        // Sort highest affinity first
+        targetAudiences.sort((a, b) => b.score - a.score);
         targetAudiences.forEach(d => {
             const chip = document.createElement('div');
             chip.className = 'audience-pill';
-            // Added distinct style for high scores to indicate "Most Enjoy"
-            chip.style.borderColor = 'var(--success)';
+            chip.style.borderColor = 'var(--success)'; // Green border
             chip.innerHTML = `
                 <span class="pill-icon"></span>
                 ${d.name}
@@ -551,20 +590,19 @@ function analyzeMovie() {
             audienceContainer.appendChild(chip);
         });
     } else {
-        // UX Improvement: Clear empty state explaining the requirement
         audienceContainer.innerHTML = `
             <div style="color: #aaa; font-style: italic; font-size: 0.9em; padding: 5px;">
-                No audience group will "Most Enjoy" this film yet (Score < 0.67).<br>
-                <span style="opacity:0.7">Try adjusting tags or increasing quality scores.</span>
+                No audience group will "Most Enjoy" this film.<br>
+                <span style="opacity:0.7">Try removing conflicting themes or changing genre.</span>
             </div>
         `;
     }
 
-    // 6. Advertisers Logic (Strict)
-    // We only care about audiences that actually made the cut.
+    // 6. Advertisers Logic
+    // We filter agents based on the GREEN audiences.
     const validTargetIds = targetAudiences.map(t => t.id);
 
-    // Determine Movie Lean (Art vs Commercial) for penalties
+    // Determine Movie Lean
     let movieLean = 0; 
     let leanText = "Balanced";
     if (inputArt > inputCom + 0.1) { movieLean = 1; leanText = "Artistic"; } 
@@ -572,36 +610,30 @@ function analyzeMovie() {
 
     let validAgents = [];
 
-    // Only process agents if we actually have a valid target audience
     if (validTargetIds.length > 0) {
         validAgents = GAME_DATA.adAgents.filter(agent => {
-            // STRICT FILTER: Agent MUST target at least one of our valid audiences
+            // STRICT FILTER: Agent must target a Green audience
             return agent.targets.some(t => validTargetIds.includes(t));
         }).map(agent => {
             let score = 0;
             
-            // Score Bonus: +5 for every valid audience this agent hits
-            // This prioritizes agents that hit MULTIPLE of our target groups
+            // +5 for every Green audience hit
             validTargetIds.forEach(targetId => {
                 if (agent.targets.includes(targetId)) {
                     score += 5; 
                 }
             });
 
-            // Lean Penalty: -10 if type mismatch
-            // Type 0 = Universal (no penalty), 1 = Art, 2 = Com
+            // -10 penalty for type mismatch
             if(agent.type !== 0 && agent.type !== movieLean) score -= 10;
             
-            // Base Level Bonus
             score += agent.level;
 
             return { ...agent, score };
         });
 
-        // Remove agents that ended up with negative utility due to penalties
         validAgents = validAgents.filter(a => a.score > 0);
         
-        // Sort: Highest Score -> Then Highest Level -> Then Name
         validAgents.sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
             if (b.level !== a.level) return b.level - a.level;
@@ -613,22 +645,18 @@ function analyzeMovie() {
     const agentContainer = document.getElementById('adAgentDisplay');
     
     if (validTargetIds.length === 0) {
-        // UX: Empty state if no audience found
         agentContainer.innerHTML = `
             <div style="color:#888; padding:15px; font-size: 0.9em; text-align:center; font-style:italic;">
-                Identify a target audience to see recommended advertisers.
+                Identify a target audience (Green) to see recommended advertisers.
             </div>`;
     } else if (validAgents.length === 0) {
-        // UX: Audience found, but no matching agents (rare, but possible)
         agentContainer.innerHTML = `
             <div style="color:#d4af37; padding:15px; font-size: 0.9em; text-align:center;">
                 No specialized advertisers found for this specific combination.
             </div>`;
     } else {
-        // Render Top 4 Agents
         const agentHtml = validAgents.slice(0, 4).map(a => {
             let typeLabel = a.type === 0 ? "Univ." : (a.type === 1 ? "Art" : "Com");
-            // Visual flair: Highlight matching targets
             let targetsStr = a.targets.filter(t => validTargetIds.includes(t)).join(", ");
             
             return `
@@ -645,18 +673,14 @@ function analyzeMovie() {
         agentContainer.innerHTML = agentHtml;
     }
 
-    // Update Lean Display
     document.getElementById('movieLeanDisplay').innerHTML = `
         <span style="color: ${movieLean === 1 ? '#a0a0ff' : (movieLean === 2 ? '#d4af37' : '#fff')}">${leanText}</span>
     `;
 
     // 7. Holiday Logic (Strict)
-    // Only show holiday bonus if it applies to one of our VALID target audiences
     let bestHoliday = null;
     
     if (validTargetIds.length > 0) {
-        // Find the holiday that matches the most valid targets
-        // Or simply the first valid match if we want to keep it simple
         bestHoliday = GAME_DATA.holidays.find(h => {
             if(h.target === "ALL") return true;
             if(Array.isArray(h.target)) {
@@ -669,7 +693,7 @@ function analyzeMovie() {
     if(!bestHoliday) {
         bestHoliday = { name: "None", bonus: "0%" };
         document.getElementById('holidayDisplay').innerHTML = `
-            <div style="color: #666; font-size: 0.9rem; font-style: italic;">No specific holiday synergy for current audience.</div>
+            <div style="color: #666; font-size: 0.9rem; font-style: italic;">No specific holiday synergy.</div>
         `;
     } else {
         let bonusText = bestHoliday.name === "Christmas" 
