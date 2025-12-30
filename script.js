@@ -22,11 +22,55 @@ window.onload = async function() {
         setupSearchListeners();
         setupScoreSync(); 
         
+        // 4. Update UI Labels to new terminology immediately
+        updateSynergyLabels();
+        
         console.log("Initialization Complete.");
     } catch (error) {
         console.error("Failed to load data:", error);
     }
 };
+
+// --- HELPER: UPDATE LABELS TO NEW TERMINOLOGY ---
+function updateSynergyLabels() {
+    // This function updates the HTML text to match the new terms
+    // "Script Synergy", "Tag Bonuses", "Forecasted Ratings"
+    
+    // 1. Update Section Headers
+    const headers = document.querySelectorAll('.col-header');
+    if(headers.length >= 2) {
+        headers[0].innerText = "Tag Bonuses";
+        headers[1].innerText = "Forecasted Ratings";
+    }
+
+    // 2. Update Row Labels - Breakdown
+    const breakdownLabels = document.querySelectorAll('.b-label');
+    if(breakdownLabels.length >= 3) {
+        breakdownLabels[0].innerText = "Script Synergy:";
+        breakdownLabels[1].innerText = "Commercial Bonus:";
+        breakdownLabels[2].innerText = "Artistic Bonus:";
+    }
+
+    // 3. Update Row Labels - Totals
+    const totalLabels = document.querySelectorAll('.t-label');
+    if(totalLabels.length >= 2) {
+        totalLabels[0].innerText = "Commercial Rating:";
+        totalLabels[1].innerText = "Artistic Rating:";
+    }
+    
+    // 4. Update Summary Cards
+    const summaryItems = document.querySelectorAll('.summary-item h3');
+    if(summaryItems.length >= 2) {
+        summaryItems[0].innerText = "Average Compatibility";
+        summaryItems[1].innerText = "Script Synergy";
+    }
+    
+    // 5. Update Explanatory Text
+    const contextText = document.querySelector('.context-text');
+    if(contextText) {
+        contextText.innerText = "Script synergy acts as a multiplier for your scriptwriter. A high synergy allows a skilled writer to reach these forecasted ratings; a poor writer will result in lower scores regardless of these stats. The forecasted ratings are not final, and are subject to change as you advance through Pre-Production, Production, and Post-Production.";
+    }
+}
 
 // --- LOCALIZATION LOGIC ---
 
@@ -58,24 +102,22 @@ async function changeLanguage(langName, shouldRender = true) {
             buildSearchIndex(); // Rebuild search with new language
             
             if (shouldRender) {
-                // Re-initialize dropdowns to show new names
-                // We save current selections to restore them if possible (simple re-init clears them, 
-                // but advanced logic could map IDs back to values)
                 const savedSynergy = collectTagInputs('synergy');
                 const savedAdvertisers = collectTagInputs('advertisers');
 
                 initializeSelectors('synergy');
                 initializeSelectors('advertisers');
                 
-                // Attempt to restore values (simple attempt)
                 restoreSelection('synergy', savedSynergy);
                 restoreSelection('advertisers', savedAdvertisers);
+                
+                // Re-apply label updates in case DOM was reset
+                updateSynergyLabels();
             }
         }
 
     } catch (e) {
         console.error("Localization Error:", e);
-        // Fallback: If loading fails, we might just stick to ID formatting or previous language
     }
 }
 
@@ -86,26 +128,17 @@ function updateAllTagNames() {
 }
 
 function restoreSelection(context, savedInputs) {
-    // This is a helper to try and set values back after re-init
-    // It's basic and handles single selects mostly. 
-    // Multi-select categories usually default to empty on init, so we'd need to re-add dropdowns.
-    
     if(!savedInputs || savedInputs.length === 0) return;
 
     savedInputs.forEach(input => {
         const category = input.category;
-        
-        // Check if existing empty select available
         const containerId = `inputs-${category.replace(/\s/g, '-')}-${context}`;
         const container = document.getElementById(containerId);
         if(!container) return;
 
-        // For multi-selects, we might need to add a dropdown if it's not the first one
-        // Simpler approach for this specific tool: Just re-add dropdowns if needed.
         const selects = container.querySelectorAll('select');
         let placed = false;
         
-        // Try to find an empty slot
         for(let sel of selects) {
             if(sel.value === "") {
                 sel.value = input.id;
@@ -114,21 +147,14 @@ function restoreSelection(context, savedInputs) {
             }
         }
 
-        // If no empty slot and it's a multi category, add new
         if(!placed && MULTI_SELECT_CATEGORIES.includes(category)) {
             addDropdown(category, input.id, context);
             placed = true;
-        }
-        
-        // Handle Genre Percentage slider restoration if needed
-        if(category === 'Genre' && placed) {
-             // Logic to restore percentage would go here, but might be complex due to auto-balancing
         }
     });
     
     if(savedInputs.some(i => i.category === 'Genre')) {
         updateGenreControls(context);
-        // Restore slider values (approximate)
         const genreRows = document.querySelectorAll(`#inputs-Genre-${context} .genre-row`);
         const genres = savedInputs.filter(i => i.category === 'Genre');
         genreRows.forEach((row, idx) => {
@@ -230,7 +256,7 @@ async function loadExternalData() {
 
             GAME_DATA.tags[tagId] = {
                 id: tagId,
-                name: beautifyTagName(tagId), // Uses localization map now
+                name: beautifyTagName(tagId),
                 category: category,
                 art: parseFloat(data.artValue || 0),
                 com: parseFloat(data.commercialValue || 0),
@@ -251,18 +277,14 @@ function parseWeights(weightObj) {
 }
 
 function beautifyTagName(rawId) {
-    // 1. Try to find exact match in Localization Map
     if (localizationMap[rawId]) {
         return localizationMap[rawId];
     }
-
-    // 2. Fallback: Old regex logic if translation is missing
     let name = rawId;
     const prefixes = ["PROTAGONIST_", "ANTAGONIST_", "SUPPORTINGCHARACTER_", "THEME_", "EVENTS_", "FINALE_", "EVENT_"];
     prefixes.forEach(p => {
         if (name.startsWith(p)) name = name.substring(p.length);
     });
-    
     return name.replace(/_/g, ' ')
                .toLowerCase()
                .split(' ')
@@ -849,6 +871,8 @@ function analyzeMovie() {
 // SYNERGY CALCULATOR LOGIC
 // ---------------------------------------------
 function calculateSynergy() {
+    updateSynergyLabels(); // Ensure terminology is correct
+    
     const selectedTags = collectTagInputs('synergy');
     if (selectedTags.length === 0) {
         alert("Please select at least one tag.");
@@ -856,9 +880,9 @@ function calculateSynergy() {
     }
 
     const matrixResult = calculateMatrixScore(selectedTags);
-    const genreResult = calculateGenrePairScore(selectedTags);
+    const bonuses = calculateTotalBonuses(selectedTags);
 
-    renderSynergyResults(matrixResult, genreResult);
+    renderSynergyResults(matrixResult, bonuses);
 }
 
 function calculateMatrixScore(tags) {
@@ -956,6 +980,43 @@ function calculateMatrixScore(tags) {
     return { totalScore, spoilers, rawAverage };
 }
 
+// Fixed calculation to include ALL tags in bonuses, not just Genre Pairs
+function calculateTotalBonuses(tags) {
+    let totalArt = 0;
+    let totalCom = 0;
+
+    // 1. Calculate Genre Bonus (Pair or Single)
+    const genrePair = calculateGenrePairScore(tags);
+    if (genrePair) {
+        totalArt += genrePair.art;
+        totalCom += genrePair.com;
+    } else {
+        // Fallback: If no pair, check single highest genre
+        const genres = tags.filter(t => t.category === "Genre").sort((a, b) => b.percent - a.percent);
+        if (genres.length > 0) {
+            const topGenre = GAME_DATA.tags[genres[0].id];
+            // Simple logic: add base value if it exists
+            if (topGenre) {
+                totalArt += topGenre.art;
+                totalCom += topGenre.com;
+            }
+        }
+    }
+
+    // 2. Add Bonuses from Non-Genre Tags (Setting, Content, etc.)
+    tags.forEach(tag => {
+        if (tag.category !== "Genre") {
+            const data = GAME_DATA.tags[tag.id];
+            if (data) {
+                totalArt += data.art;
+                totalCom += data.com;
+            }
+        }
+    });
+
+    return { art: totalArt, com: totalCom };
+}
+
 function calculateGenrePairScore(tags) {
     const genres = tags.filter(t => t.category === "Genre").sort((a, b) => b.percent - a.percent);
     
@@ -991,10 +1052,10 @@ function formatScore(num) {
 
 function formatSimpleScore(num) {
     if (Math.abs(num) < 0.005) return "0";
-    return (num > 0 ? "+" : "") + parseFloat(num);
+    return (num > 0 ? "+" : "") + parseFloat(num.toFixed(2));
 }
 
-function renderSynergyResults(matrix, genre) {
+function renderSynergyResults(matrix, bonuses) {
     document.getElementById('results-synergy').classList.remove('hidden');
 
     const avgEl = document.getElementById('synergyAverageDisplay');
@@ -1004,39 +1065,29 @@ function renderSynergyResults(matrix, genre) {
     else if (matrix.rawAverage < 2.5) avgEl.style.color = 'var(--danger)';
     else avgEl.style.color = '#fff';
 
+    // Script Synergy (was Base Movie Score)
     const baseScoreEl = document.getElementById('synergyTotalDisplay');
     baseScoreEl.innerText = formatScore(matrix.totalScore);
     baseScoreEl.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
 
+    // Breakdown Row: Script Synergy
     const breakdownBase = document.getElementById('breakdownBaseScore');
     breakdownBase.innerText = formatScore(matrix.totalScore);
     breakdownBase.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
 
+    // Breakdown Rows: Bonuses
     const breakdownCom = document.getElementById('breakdownComBonus');
     const breakdownArt = document.getElementById('breakdownArtBonus');
     
-    let genreComVal = 0;
-    let genreArtVal = 0;
+    breakdownCom.innerText = formatSimpleScore(bonuses.com);
+    breakdownCom.style.color = bonuses.com > 0 ? 'var(--success)' : (bonuses.com < 0 ? 'var(--danger)' : '#fff');
+    
+    breakdownArt.innerText = formatSimpleScore(bonuses.art);
+    breakdownArt.style.color = bonuses.art > 0 ? '#a0a0ff' : (bonuses.art < 0 ? 'var(--danger)' : '#fff');
 
-    if (genre) {
-        genreComVal = genre.com;
-        genreArtVal = genre.art;
-        
-        breakdownCom.innerText = formatSimpleScore(genreComVal);
-        breakdownCom.style.color = genreComVal > 0 ? 'var(--success)' : (genreComVal < 0 ? 'var(--danger)' : '#fff');
-        
-        breakdownArt.innerText = formatSimpleScore(genreArtVal);
-        breakdownArt.style.color = genreArtVal > 0 ? '#a0a0ff' : (genreArtVal < 0 ? 'var(--danger)' : '#fff');
-    } else {
-        breakdownCom.innerText = "0";
-        breakdownCom.style.color = "#888";
-        
-        breakdownArt.innerText = "0";
-        breakdownArt.style.color = "#888";
-    }
-
-    const totalCom = matrix.totalScore + genreComVal;
-    const totalArt = matrix.totalScore + genreArtVal;
+    // Totals (Forecasted Ratings)
+    const totalCom = matrix.totalScore + bonuses.com;
+    const totalArt = matrix.totalScore + bonuses.art;
 
     const totalComEl = document.getElementById('totalComScore');
     totalComEl.innerText = formatScore(totalCom);
@@ -1046,6 +1097,7 @@ function renderSynergyResults(matrix, genre) {
     totalArtEl.innerText = formatScore(totalArt);
     totalArtEl.style.color = '#a0a0ff'; 
 
+    // Spoilers / Conflicts
     const spoilerEl = document.getElementById('spoilerDisplay');
     if (matrix.spoilers.length > 0) {
         let uniqueSpoilers = [...new Set(matrix.spoilers)];
