@@ -447,9 +447,6 @@ function collectTagInputs(context) {
     return tagInputs;
 }
 
-// ---------------------------------------------
-// ADVERTISER CALCULATOR LOGIC (Final Hardcoded Threshold)
-// ---------------------------------------------
 function analyzeMovie() {
     const tagInputs = collectTagInputs('advertisers');
 
@@ -531,14 +528,12 @@ function analyzeMovie() {
     // Sort by Score Descending
     demoGrades.sort((a, b) => b.score - a.score);
 
-    // 4. Filter for "Target Audience"
-    // HARDCODED THRESHOLD from MoviesManager.cs GetAudienceGrade()
+    // 4. Filter for "Target Audience" (Strict Green Threshold)
     // 0.67 is the exact float used in-game to grant "Good" status.
     const GAME_GOOD_THRESHOLD = 0.67; 
-    
     const targetAudiences = demoGrades.filter(d => d.score >= GAME_GOOD_THRESHOLD);
 
-    // 5. UI Rendering
+    // 5. UI Rendering: Target Audience
     document.getElementById('results-advertisers').classList.remove('hidden');
     const audienceContainer = document.getElementById('targetAudienceDisplay');
     audienceContainer.innerHTML = '';
@@ -547,84 +542,145 @@ function analyzeMovie() {
         targetAudiences.forEach(d => {
             const chip = document.createElement('div');
             chip.className = 'audience-pill';
+            // Added distinct style for high scores to indicate "Most Enjoy"
+            chip.style.borderColor = 'var(--success)';
             chip.innerHTML = `
                 <span class="pill-icon"></span>
-                ${d.name} <span class="pill-code">(${d.id})</span>
+                ${d.name}
             `;
             audienceContainer.appendChild(chip);
         });
     } else {
+        // UX Improvement: Clear empty state explaining the requirement
         audienceContainer.innerHTML = `
-            <div style="color: #aaa; font-style: italic; padding: 10px; width:100%;">
-                No audience fits the "Mostly Enjoy" criteria.<br>
-                <small>Try improving scores or changing tags.</small>
+            <div style="color: #aaa; font-style: italic; font-size: 0.9em; padding: 5px;">
+                No audience group will "Most Enjoy" this film yet (Score < 0.67).<br>
+                <span style="opacity:0.7">Try adjusting tags or increasing quality scores.</span>
             </div>
         `;
     }
 
-    // 6. Advertisers Logic
-    let targetsToConsider = [];
-    if (targetAudiences.length > 0) {
-        targetsToConsider = targetAudiences.map(t => t.id);
-    } else {
-        targetsToConsider = [demoGrades[0].id]; // Fallback to top scorer
-    }
+    // 6. Advertisers Logic (Strict)
+    // We only care about audiences that actually made the cut.
+    const validTargetIds = targetAudiences.map(t => t.id);
 
+    // Determine Movie Lean (Art vs Commercial) for penalties
     let movieLean = 0; 
     let leanText = "Balanced";
     if (inputArt > inputCom + 0.1) { movieLean = 1; leanText = "Artistic"; } 
     else if (inputCom > inputArt + 0.1) { movieLean = 2; leanText = "Commercial"; }
 
-    let validAgents = GAME_DATA.adAgents.map(agent => {
-        let score = 0;
-        
-        targetsToConsider.forEach(targetId => {
-            if (agent.targets.includes(targetId)) {
-                score += 5; 
-            }
+    let validAgents = [];
+
+    // Only process agents if we actually have a valid target audience
+    if (validTargetIds.length > 0) {
+        validAgents = GAME_DATA.adAgents.filter(agent => {
+            // STRICT FILTER: Agent MUST target at least one of our valid audiences
+            return agent.targets.some(t => validTargetIds.includes(t));
+        }).map(agent => {
+            let score = 0;
+            
+            // Score Bonus: +5 for every valid audience this agent hits
+            // This prioritizes agents that hit MULTIPLE of our target groups
+            validTargetIds.forEach(targetId => {
+                if (agent.targets.includes(targetId)) {
+                    score += 5; 
+                }
+            });
+
+            // Lean Penalty: -10 if type mismatch
+            // Type 0 = Universal (no penalty), 1 = Art, 2 = Com
+            if(agent.type !== 0 && agent.type !== movieLean) score -= 10;
+            
+            // Base Level Bonus
+            score += agent.level;
+
+            return { ...agent, score };
         });
 
-        if(agent.type !== 0 && agent.type !== movieLean) score -= 10;
-        score += agent.level;
+        // Remove agents that ended up with negative utility due to penalties
+        validAgents = validAgents.filter(a => a.score > 0);
+        
+        // Sort: Highest Score -> Then Highest Level -> Then Name
+        validAgents.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (b.level !== a.level) return b.level - a.level;
+            return a.name.localeCompare(b.name);
+        });
+    }
 
-        return { ...agent, score };
-    }).filter(a => a.score > 0);
-
-    validAgents.sort((a, b) => b.score - a.score);
-
-    let agentHtml = "";
-    if (validAgents.length === 0) {
-        agentHtml = `<div style="color:red; padding:10px; font-size: 0.9em;">No effective advertisers found.</div>`;
+    // Render Advertisers
+    const agentContainer = document.getElementById('adAgentDisplay');
+    
+    if (validTargetIds.length === 0) {
+        // UX: Empty state if no audience found
+        agentContainer.innerHTML = `
+            <div style="color:#888; padding:15px; font-size: 0.9em; text-align:center; font-style:italic;">
+                Identify a target audience to see recommended advertisers.
+            </div>`;
+    } else if (validAgents.length === 0) {
+        // UX: Audience found, but no matching agents (rare, but possible)
+        agentContainer.innerHTML = `
+            <div style="color:#d4af37; padding:15px; font-size: 0.9em; text-align:center;">
+                No specialized advertisers found for this specific combination.
+            </div>`;
     } else {
-        agentHtml = validAgents.slice(0, 4).map(a => {
+        // Render Top 4 Agents
+        const agentHtml = validAgents.slice(0, 4).map(a => {
             let typeLabel = a.type === 0 ? "Univ." : (a.type === 1 ? "Art" : "Com");
+            // Visual flair: Highlight matching targets
+            let targetsStr = a.targets.filter(t => validTargetIds.includes(t)).join(", ");
+            
             return `
-            <div style="padding: 8px 0; border-bottom: 1px solid #333; display:flex; justify-content:space-between; align-items:center;">
-                <span>${a.name}</span>
-                <span style="font-size:0.8em; color:#888;">[${typeLabel}]</span>
+            <div style="padding: 10px 0; border-bottom: 1px solid #333; display:flex; flex-direction:column;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:600; color:#e0e0e0;">${a.name}</span>
+                    <span style="font-size:0.75em; background:#333; padding:2px 6px; border-radius:4px; color:#aaa;">${typeLabel}</span>
+                </div>
+                <div style="font-size:0.75em; color:#666; margin-top:2px;">
+                    Targets: <span style="color:#4cd964;">${targetsStr}</span>
+                </div>
             </div>`;
         }).join('');
+        agentContainer.innerHTML = agentHtml;
     }
-    document.getElementById('adAgentDisplay').innerHTML = agentHtml;
+
+    // Update Lean Display
     document.getElementById('movieLeanDisplay').innerHTML = `
         <span style="color: ${movieLean === 1 ? '#a0a0ff' : (movieLean === 2 ? '#d4af37' : '#fff')}">${leanText}</span>
     `;
 
-    // 7. Holiday Logic
-    const primaryHolidayTarget = targetsToConsider[0];
+    // 7. Holiday Logic (Strict)
+    // Only show holiday bonus if it applies to one of our VALID target audiences
+    let bestHoliday = null;
     
-    let bestHoliday = GAME_DATA.holidays.find(h => {
-        if(Array.isArray(h.target)) return h.target.includes(primaryHolidayTarget);
-        return h.target === primaryHolidayTarget || h.target === "ALL";
-    });
-    
-    if(!bestHoliday) bestHoliday = { name: "None", bonus: "0%" };
-    let bonusText = bestHoliday.name === "None" ? "No specific holiday synergy." : `${bestHoliday.bonus} Bonus Towards ${GAME_DATA.demographics[primaryHolidayTarget].name}`;
+    if (validTargetIds.length > 0) {
+        // Find the holiday that matches the most valid targets
+        // Or simply the first valid match if we want to keep it simple
+        bestHoliday = GAME_DATA.holidays.find(h => {
+            if(h.target === "ALL") return true;
+            if(Array.isArray(h.target)) {
+                return h.target.some(t => validTargetIds.includes(t));
+            }
+            return validTargetIds.includes(h.target);
+        });
+    }
 
-    document.getElementById('holidayDisplay').innerHTML = `
-        <div style="color: #fff; font-weight:700; font-size:1.1rem; margin-bottom:4px;">${bestHoliday.name}</div>
-        <div style="color: #aaa; font-size: 0.9rem;">${bonusText}</div>
-    `;
+    if(!bestHoliday) {
+        bestHoliday = { name: "None", bonus: "0%" };
+        document.getElementById('holidayDisplay').innerHTML = `
+            <div style="color: #666; font-size: 0.9rem; font-style: italic;">No specific holiday synergy for current audience.</div>
+        `;
+    } else {
+        let bonusText = bestHoliday.name === "Christmas" 
+            ? "Small Bonus for Everyone" 
+            : `Bonus for ${validTargetIds.join(' & ')}`;
+            
+        document.getElementById('holidayDisplay').innerHTML = `
+            <div style="color: #fff; font-weight:700; font-size:1.1rem; margin-bottom:4px;">${bestHoliday.name}</div>
+            <div style="color: #aaa; font-size: 0.85rem;">${bestHoliday.bonus} ${bonusText}</div>
+        `;
+    }
 
     // 8. Campaign Duration Logic
     let preDuration = 6;
