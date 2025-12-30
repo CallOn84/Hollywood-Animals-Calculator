@@ -39,8 +39,8 @@ function updateSynergyLabels() {
     // 1. Update Section Headers
     const headers = document.querySelectorAll('.col-header');
     if(headers.length >= 2) {
-        headers[0].innerText = "Tag Bonuses";
-        headers[1].innerText = "Forecasted Ratings";
+        headers[0].innerText = "Bonuses";
+        headers[1].innerText = "Forecasted Movie Score";
     }
 
     // 2. Update Row Labels - Breakdown
@@ -54,8 +54,8 @@ function updateSynergyLabels() {
     // 3. Update Row Labels - Totals
     const totalLabels = document.querySelectorAll('.t-label');
     if(totalLabels.length >= 2) {
-        totalLabels[0].innerText = "Commercial Rating:";
-        totalLabels[1].innerText = "Artistic Rating:";
+        totalLabels[0].innerText = "Commercial Score:";
+        totalLabels[1].innerText = "Artistic Scpre:";
     }
     
     // 4. Update Summary Cards
@@ -68,7 +68,7 @@ function updateSynergyLabels() {
     // 5. Update Explanatory Text
     const contextText = document.querySelector('.context-text');
     if(contextText) {
-        contextText.innerText = "Script synergy acts as a multiplier for your scriptwriter. A high synergy allows a skilled writer to reach these forecasted ratings; a poor writer will result in lower scores regardless of these stats. The forecasted ratings are not final, and are subject to change as you advance through Pre-Production, Production, and Post-Production.";
+        contextText.innerText = "Script synergy is the foundation of your movie score, scaled by your scriptwriter's skill. A high synergy allows a skilled scriptwriter to reach these forecasted movie scores; a poor scriptwriter will result in lower scores regardless of these stats. The movie score are not final, and are subject to change as you advance through Pre-Production, Production, and Post-Production.";
     }
 }
 
@@ -1065,7 +1065,7 @@ function renderSynergyResults(matrix, bonuses) {
     else if (matrix.rawAverage < 2.5) avgEl.style.color = 'var(--danger)';
     else avgEl.style.color = '#fff';
 
-    // Script Synergy (was Base Movie Score)
+    // Script Synergy (Keep the + here, as it's a component)
     const baseScoreEl = document.getElementById('synergyTotalDisplay');
     baseScoreEl.innerText = formatScore(matrix.totalScore);
     baseScoreEl.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
@@ -1090,11 +1090,13 @@ function renderSynergyResults(matrix, bonuses) {
     const totalArt = matrix.totalScore + bonuses.art;
 
     const totalComEl = document.getElementById('totalComScore');
-    totalComEl.innerText = formatScore(totalCom);
+    // CHANGE: Removed formatScore, using toFixed(2) to remove the "+" sign
+    totalComEl.innerText = totalCom.toFixed(2);
     totalComEl.style.color = 'var(--accent)'; 
 
     const totalArtEl = document.getElementById('totalArtScore');
-    totalArtEl.innerText = formatScore(totalArt);
+    // CHANGE: Removed formatScore, using toFixed(2) to remove the "+" sign
+    totalArtEl.innerText = totalArt.toFixed(2);
     totalArtEl.style.color = '#a0a0ff'; 
 
     // Spoilers / Conflicts
