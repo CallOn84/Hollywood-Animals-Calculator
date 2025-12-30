@@ -5,12 +5,11 @@ const GAME_DATA = {
     constants: {
         POPULATION: 30000000, 
         
-        // --- Game Logic Constants from GameVariables.json ---
+        // --- NEW: Game Logic Constants ---
         KINOMARK: {
-            audienceWeight: 0.4, // kinomark_audience_weight
-            // [Baseline, Commercial, Art] -> 0.25, 0.5, 0.25
+            audienceWeight: 0.4, 
             scoreWeights: [0.25, 0.5, 0.25], 
-            // Thresholds for grades
+            // 0.16 to 0.93 thresholds used by the game to determine grade index (0-12)
             thresholds: [0.16, 0.23, 0.30, 0.37, 0.44, 0.51, 0.58, 0.65, 0.72, 0.79, 0.86, 0.93] 
         }
     },
@@ -20,7 +19,7 @@ const GAME_DATA = {
             name: "Young Male",
             // Population Weights (Subgroup size)
             baseW: 0.300, artW: 0.400, comW: 0.250,
-            // Default Audience (Turnout rates - used for volume calc)
+            // Default Audience (Turnout rates)
             baseD: 0.100, artD: 0.050, comD: 0.050
         },
         "YF": { 
