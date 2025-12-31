@@ -631,9 +631,8 @@ input[type="text"] {
 .results-container {
     display: flex;
     flex-direction: column;
-    /* Removed gap because section titles handle spacing now */
-    gap: 15px; 
-    margin-top: 20px;
+    gap: 25px; 
+    margin-top: 25px;
 }
 
 .results-container .card {

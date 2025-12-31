@@ -1239,7 +1239,6 @@ function renderDistributionCalculator(commercialScore) {
         distWrapper = document.createElement('div');
         distWrapper.id = 'dist-wrapper';
         distWrapper.className = 'card result-card';
-        distWrapper.style.marginTop = '24px';
         
         // Header
         const header = document.createElement('h3');
