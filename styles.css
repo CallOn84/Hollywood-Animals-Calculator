@@ -463,6 +463,13 @@ select:focus { outline: none; border-color: var(--accent); }
     margin-top: 20px;
 }
 
+/* UI FIX: Remove bottom margin from cards inside the results container.
+   The gap property of the flex container (24px) handles the spacing,
+   matching the 25px margin used elsewhere. Previously this was doubling up (49px). */
+.results-container .card {
+    margin-bottom: 0;
+}
+
 .results-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
