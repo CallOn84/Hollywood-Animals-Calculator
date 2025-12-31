@@ -38,14 +38,84 @@
 
         <!-- TAB NAVIGATION -->
         <nav class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab('synergy')">SE Compatibility</button>
             <button class="tab-btn" onclick="switchTab('generator')">Script Generator</button>
+            <button class="tab-btn active" onclick="switchTab('synergy')">SE Compatibility</button>
             <button class="tab-btn" onclick="switchTab('advertisers')">Best Advertisers</button>
         </nav>
 
         <div class="container">
             
-            <!-- TAB 1: SCRIPT BUILDER (MANUAL) -->
+            <!-- TAB 1: SCRIPT GENERATOR (NEW) -->
+            <div id="tab-generator" class="tab-content hidden">
+                
+                <div class="card builder-card">
+                    <div class="card-header">
+                        <h3>Generator Settings</h3>
+                    </div>
+                    
+                    <div class="score-controls-wrapper">
+                        <!-- TARGET COMPATIBILITY -->
+                        <div class="score-control-group">
+                            <div class="score-label-row">
+                                <label>Target Average Compatibility</label>
+                                <span id="genTargetCompDisplay" class="score-number-display" style="width: auto; padding: 4px 10px;">4.5</span>
+                            </div>
+                            <div class="range-wrapper">
+                                <input type="range" id="genCompSlider" class="styled-slider com-slider" min="1" max="5" step="0.1" value="4.5">
+                            </div>
+                            <p class="subtitle" style="margin-top:10px; font-size: 0.8rem;">The generator will attempt to find a script matching or exceeding this compatibility score.</p>
+                        </div>
+
+                        <!-- TARGET MOVIE SCORE -->
+                        <div class="score-control-group">
+                            <div class="score-label-row">
+                                <label>Target Movie Score</label>
+                                <span id="genTargetScoreDisplay" class="score-number-display" style="width: auto; padding: 4px 10px;">8.0</span>
+                            </div>
+                            <div class="range-wrapper">
+                                <input type="range" id="genScoreSlider" class="styled-slider art-slider" min="6" max="10" step="1" value="8">
+                            </div>
+                            <p id="genTagsRequiredDisplay" class="subtitle" style="margin-top:10px; font-size: 0.8rem; color: var(--accent);">
+                                Requires 8 Story Elements (excluding Genre).
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="divider-line"></div>
+
+                    <div class="card-header">
+                        <h3>Locked Elements</h3>
+                        <button class="reset-btn" onclick="resetSelectors('generator')">Reset Locks</button>
+                    </div>
+                    <p class="subtitle">Select specific tags you MUST have in the script. The generator will fill the rest.</p>
+                    
+                    <!-- Dynamic Selectors Container for Generator -->
+                    <div id="selectors-container-generator"></div>
+                    
+                    <div class="action-area">
+                        <button class="analyze-btn" onclick="generateScripts()">Generate Scripts</button>
+                    </div>
+                </div>
+
+                <!-- PINNED RESULTS -->
+                <div id="pinned-scripts-container" class="results-container hidden">
+                    <div class="card-header" style="margin-bottom: 0;">
+                        <h3 style="color: var(--accent);">Pinned Scripts</h3>
+                    </div>
+                    <div id="pinnedResultsList" class="script-list"></div>
+                </div>
+
+                <!-- GENERATED RESULTS -->
+                <div id="results-generator" class="results-container hidden">
+                    <div class="card-header" style="margin-bottom: 0;">
+                        <h3>Generated Options</h3>
+                    </div>
+                    <div id="generatorResultsList" class="script-list"></div>
+                </div>
+
+            </div>
+
+            <!-- TAB 2: SE COMPATIBILITY (Existing) -->
             <div id="tab-synergy" class="tab-content active">
                 
                 <div class="card search-card">
@@ -63,7 +133,6 @@
                     </div>
                     <p class="subtitle">Select story elements to see how well they fit together.</p>
                     
-                    <!-- Dynamic Selectors Container for Synergy -->
                     <div id="selectors-container-synergy"></div>
                     
                     <div class="action-area">
@@ -73,8 +142,6 @@
 
                 <!-- SYNERGY RESULTS -->
                 <div id="results-synergy" class="results-container hidden">
-                    
-                    <!-- SECTION 1: Stat Cards -->
                     <div class="summary-row">
                         <div class="summary-item">
                             <h3>Average Compatibility</h3>
@@ -86,49 +153,38 @@
                         </div>
                     </div>
 
-                    <!-- SECTION 2: Detailed Breakdown -->
                     <div class="card result-card breakdown-container">
-                        
-                        <!-- Left Side: The Inputs -->
                         <div class="breakdown-col left-col">
                             <h4 class="col-header">Bonuses</h4>
-                            
                             <div class="breakdown-row">
                                 <span class="b-label">Script Synergy:</span>
                                 <span class="b-value" id="breakdownBaseScore">0.00</span>
                             </div>
-                            
                             <div class="breakdown-row">
                                 <span class="b-label">Commercial Bonus:</span>
                                 <span class="b-value" id="breakdownComBonus">0</span>
                             </div>
-
                             <div class="breakdown-row">
                                 <span class="b-label">Artistic Bonus:</span>
                                 <span class="b-value" id="breakdownArtBonus">0</span>
                             </div>
                         </div>
-
-                        <!-- Right Side: The Totals -->
                         <div class="breakdown-col right-col">
                             <h4 class="col-header highlight-header">Max Potential Movie Score</h4>
-                            
                             <div class="total-row">
                                 <span class="t-label">Commercial Movie Score:</span>
                                 <span class="t-value" id="totalComScore">0.00</span>
                             </div>
-
                             <div class="total-row">
                                 <span class="t-label">Artistic Movie Score:</span>
                                 <span class="t-value" id="totalArtScore">0.00</span>
                             </div>
-                             <p class="context-text">
+                            <p class="context-text">
                                 Script synergy is the foundation of your movie score, scaled by your scriptwriter's skill.
                             </p>
                         </div>
                     </div>
 
-                    <!-- Conflicts / Spoilers -->
                     <div class="card result-card" style="border-left: 4px solid var(--danger);">
                         <h3>Conflicts</h3>
                         <div class="list-subtitle">Severe clashes that ruin the script</div>
@@ -138,83 +194,13 @@
                     </div>
 
                     <div class="action-area" style="margin-top: 0;">
-                        <button class="analyze-btn secondary-btn" onclick="transferTagsToAdvertisers('synergy')">Find Best Advertisers &rarr;</button>
+                        <button class="analyze-btn secondary-btn" onclick="transferTagsToAdvertisers()">Find Best Advertisers &rarr;</button>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 2: SCRIPT GENERATOR (NEW) -->
-            <div id="tab-generator" class="tab-content hidden">
-                
-                <div class="card builder-card">
-                    <div class="card-header">
-                        <h3>Generator Configuration</h3>
-                        <button class="reset-btn" onclick="resetGenerator()">Reset</button>
-                    </div>
-
-                    <!-- Controls: Target Score -->
-                    <div class="generator-controls">
-                        <div class="gen-control-row">
-                            <label>Target Average Compatibility</label>
-                            <div class="range-wrapper" style="margin-top:5px;">
-                                <input type="range" id="genTargetScore" class="styled-slider com-slider" min="1" max="5" step="0.1" value="4.5">
-                            </div>
-                            <div class="gen-value-display"><span id="genTargetDisplay">4.5</span> / 5.0</div>
-                        </div>
-
-                        <!-- Controls: Counts -->
-                        <div class="gen-counts-grid">
-                            <div class="count-box">
-                                <label>Genres</label>
-                                <input type="number" id="genCountGenre" min="1" max="3" value="1">
-                            </div>
-                            <div class="count-box">
-                                <label>Themes</label>
-                                <input type="number" id="genCountTheme" min="0" max="3" value="1">
-                            </div>
-                            <div class="count-box">
-                                <label>Supp. Chars</label>
-                                <input type="number" id="genCountSupport" min="0" max="3" value="1">
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr class="separator">
-
-                    <!-- Locking Mechanism -->
-                    <div class="card-header" style="margin-top: 20px;">
-                        <h3>Locked Elements (Optional)</h3>
-                    </div>
-                    <p class="subtitle">Select elements you MUST have. The generator will fill the rest.</p>
-                    <div id="selectors-container-generator"></div>
-
-                    <div class="action-area">
-                        <button class="analyze-btn" id="btn-generate" onclick="runGenerator()">Generate Scripts</button>
-                    </div>
-                </div>
-
-                <!-- Saved Scripts Section -->
-                <div id="saved-scripts-container" class="results-container hidden">
-                    <div class="section-divider">
-                        <span>Pinned Scripts</span>
-                    </div>
-                    <div id="saved-list"></div>
-                </div>
-
-                <!-- Generated Results -->
-                <div id="generated-results-container" class="results-container hidden">
-                    <div class="section-divider">
-                        <span>New Results</span>
-                    </div>
-                    <div id="generated-list"></div>
-                </div>
-
-            </div>
-
-            <!-- TAB 3: BEST ADVERTISERS -->
+            <!-- TAB 3: BEST ADVERTISERS (Existing) -->
             <div id="tab-advertisers" class="tab-content hidden">
-                
-                <!-- SEARCH BAR SECTION -->
                 <div class="card search-card">
                     <h3>Quick Search</h3>
                     <div class="search-wrapper">
@@ -223,15 +209,12 @@
                     </div>
                 </div>
 
-                <!-- MOVIE SCORES SECTION -->
                 <div class="card score-card">
                     <div class="card-header">
                         <h3>Movie Scores</h3>
                         <span class="score-help">0 - 10</span>
                     </div>
-                    
                     <div class="score-controls-wrapper">
-                        <!-- COMMERCIAL SCORE -->
                         <div class="score-control-group">
                             <div class="score-label-row">
                                 <label for="comScoreInput"> Commercial</label>
@@ -242,7 +225,6 @@
                             </div>
                         </div>
 
-                        <!-- ARTISTIC SCORE -->
                         <div class="score-control-group">
                             <div class="score-label-row">
                                 <label for="artScoreInput"> Art</label>
@@ -255,26 +237,19 @@
                     </div>
                 </div>
 
-                <!-- SCRIPT BUILDER SECTION -->
                 <div class="card builder-card">
                     <div class="card-header">
                         <h3>Build Your Script</h3>
                         <button class="reset-btn" onclick="resetSelectors('advertisers')">Reset</button>
                     </div>
                     <p class="subtitle">Select tags manually or use the search bar above. Add multiple genres to adjust their influence.</p>
-                    
-                    <!-- Dynamic Selectors Container for Advertisers -->
                     <div id="selectors-container-advertisers"></div>
-                    
                     <div class="action-area">
                         <button class="analyze-btn" onclick="analyzeMovie()">Analyse</button>
                     </div>
                 </div>
 
-                <!-- RESULTS SECTION -->
                 <div id="results-advertisers" class="results-container hidden">
-                    
-                    <!-- SECTION: Target Audience -->
                     <div class="card result-card">
                         <div class="card-header-row">
                             <h3>Target Audience</h3>
@@ -286,13 +261,11 @@
                         <div id="targetAudienceDisplay" class="landscape-content"></div>
                     </div>
 
-                    <!-- SECTION: Preferred Release Windows -->
                     <div class="card result-card">
                         <h3>Holiday Release</h3>
                         <div id="holidayDisplay" class="holiday-list-container"></div>
                     </div>
 
-                    <!-- ROW 2: Detailed Info -->
                     <div class="results-row">
                         <div class="card result-card">
                             <h3>Recommended Advertisers</h3>
@@ -305,8 +278,6 @@
                                 <div id="adAgentDisplay"></div>
                             </div>
                         </div>
-
-                        <!-- STRATEGY CARD -->
                         <div class="card result-card strategy-card">
                             <h3>Recommended Advertisement Duration</h3>
                             <div id="campaignStrategyDisplay"></div>
