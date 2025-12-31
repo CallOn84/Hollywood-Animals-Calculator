@@ -4,12 +4,12 @@
     --input-bg: #2c2c2c;
     --text-main: #e0e0e0;
     --text-muted: #a0a0a0;
-    --accent: #d4af37;
+    --accent: #d4af37; /* Hollywood Gold */
     --accent-hover: #f4cf57;
     --border: #333;
     --danger: #ff5f5f;
     --success: #4cd964;
-    --moderate: #ff9f0a;
+    --moderate: #ff9f0a; /* Orange for Moderate */
     --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     --radius: 8px;
 }
@@ -29,6 +29,7 @@ body {
     padding: 40px 20px;
 }
 
+/* --- HEADER --- */
 header {
     margin-bottom: 30px;
 }
@@ -64,6 +65,7 @@ h2 {
     text-transform: uppercase;
 }
 
+/* --- LANGUAGE SELECTOR --- */
 .lang-wrapper {
     position: relative;
 }
@@ -91,6 +93,7 @@ h2 {
     border-color: var(--accent);
 }
 
+/* --- TABS --- */
 .tab-nav {
     display: flex;
     justify-content: center;
@@ -126,6 +129,7 @@ h2 {
     display: none;
 }
 
+/* --- CARDS --- */
 .card {
     background: var(--card-bg);
     padding: 25px;
@@ -146,6 +150,7 @@ h3 {
     margin-bottom: 20px;
 }
 
+/* --- SCORE CONTROLS --- */
 .score-card { border-top: 4px solid var(--border); }
 
 .card-header {
@@ -246,6 +251,7 @@ h3 {
 .art-slider::-webkit-slider-thumb { background: #a0a0ff; }
 .com-slider::-webkit-slider-thumb { background: var(--accent); }
 
+/* --- SEARCH BAR --- */
 .search-wrapper { position: relative; }
 
 input[type="text"] {
@@ -283,6 +289,7 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
 .search-item:hover { background-color: var(--accent); color: #000; }
 .search-item small { display: block; font-size: 0.75rem; opacity: 0.7; }
 
+/* --- SELECTORS GRID --- */
 .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
 
 #selectors-container-advertisers, #selectors-container-synergy {
@@ -368,6 +375,7 @@ select:focus { outline: none; border-color: var(--accent); }
 
 .remove-btn:hover { color: #ff8888; }
 
+/* Genre Percentage Inputs */
 .genre-percent-wrapper {
     display: flex;
     align-items: center;
@@ -405,6 +413,7 @@ select:focus { outline: none; border-color: var(--accent); }
 
 .percent-input:focus { outline: none; border-color: var(--accent); }
 
+/* --- ACTION BUTTONS --- */
 .action-area { margin-top: 20px; }
 
 .analyze-btn {
@@ -443,6 +452,9 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 .reset-btn:hover { border-color: var(--text-main); color: var(--text-main); }
 
+/* ========================================= */
+/* --- RESULTS LAYOUT (Dashboard Grid) --- */
+/* ========================================= */
 
 .results-container {
     display: flex;
@@ -476,6 +488,7 @@ select:focus { outline: none; border-color: var(--accent); }
     opacity: 0.8;
 }
 
+/* --- TARGET AUDIENCE (Chips) --- */
 
 .card-header-row {
     display: flex;
@@ -516,6 +529,11 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 
 .audience-pill {
+    /* UI FIX: Change display to inline-flex and fit-content to prevent negative space */
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    
     background: rgba(255, 255, 255, 0.08);
     border-radius: 6px;
     padding: 10px 16px;
@@ -526,6 +544,7 @@ select:focus { outline: none; border-color: var(--accent); }
     border: 1px solid transparent;
 }
 
+/* New Logic: Modifiers for Match Quality */
 .audience-pill.pill-best {
     border-color: var(--success);
     color: #fff;
@@ -540,10 +559,21 @@ select:focus { outline: none; border-color: var(--accent); }
     box-shadow: 0 0 8px rgba(255, 159, 10, 0.15);
 }
 
+/* --- PREFERRED HOLIDAY LIST (NEW) --- */
+
 .holiday-list-container {
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.holiday-section-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #666;
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 4px;
 }
 
 .holiday-row {
@@ -593,6 +623,7 @@ select:focus { outline: none; border-color: var(--accent); }
     font-size: 1rem;
 }
 
+/* --- ADVERTISERS LIST --- */
 .strategy-content {
     flex-grow: 1;
     display: flex;
@@ -646,6 +677,7 @@ select:focus { outline: none; border-color: var(--accent); }
 .label { color: var(--text-muted); font-size: 0.9rem; }
 .value { font-weight: bold; color: var(--text-main); }
 
+/* --- CAMPAIGN DURATION (Timeline) --- */
 #campaignStrategyDisplay {
     display: flex;
     flex-direction: column;
@@ -700,6 +732,10 @@ select:focus { outline: none; border-color: var(--accent); }
     border-top: 1px solid rgba(255,255,255,0.1);
 }
 
+/* ========================================= */
+/* --- SYNERGY RESULTS (Score Dashboard) --- */
+/* ========================================= */
+
 .summary-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -724,6 +760,7 @@ select:focus { outline: none; border-color: var(--accent); }
     overflow: hidden;
 }
 
+/* Subtle glowing top border */
 .summary-item::after {
     content: '';
     position: absolute;
@@ -758,6 +795,7 @@ select:focus { outline: none; border-color: var(--accent); }
     margin-left: 4px;
 }
 
+/* Breakdown Grid */
 .breakdown-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -826,6 +864,7 @@ select:focus { outline: none; border-color: var(--accent); }
     font-style: italic;
 }
 
+/* Helpers */
 .hidden { display: none; }
 .vertical-divider, .summary-divider { display: none; }
 
@@ -836,6 +875,7 @@ footer {
     margin-top: 40px;
 }
 
+/* --- RESPONSIVE --- */
 @media (max-width: 800px) {
     #selectors-container-advertisers, #selectors-container-synergy { grid-template-columns: 1fr; }
     h1 { font-size: 1.8rem; }

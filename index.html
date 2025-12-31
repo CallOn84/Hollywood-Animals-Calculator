@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hollywood Animal Calculator</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Google Fonts for modern typography -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -17,6 +18,7 @@
                     <h2>Calculator</h2>
                 </div>
 
+                <!-- LANGUAGE SELECTOR -->
                 <div class="lang-wrapper">
                     <select id="languageSelector" class="lang-dropdown" onchange="changeLanguage(this.value)">
                         <option value="English">🇺🇸 English</option>
@@ -34,6 +36,7 @@
             </div>
         </header>
 
+        <!-- TAB NAVIGATION -->
         <nav class="tab-nav">
             <button class="tab-btn active" onclick="switchTab('synergy')">Script Builder</button>
             <button class="tab-btn" onclick="switchTab('advertisers')">Best Advertisers</button>
@@ -41,6 +44,7 @@
 
         <div class="container">
             
+            <!-- TAB 1: SCRIPT BUILDER -->
             <div id="tab-synergy" class="tab-content active">
                 
                 <div class="card search-card">
@@ -58,6 +62,7 @@
                     </div>
                     <p class="subtitle">Select story elements to see how well they fit together.</p>
                     
+                    <!-- Dynamic Selectors Container for Synergy -->
                     <div id="selectors-container-synergy"></div>
                     
                     <div class="action-area">
@@ -65,8 +70,10 @@
                     </div>
                 </div>
 
+                <!-- SYNERGY RESULTS -->
                 <div id="results-synergy" class="results-container hidden">
                     
+                    <!-- SECTION 1: Stat Cards (Dashboard Style) -->
                     <div class="summary-row">
                         <div class="summary-item">
                             <h3>Average Compatibility</h3>
@@ -78,8 +85,10 @@
                         </div>
                     </div>
 
+                    <!-- SECTION 2: Detailed Breakdown (Grid View) -->
                     <div class="card result-card breakdown-container">
                         
+                        <!-- Left Side: The Inputs -->
                         <div class="breakdown-col left-col">
                             <h4 class="col-header">Bonuses</h4>
                             
@@ -99,6 +108,7 @@
                             </div>
                         </div>
 
+                        <!-- Right Side: The Totals -->
                         <div class="breakdown-col right-col">
                             <h4 class="col-header highlight-header">Max Potential Movie Score</h4>
                             
@@ -119,6 +129,7 @@
 
                     </div>
 
+                    <!-- Conflicts / Spoilers -->
                     <div class="card result-card" style="border-left: 4px solid var(--danger);">
                         <h3>Conflicts</h3>
                         <div class="list-subtitle">Severe clashes that ruin the script</div>
@@ -134,8 +145,10 @@
                 </div>
             </div>
 
+            <!-- TAB 2: BEST ADVERTISERS -->
             <div id="tab-advertisers" class="tab-content hidden">
                 
+                <!-- SEARCH BAR SECTION -->
                 <div class="card search-card">
                     <h3>Quick Search</h3>
                     <div class="search-wrapper">
@@ -144,6 +157,7 @@
                     </div>
                 </div>
 
+                <!-- MOVIE SCORES SECTION -->
                 <div class="card score-card">
                     <div class="card-header">
                         <h3>Movie Scores</h3>
@@ -151,6 +165,7 @@
                     </div>
                     
                     <div class="score-controls-wrapper">
+                        <!-- COMMERCIAL SCORE -->
                         <div class="score-control-group">
                             <div class="score-label-row">
                                 <label for="comScoreInput"> Commercial</label>
@@ -161,6 +176,7 @@
                             </div>
                         </div>
 
+                        <!-- ARTISTIC SCORE -->
                         <div class="score-control-group">
                             <div class="score-label-row">
                                 <label for="artScoreInput"> Art</label>
@@ -173,6 +189,7 @@
                     </div>
                 </div>
 
+                <!-- SCRIPT BUILDER SECTION -->
                 <div class="card builder-card">
                     <div class="card-header">
                         <h3>Build Your Script</h3>
@@ -180,6 +197,7 @@
                     </div>
                     <p class="subtitle">Select tags manually or use the search bar above. Add multiple genres to adjust their influence.</p>
                     
+                    <!-- Dynamic Selectors Container for Advertisers -->
                     <div id="selectors-container-advertisers"></div>
                     
                     <div class="action-area">
@@ -187,8 +205,10 @@
                     </div>
                 </div>
 
+                <!-- RESULTS SECTION -->
                 <div id="results-advertisers" class="results-container hidden">
                     
+                    <!-- ROW 1: Landscape Info -->
                     <div class="results-row">
                         <div class="card result-card landscape-card">
                             <div class="card-header-row">
@@ -204,15 +224,18 @@
                                 </div>
                             </div>
                             
+                            <!-- Content generated by JS -->
                             <div id="targetAudienceDisplay" class="landscape-content"></div>
                         </div>
 
                         <div class="card result-card landscape-card">
-                            <h3>Preferred Release Windows</h3>
+                            <h3>Holiday Release</h3>
+                            <!-- New List Container for Holidays -->
                             <div id="holidayDisplay" class="holiday-list-container"></div>
                         </div>
                     </div>
 
+                    <!-- ROW 2: Detailed Info -->
                     <div class="results-row">
                         <div class="card result-card">
                             <h3>Recommended Advertisers</h3>
@@ -226,6 +249,7 @@
                             </div>
                         </div>
 
+                        <!-- STRATEGY CARD -->
                         <div class="card result-card strategy-card">
                             <h3>Recommended Advertisement Duration</h3>
                             <div id="campaignStrategyDisplay"></div>
