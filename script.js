@@ -594,8 +594,13 @@ function generateScripts() {
         generatedBatch.push(result);
     }
     
-    // Sort by proximity to target compatibility
-    generatedBatch.sort((a, b) => b.stats.avgComp - a.stats.avgComp);
+    // Sort by Movie Score (Descending), then Average Compatibility (Descending)
+    generatedBatch.sort((a, b) => {
+        if (b.stats.movieScore !== a.stats.movieScore) {
+            return b.stats.movieScore - a.stats.movieScore;
+        }
+        return b.stats.avgComp - a.stats.avgComp;
+    });
 
     generatedScriptsCache = generatedBatch;
     renderGeneratedScripts(generatedBatch);
@@ -678,24 +683,35 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
         }
     }
     
-    // Calculate final movie score & max script quality based on count rule
+    // 3. Calculate Final Stats
+    // Calculate Tag Cap (based on element count)
     const ngCount = getNonGenreCount(bestSet);
-    let movieScore = 6;
+    let tagCap = 6;
     let maxScriptQual = 5;
 
-    if(ngCount >= 10) { movieScore = 10; maxScriptQual = 10; }
-    else if(ngCount >= 9) { movieScore = 9; maxScriptQual = 8; }
-    else if(ngCount >= 7) { movieScore = 8; maxScriptQual = 7; } // 7-8 tags
-    else if(ngCount >= 5) { movieScore = 7; maxScriptQual = 6; } // 5-6 tags
-    // else <5: Score 6, Script 5
+    if(ngCount >= 10) { tagCap = 10; maxScriptQual = 10; }
+    else if(ngCount >= 9) { tagCap = 9; maxScriptQual = 8; }
+    else if(ngCount >= 7) { tagCap = 8; maxScriptQual = 7; } // 7-8 tags
+    else if(ngCount >= 5) { tagCap = 7; maxScriptQual = 6; } // 5-6 tags
+    // else <5: tagCap 6, script 5
     
+    // Calculate Max Potential Score from Synergy & Bonuses
+    const bonuses = calculateTotalBonuses(bestSet);
+    const MAX_GAME_SCORE = 9.9;
+    const rawCom = (bestStats.totalScore + bonuses.com) * MAX_GAME_SCORE;
+    const rawArt = (bestStats.totalScore + bonuses.art) * MAX_GAME_SCORE;
+    const maxPotential = Math.max(0, Math.max(rawCom, rawArt));
+    
+    // Final Display Movie Score is the lower of the Tag Cap and Max Potential
+    const finalMovieScore = Math.min(tagCap, maxPotential);
+
     return {
         tags: bestSet,
         stats: {
             avgComp: bestStats.rawAverage,
-            synergySum: bestStats.totalScore, // Keep raw for reference if needed
-            maxScriptQuality: maxScriptQual, // The capped value derived from count
-            movieScore: movieScore
+            synergySum: bestStats.totalScore,
+            maxScriptQuality: maxScriptQual,
+            movieScore: finalMovieScore.toFixed(1) // Return formatted string
         },
         uniqueId: Date.now() + Math.random().toString()
     };
