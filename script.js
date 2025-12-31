@@ -638,25 +638,39 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
     const categoriesPresent = new Set(currentTags.map(t => t.category));
     
     // A. Handle Genres (Ensure at least 1, maybe 2)
-    const fixedGenreCount = currentTags.filter(t => t.category === "Genre").length;
+    const fixedGenres = currentTags.filter(t => t.category === "Genre");
+    const fixedGenreCount = fixedGenres.length;
+
     if (fixedGenreCount === 0) {
         // No genre locked: Pick 1 or 2
         const genre1 = getRandomTagByCategory("Genre", currentTags, excludedIds);
+        
         if (genre1) {
-            genre1.percent = 1.0;
-            currentTags.push(genre1);
+            // Check for Multi-Genre chance (30%)
+            // FIX: Only pick a second genre if it is compatible according to GenrePairs
+            let partnerId = null;
             
-            // Chance for Multi-Genre (30%)
             if (Math.random() < 0.3) {
-                const genre2 = getRandomTagByCategory("Genre", currentTags, excludedIds);
-                if (genre2) {
-                    // Update percents to 50/50 for dual genre
-                    genre1.percent = 0.5;
-                    genre2.percent = 0.5;
-                    currentTags.push(genre2);
-                }
+                 const partners = getCompatibleGenres(genre1.id, excludedIds);
+                 if (partners.length > 0) {
+                     partnerId = partners[Math.floor(Math.random() * partners.length)];
+                 }
+            }
+            
+            if (partnerId) {
+                // Apply 50/50 split for dual genre
+                genre1.percent = 0.5;
+                currentTags.push(genre1);
+                currentTags.push({ id: partnerId, percent: 0.5, category: "Genre" });
+            } else {
+                // Single genre
+                genre1.percent = 1.0;
+                currentTags.push(genre1);
             }
         }
+    } else {
+        // If 1 or more genres are locked, we respect the user's locks and don't add random genres
+        // to avoid breaking their specific build intent.
     }
 
     // B. Fill Mandatory Categories
@@ -739,6 +753,27 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
         },
         uniqueId: Date.now() + Math.random().toString()
     };
+}
+
+function getCompatibleGenres(sourceId, excludedIds) {
+    let valid = [];
+    
+    // 1. Check direct mappings (Source -> Target)
+    if (GAME_DATA.genrePairs[sourceId]) {
+        valid.push(...Object.keys(GAME_DATA.genrePairs[sourceId]));
+    }
+    
+    // 2. Check reverse mappings (Target -> Source)
+    // We iterate the keys to find if sourceId appears as a target for any other genre
+    for (const gKey in GAME_DATA.genrePairs) {
+        if (GAME_DATA.genrePairs[gKey] && GAME_DATA.genrePairs[gKey][sourceId]) {
+            valid.push(gKey);
+        }
+    }
+    
+    // 3. Deduplicate and filter excluded
+    const unique = new Set(valid);
+    return [...unique].filter(id => !excludedIds.has(id));
 }
 
 function getNonGenreCount(tags) {
@@ -1239,6 +1274,7 @@ function renderDistributionCalculator(commercialScore) {
         distWrapper = document.createElement('div');
         distWrapper.id = 'dist-wrapper';
         distWrapper.className = 'card result-card';
+        // REMOVED manual margin-top; handled by CSS gap in container
         
         // Header
         const header = document.createElement('h3');
