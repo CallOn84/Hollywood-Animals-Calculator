@@ -751,7 +751,7 @@ function analyzeMovie() {
         agentContainer.innerHTML = agentHtml;
     }
 
-    // 7. RANKED HOLIDAY LOGIC (NEW REVISED + CONTEXTUAL)
+    // 7. RANKED HOLIDAY LOGIC (DETAILED BONUSES)
     const holidayContainer = document.getElementById('holidayDisplay');
     holidayContainer.innerHTML = '';
 
@@ -759,75 +759,49 @@ function analyzeMovie() {
         holidayContainer.innerHTML = `<div style="color:#666; font-style:italic;">Identify target audience first.</div>`;
     } else {
         const rankedHolidays = GAME_DATA.holidays.map(h => {
-            let targetsHigh = false;
-            let targetsModerate = false;
-            let isUniversal = false;
-            
-            // This is the CRITICAL FIX for "Boys..." showing up when irrelevant.
-            // matchedTargets will ONLY contain audiences that are BOTH in the holiday's target list
-            // AND in the movie's validTargetIds.
-            let matchedTargets = [];
+            let textParts = [];
+            let score = 0;
 
-            if (h.target === "ALL") {
-                isUniversal = true;
-                matchedTargets = ["Universal"];
-            } else {
-                const targets = Array.isArray(h.target) ? h.target : [h.target];
-                
-                targets.forEach(t => {
-                    if (validTargetIds.includes(t)) {
-                        matchedTargets.push(GAME_DATA.demographics[t].name);
-                        
-                        if(highInterestIds.includes(t)) targetsHigh = true;
-                        if(moderateInterestIds.includes(t)) targetsModerate = true;
+            // Iterate through valid Target IDs for this movie (Moderate and High interest)
+            validTargetIds.forEach(id => {
+                if (h.bonuses[id] && h.bonuses[id] > 0) {
+                    const bonusVal = h.bonuses[id];
+                    const audienceName = GAME_DATA.demographics[id].name;
+                    const percent = Math.round(bonusVal * 100);
+                    
+                    textParts.push({
+                        val: bonusVal,
+                        text: `${percent}% Bonus for ${audienceName}`
+                    });
+
+                    // Weight High Interest more in sorting
+                    if(highInterestIds.includes(id)) {
+                        score += (bonusVal * 2.0);
+                    } else {
+                        score += bonusVal;
                     }
-                });
-            }
+                }
+            });
 
-            // Calculate Priority
-            let priority = -1;
-            
-            // Only valid if it hits at least one relevant target (or is universal)
-            if (isUniversal || matchedTargets.length > 0) {
-                if (targetsHigh && !isUniversal) priority = 2; // Specific High Interest
-                else if (targetsModerate && !isUniversal) priority = 1; // Specific Moderate Interest
-                else if (isUniversal) priority = 0; // Universal Fallback
-            }
+            // Sort text descriptions by bonus value descending
+            textParts.sort((a, b) => b.val - a.val);
 
-            // Parse bonus for sorting
-            let sortValue = 0;
-            const nums = h.bonus.match(/\d+/g);
-            if (nums) {
-                if (nums.length === 1) sortValue = parseInt(nums[0]);
-                else if (nums.length >= 2) sortValue = (parseInt(nums[0]) + parseInt(nums[1])) / 2;
-            }
-
-            // Create Contextual Text string
-            let contextText = "";
-            if(isUniversal) {
-                contextText = `${h.bonus} Bonus for Everyone`;
-            } else if (matchedTargets.length > 0) {
-                const names = matchedTargets.length > 2 ? matchedTargets.slice(0, 2).join(", ") + "..." : matchedTargets.join(" & ");
-                contextText = `${h.bonus} Bonus for ${names}`;
-            }
+            // Create final string
+            const contextText = textParts.map(p => p.text).join(', ');
 
             return {
                 ...h,
-                priority,
-                sortValue,
+                score,
                 contextText,
-                hasMatch: (priority >= 0)
+                hasMatch: textParts.length > 0
             };
         });
 
         // Filter valid
         let viableHolidays = rankedHolidays.filter(h => h.hasMatch);
 
-        // Sort: Priority DESC, then SortValue DESC
-        viableHolidays.sort((a, b) => {
-            if (a.priority !== b.priority) return b.priority - a.priority;
-            return b.sortValue - a.sortValue;
-        });
+        // Sort: Score DESC
+        viableHolidays.sort((a, b) => b.score - a.score);
 
         if (viableHolidays.length === 0) {
             holidayContainer.innerHTML = `<div class="holiday-row-empty"><span>No beneficial holidays found.</span></div>`;

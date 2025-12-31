@@ -56,12 +56,30 @@ const GAME_DATA = {
     ],
 
     holidays: [
-        { name: "Valentine's Day", target: "YF", bonus: "30%" },
-        { name: "Halloween", target: ["TM", "TF", "YM"], bonus: "18-22%" },
-        { name: "Thanksgiving", target: ["AM", "AF"], bonus: "22%" },
-        { name: "Independence Day", target: "AM", bonus: "18%" },
-        { name: "Christmas", target: "ALL", bonus: "10-15%" },
-        { name: "Memorial Day", target: ["YM", "AM"], bonus: "16-18%" }
+        {
+            name: "Valentine's Day",
+            bonuses: { "YF": 0.30, "AM": 0.15, "TF": 0.15, "YM": 0.12, "TM": 0.07 }
+        },
+        {
+            name: "Halloween",
+            bonuses: { "TM": 0.22, "TF": 0.22, "YM": 0.18, "YF": 0.18, "AM": 0.15, "AF": 0.15 }
+        },
+        {
+            name: "Thanksgiving",
+            bonuses: { "AM": 0.22, "AF": 0.22, "YM": 0.15, "YF": 0.15, "TM": 0.07, "TF": 0.07 }
+        },
+        {
+            name: "Independence Day",
+            bonuses: { "AM": 0.18, "YM": 0.13, "TM": 0.09, "AF": 0.07, "YF": 0.05 }
+        },
+        {
+            name: "Christmas",
+            bonuses: { "TM": 0.15, "TF": 0.15, "YM": 0.15, "YF": 0.15, "AM": 0.10, "AF": 0.10 }
+        },
+        {
+            name: "Memorial Day",
+            bonuses: { "AM": 0.18, "YM": 0.16, "TM": 0.09, "AF": 0.07, "YF": 0.05 }
+        }
     ],
 
     categories: [
