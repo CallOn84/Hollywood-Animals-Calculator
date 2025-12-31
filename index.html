@@ -38,13 +38,103 @@
 
         <!-- TAB NAVIGATION -->
         <nav class="tab-nav">
-            <button class="tab-btn" onclick="switchTab('generator')">Script Generator</button>
             <button class="tab-btn active" onclick="switchTab('synergy')">SE Compatibility</button>
+            <button class="tab-btn" onclick="switchTab('generator')">Script Generator</button>
             <button class="tab-btn" onclick="switchTab('advertisers')">Best Advertisers</button>
         </nav>
 
         <div class="container">
             
+            <!-- TAB 1: SCRIPT BUILDER (Synergy) -->
+            <div id="tab-synergy" class="tab-content active">
+                
+                <div class="card search-card">
+                    <h3>Quick Search</h3>
+                    <div class="search-wrapper">
+                        <input type="text" id="globalSearchSynergy" placeholder="Type to find a tag (e.g., 'Action', 'Cowboy')..." autocomplete="off">
+                        <div id="searchResultsSynergy" class="search-results hidden"></div>
+                    </div>
+                </div>
+
+                <div class="card builder-card">
+                    <div class="card-header">
+                        <h3>Check Compatibility</h3>
+                        <button class="reset-btn" onclick="resetSelectors('synergy')">Reset</button>
+                    </div>
+                    <p class="subtitle">Select story elements to see how well they fit together.</p>
+                    
+                    <!-- Dynamic Selectors Container for Synergy -->
+                    <div id="selectors-container-synergy"></div>
+                    
+                    <div class="action-area">
+                        <button class="analyze-btn" onclick="calculateSynergy()">Check Compatibility</button>
+                    </div>
+                </div>
+
+                <!-- SYNERGY RESULTS -->
+                <div id="results-synergy" class="results-container hidden">
+                    
+                    <!-- SECTION 1: Stat Cards -->
+                    <div class="summary-row">
+                        <div class="summary-item">
+                            <h3>Average Compatibility</h3>
+                            <div id="synergyAverageDisplay" class="summary-value">0.0 <span class="sub-value">/ 5.0</span></div>
+                        </div>
+                        <div class="summary-item">
+                            <h3>Script Synergy</h3>
+                            <div id="synergyTotalDisplay" class="summary-value">0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: Detailed Breakdown -->
+                    <div class="card result-card breakdown-container">
+                        <div class="breakdown-col left-col">
+                            <h4 class="col-header">Bonuses</h4>
+                            <div class="breakdown-row">
+                                <span class="b-label">Script Synergy:</span>
+                                <span class="b-value" id="breakdownBaseScore">0.00</span>
+                            </div>
+                            <div class="breakdown-row">
+                                <span class="b-label">Commercial Bonus:</span>
+                                <span class="b-value" id="breakdownComBonus">0</span>
+                            </div>
+                            <div class="breakdown-row">
+                                <span class="b-label">Artistic Bonus:</span>
+                                <span class="b-value" id="breakdownArtBonus">0</span>
+                            </div>
+                        </div>
+
+                        <div class="breakdown-col right-col">
+                            <h4 class="col-header highlight-header">Max Potential Movie Score</h4>
+                            <div class="total-row">
+                                <span class="t-label">Commercial Movie Score:</span>
+                                <span class="t-value" id="totalComScore">0.00</span>
+                            </div>
+                            <div class="total-row">
+                                <span class="t-label">Artistic Movie Score:</span>
+                                <span class="t-value" id="totalArtScore">0.00</span>
+                            </div>
+                            <p class="context-text">
+                                Script synergy is the foundation of your movie score. Movie scores are not final and subject to production quality.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Conflicts / Spoilers -->
+                    <div class="card result-card" style="border-left: 4px solid var(--danger);">
+                        <h3>Conflicts</h3>
+                        <div id="spoilerDisplay" class="strategy-content">
+                            <div style="color: #888; font-style: italic;">No conflicts found.</div>
+                        </div>
+                    </div>
+
+                    <div class="action-area" style="margin-top: 0;">
+                        <button class="analyze-btn secondary-btn" onclick="transferTagsToAdvertisers()">Find Best Advertisers &rarr;</button>
+                    </div>
+
+                </div>
+            </div>
+
             <!-- TAB 2: SCRIPT GENERATOR (NEW) -->
             <div id="tab-generator" class="tab-content hidden">
                 
@@ -60,7 +150,7 @@
                             <!-- 1. Seeds -->
                             <div class="gen-section">
                                 <h4>1. Locked Elements (Optional)</h4>
-                                <p class="subtitle sm">Pick story elements you definitely want.</p>
+                                <p class="subtitle sm">Pick elements you definitely want.</p>
                                 <div id="selectors-container-generator"></div>
                             </div>
 
@@ -164,96 +254,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- TAB 2: SE Compatibility -->
-            <div id="tab-synergy" class="tab-content active">
-                
-                <div class="card search-card">
-                    <h3>Quick Search</h3>
-                    <div class="search-wrapper">
-                        <input type="text" id="globalSearchSynergy" placeholder="Type to find a tag (e.g., 'Action', 'Cowboy')..." autocomplete="off">
-                        <div id="searchResultsSynergy" class="search-results hidden"></div>
-                    </div>
-                </div>
-
-                <div class="card builder-card">
-                    <div class="card-header">
-                        <h3>Check Compatibility</h3>
-                        <button class="reset-btn" onclick="resetSelectors('synergy')">Reset</button>
-                    </div>
-                    <p class="subtitle">Select story elements to see how well they fit together.</p>
-                    
-                    <!-- Dynamic Selectors Container for Synergy -->
-                    <div id="selectors-container-synergy"></div>
-                    
-                    <div class="action-area">
-                        <button class="analyze-btn" onclick="calculateSynergy()">Check Compatibility</button>
-                    </div>
-                </div>
-
-                <!-- SYNERGY RESULTS -->
-                <div id="results-synergy" class="results-container hidden">
-                    
-                    <!-- SECTION 1: Stat Cards -->
-                    <div class="summary-row">
-                        <div class="summary-item">
-                            <h3>Average Compatibility</h3>
-                            <div id="synergyAverageDisplay" class="summary-value">0.0 <span class="sub-value">/ 5.0</span></div>
-                        </div>
-                        <div class="summary-item">
-                            <h3>Script Synergy</h3>
-                            <div id="synergyTotalDisplay" class="summary-value">0.00</div>
-                        </div>
-                    </div>
-
-                    <!-- SECTION 2: Detailed Breakdown -->
-                    <div class="card result-card breakdown-container">
-                        <div class="breakdown-col left-col">
-                            <h4 class="col-header">Bonuses</h4>
-                            <div class="breakdown-row">
-                                <span class="b-label">Script Synergy:</span>
-                                <span class="b-value" id="breakdownBaseScore">0.00</span>
-                            </div>
-                            <div class="breakdown-row">
-                                <span class="b-label">Commercial Bonus:</span>
-                                <span class="b-value" id="breakdownComBonus">0</span>
-                            </div>
-                            <div class="breakdown-row">
-                                <span class="b-label">Artistic Bonus:</span>
-                                <span class="b-value" id="breakdownArtBonus">0</span>
-                            </div>
-                        </div>
-
-                        <div class="breakdown-col right-col">
-                            <h4 class="col-header highlight-header">Max Potential Movie Score</h4>
-                            <div class="total-row">
-                                <span class="t-label">Commercial Movie Score:</span>
-                                <span class="t-value" id="totalComScore">0.00</span>
-                            </div>
-                            <div class="total-row">
-                                <span class="t-label">Artistic Movie Score:</span>
-                                <span class="t-value" id="totalArtScore">0.00</span>
-                            </div>
-                            <p class="context-text">
-                                Script synergy is the foundation of your movie score. Movie scores are not final and subject to production quality.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Conflicts / Spoilers -->
-                    <div class="card result-card" style="border-left: 4px solid var(--danger);">
-                        <h3>Conflicts</h3>
-                        <div id="spoilerDisplay" class="strategy-content">
-                            <div style="color: #888; font-style: italic;">No conflicts found.</div>
-                        </div>
-                    </div>
-
-                    <div class="action-area" style="margin-top: 0;">
-                        <button class="analyze-btn secondary-btn" onclick="transferTagsToAdvertisers()">Find Best Advertisers &rarr;</button>
-                    </div>
-
                 </div>
             </div>
 
