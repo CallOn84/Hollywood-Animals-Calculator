@@ -56,29 +56,29 @@ const GAME_DATA = {
     ],
 
     holidays: [
-        {
-            name: "Valentine's Day",
-            bonuses: { "YF": 0.30, "AM": 0.15, "TF": 0.15, "YM": 0.12, "TM": 0.07 }
+        { 
+            name: "Valentine's Day", 
+            bonuses: { "TM": 7, "TF": 15, "YM": 12, "YF": 30, "AM": 15, "AF": 0 }
         },
-        {
-            name: "Halloween",
-            bonuses: { "TM": 0.22, "TF": 0.22, "YM": 0.18, "YF": 0.18, "AM": 0.15, "AF": 0.15 }
+        { 
+            name: "Halloween", 
+            bonuses: { "TM": 22, "TF": 22, "YM": 18, "YF": 18, "AM": 15, "AF": 15 }
         },
-        {
-            name: "Thanksgiving",
-            bonuses: { "AM": 0.22, "AF": 0.22, "YM": 0.15, "YF": 0.15, "TM": 0.07, "TF": 0.07 }
+        { 
+            name: "Thanksgiving", 
+            bonuses: { "TM": 7, "TF": 7, "YM": 15, "YF": 15, "AM": 22, "AF": 22 }
         },
-        {
-            name: "Independence Day",
-            bonuses: { "AM": 0.18, "YM": 0.13, "TM": 0.09, "AF": 0.07, "YF": 0.05 }
+        { 
+            name: "Independence Day", 
+            bonuses: { "TM": 9, "TF": 0, "YM": 13, "YF": 5, "AM": 18, "AF": 7 }
         },
-        {
-            name: "Christmas",
-            bonuses: { "TM": 0.15, "TF": 0.15, "YM": 0.15, "YF": 0.15, "AM": 0.10, "AF": 0.10 }
+        { 
+            name: "Christmas", 
+            bonuses: { "TM": 15, "TF": 15, "YM": 15, "YF": 15, "AM": 10, "AF": 10 }
         },
-        {
-            name: "Memorial Day",
-            bonuses: { "AM": 0.18, "YM": 0.16, "TM": 0.09, "AF": 0.07, "YF": 0.05 }
+        { 
+            name: "Memorial Day", 
+            bonuses: { "TM": 9, "TF": 0, "YM": 16, "YF": 5, "AM": 18, "AF": 7 }
         }
     ],
 
