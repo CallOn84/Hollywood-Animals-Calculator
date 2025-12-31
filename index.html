@@ -57,8 +57,8 @@
                         <!-- TARGET COMPATIBILITY -->
                         <div class="score-control-group">
                             <div class="score-label-row">
-                                <label>Target Average Compatibility</label>
-                                <span id="genTargetCompDisplay" class="score-number-display" style="width: auto; padding: 4px 10px;">4.5</span>
+                                <label for="genCompInput">Target Average Compatibility</label>
+                                <input type="number" id="genCompInput" class="score-number-display" step="0.1" min="1" max="5" value="4.5">
                             </div>
                             <div class="range-wrapper">
                                 <input type="range" id="genCompSlider" class="styled-slider com-slider" min="1" max="5" step="0.1" value="4.5">
@@ -69,8 +69,8 @@
                         <!-- TARGET MOVIE SCORE -->
                         <div class="score-control-group">
                             <div class="score-label-row">
-                                <label>Target Movie Score</label>
-                                <span id="genTargetScoreDisplay" class="score-number-display" style="width: auto; padding: 4px 10px;">8.0</span>
+                                <label for="genScoreInput">Target Movie Score</label>
+                                <input type="number" id="genScoreInput" class="score-number-display" step="1" min="6" max="10" value="8">
                             </div>
                             <div class="range-wrapper">
                                 <input type="range" id="genScoreSlider" class="styled-slider art-slider" min="6" max="10" step="1" value="8">
@@ -83,15 +83,26 @@
 
                     <div class="divider-line"></div>
 
+                    <!-- LOCKED ELEMENTS -->
                     <div class="card-header">
                         <h3>Locked Elements</h3>
                         <button class="reset-btn" onclick="resetSelectors('generator')">Reset Locks</button>
                     </div>
-                    <p class="subtitle">Select specific tags you MUST have in the script. The generator will fill the rest.</p>
+                    <p class="subtitle">Select specific tags you <strong>MUST</strong> have in the script.</p>
                     
-                    <!-- Dynamic Selectors Container for Generator -->
                     <div id="selectors-container-generator"></div>
                     
+                    <div class="divider-line"></div>
+
+                    <!-- EXCLUDED ELEMENTS (NEW) -->
+                    <div class="card-header">
+                        <h3 style="color: var(--danger);">Excluded Elements</h3>
+                        <button class="reset-btn" onclick="resetSelectors('excluded')">Reset Bans</button>
+                    </div>
+                    <p class="subtitle">Select tags to <strong>BAN</strong> (e.g., due to "The Code"). The generator will never pick these.</p>
+                    
+                    <div id="selectors-container-excluded"></div>
+
                     <div class="action-area">
                         <button class="analyze-btn" onclick="generateScripts()">Generate Scripts</button>
                     </div>
@@ -99,7 +110,7 @@
 
                 <!-- PINNED RESULTS -->
                 <div id="pinned-scripts-container" class="results-container hidden">
-                    <div class="card-header" style="margin-bottom: 0;">
+                    <div class="section-title">
                         <h3 style="color: var(--accent);">Pinned Scripts</h3>
                     </div>
                     <div id="pinnedResultsList" class="script-list"></div>
@@ -107,7 +118,7 @@
 
                 <!-- GENERATED RESULTS -->
                 <div id="results-generator" class="results-container hidden">
-                    <div class="card-header" style="margin-bottom: 0;">
+                    <div class="section-title">
                         <h3>Generated Options</h3>
                     </div>
                     <div id="generatorResultsList" class="script-list"></div>

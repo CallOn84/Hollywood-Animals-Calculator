@@ -201,6 +201,20 @@ h3 {
     text-align: center;
     border-radius: 4px;
     padding: 4px;
+    /* Input Reset */
+    -moz-appearance: textfield;
+}
+
+.score-number-display::-webkit-outer-spin-button,
+.score-number-display::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.score-number-display:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(212, 175, 55, 0.1);
 }
 
 .range-wrapper {
@@ -243,7 +257,8 @@ h3 {
 
 #selectors-container-advertisers, 
 #selectors-container-synergy, 
-#selectors-container-generator {
+#selectors-container-generator,
+#selectors-container-excluded {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
@@ -258,6 +273,11 @@ h3 {
 }
 
 .category-group:hover { border-left-color: var(--accent); }
+
+/* Different border for excluded group */
+#selectors-container-excluded .category-group:hover {
+    border-left-color: var(--danger);
+}
 
 .category-header {
     display: flex;
@@ -291,6 +311,9 @@ h3 {
 
 .add-btn:hover { background: var(--accent); color: #000; }
 
+#selectors-container-excluded .add-btn { color: var(--danger); }
+#selectors-container-excluded .add-btn:hover { background: var(--danger); color: #fff; }
+
 .select-row {
     display: flex;
     flex-wrap: wrap; 
@@ -313,6 +336,8 @@ select {
 }
 
 select:focus { outline: none; border-color: var(--accent); }
+
+#selectors-container-excluded select:focus { border-color: var(--danger); }
 
 .remove-btn {
     background: transparent;
@@ -438,6 +463,21 @@ input[type="text"] {
     height: 1px;
     background: var(--border);
     margin: 30px 0;
+}
+
+/* SECTION TITLES (Outside Cards) */
+.section-title {
+    margin-bottom: 15px;
+}
+
+.section-title h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    font-weight: 700;
+    border-bottom: none;
 }
 
 .script-list {
@@ -591,7 +631,8 @@ input[type="text"] {
 .results-container {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    /* Removed gap because section titles handle spacing now */
+    gap: 15px; 
     margin-top: 20px;
 }
 
@@ -867,7 +908,7 @@ input[type="text"] {
 footer { text-align: center; color: #555; font-size: 0.8rem; margin-top: 40px; }
 
 @media (max-width: 800px) {
-    #selectors-container-advertisers, #selectors-container-synergy, #selectors-container-generator { grid-template-columns: 1fr; }
+    #selectors-container-advertisers, #selectors-container-synergy, #selectors-container-generator, #selectors-container-excluded { grid-template-columns: 1fr; }
     h1 { font-size: 1.8rem; }
     .score-controls-wrapper { flex-direction: column; gap: 15px; }
     .results-row { grid-template-columns: 1fr; }
