@@ -2,19 +2,15 @@ const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event
 let searchIndex = [];
 let currentTab = 'synergy'; 
 
-// --- LOCALIZATION VARIABLES ---
-let localizationMap = {}; // Stores ID -> "Clean Name"
+let localizationMap = {};
 let currentLanguage = 'English';
 
 window.onload = async function() {
     try {
-        // 1. Load the default localization FIRST (Critical for initial naming)
-        await changeLanguage('English', false); // false = don't re-render yet
+        await changeLanguage('English', false);
 
-        // 2. Load Game Data
         await loadExternalData();
         
-        // 3. Initialize UI
         initializeSelectors('advertisers');
         initializeSelectors('synergy');
         
@@ -28,8 +24,6 @@ window.onload = async function() {
     }
 };
 
-// --- LOCALIZATION LOGIC ---
-
 async function changeLanguage(langName, shouldRender = true) {
     currentLanguage = langName;
     const fileName = `localization/${langName}.json`;
@@ -40,10 +34,8 @@ async function changeLanguage(langName, shouldRender = true) {
         
         const locData = await res.json();
         
-        // Clear old map
         localizationMap = {};
 
-        // Build new map: IdMap["TAG_ID"] = Index -> locStrings[Index]
         if (locData.IdMap && locData.locStrings) {
             for (const [tagId, index] of Object.entries(locData.IdMap)) {
                 if (locData.locStrings[index]) {
@@ -52,10 +44,9 @@ async function changeLanguage(langName, shouldRender = true) {
             }
         }
 
-        // If the game data is already loaded, we need to update the names in memory
         if (Object.keys(GAME_DATA.tags).length > 0) {
             updateAllTagNames();
-            buildSearchIndex(); // Rebuild search with new language
+            buildSearchIndex();
             
             if (shouldRender) {
                 const savedSynergy = collectTagInputs('synergy');
@@ -563,7 +554,6 @@ function analyzeMovie() {
     const inputCom = parseFloat(document.getElementById('comScoreInput').value) || 0;
     const inputArt = parseFloat(document.getElementById('artScoreInput').value) || 0;
 
-    // 1. RAW SUMMATION
     let tagAffinity = { "YM": 0, "YF": 0, "TM": 0, "TF": 0, "AM": 0, "AF": 0 };
     
     tagInputs.forEach(item => {
@@ -579,7 +569,6 @@ function analyzeMovie() {
         }
     });
 
-    // 2. THE "LIFT"
     let minVal = Number.MAX_VALUE;
     for (let demo in tagAffinity) {
         if (tagAffinity[demo] < minVal) minVal = tagAffinity[demo];
@@ -592,7 +581,6 @@ function analyzeMovie() {
         }
     }
 
-    // 3. NORMALIZATION & MAGIC NUMBER
     let totalSum = 0;
     for (let demo in tagAffinity) totalSum += tagAffinity[demo];
 
@@ -608,7 +596,6 @@ function analyzeMovie() {
         }
     }
 
-    // -- SCORING LOGIC --
     const normalizedArt = inputArt / 10.0;
     const normalizedCom = inputCom / 10.0;
 
@@ -618,7 +605,6 @@ function analyzeMovie() {
         const d = GAME_DATA.demographics[demo];
         const dropRate = baselineScores[demo]; 
 
-        // -- PART A: SATISFACTION --
         const skew = normalizedArt - normalizedCom;
         let satArt, satBase, satCom;
 
@@ -635,11 +621,9 @@ function analyzeMovie() {
         const totalW = d.baseW + d.artW + d.comW;
         const satisfaction = ( (satBase * d.baseW) + (satArt * d.artW) + (satCom * d.comW) ) / totalW;
 
-        // -- PART B: QUALITY --
         const qw = GAME_DATA.constants.KINOMARK.scoreWeights;
         const quality = (dropRate * qw[0]) + (normalizedCom * qw[1]) + (normalizedArt * qw[2]);
 
-        // -- PART C: FINAL UTILITY SCORE --
         const aw = GAME_DATA.constants.KINOMARK.audienceWeight;
         
         let finalScore = (satisfaction * aw) + (quality * (1 - aw));
@@ -656,18 +640,11 @@ function analyzeMovie() {
         });
     }
 
-    // 4. CATEGORIZATION THRESHOLDS
-    // UPDATE: Matched to C# Code (Hollywood Animal)
-    // Good: >= 0.67
-    // Normal: > 0.33 and < 0.67
-    // Bad: <= 0.33
     const THRESHOLD_GOOD = 0.67;
-    const THRESHOLD_BAD = 0.33; // Scores <= 0.33 are considered Bad
+    const THRESHOLD_BAD = 0.33;
 
-    // Filter: Show Moderate (Normal) and Good. Hide Bad.
     const targetAudiences = demoGrades.filter(d => d.score > THRESHOLD_BAD);
 
-    // 5. UI Rendering
     document.getElementById('results-advertisers').classList.remove('hidden');
     const audienceContainer = document.getElementById('targetAudienceDisplay');
     audienceContainer.innerHTML = '';
@@ -676,8 +653,7 @@ function analyzeMovie() {
         targetAudiences.sort((a, b) => b.score - a.score);
         targetAudiences.forEach(d => {
             const chip = document.createElement('div');
-            
-            // Assign Tier Class
+
             let tierClass = "pill-moderate";
             if(d.score >= THRESHOLD_GOOD) {
                 tierClass = "pill-best";
@@ -695,10 +671,8 @@ function analyzeMovie() {
         `;
     }
 
-    // 6. Advertisers Logic
     const validTargetIds = targetAudiences.map(t => t.id);
 
-    // Determine Movie Lean
     let movieLean = 0; 
     let leanText = "Balanced";
     if (inputArt > inputCom + 0.1) { movieLean = 1; leanText = "Artistic"; } 
@@ -751,53 +725,86 @@ function analyzeMovie() {
         agentContainer.innerHTML = agentHtml;
     }
 
-    // 7. Holiday Logic
-    let bestHoliday = null;
-    
-    if (validTargetIds.length > 0) {
-        bestHoliday = GAME_DATA.holidays.find(h => {
-            if(h.target === "ALL") return true;
-            if(Array.isArray(h.target)) {
-                return h.target.some(t => validTargetIds.includes(t));
-            }
-            return validTargetIds.includes(h.target);
-        });
-    }
-
     const holidayContainer = document.getElementById('holidayDisplay');
+    holidayContainer.innerHTML = '';
 
-    if(!bestHoliday) {
-        holidayContainer.innerHTML = `
-            <div class="holiday-hero">
-                <div class="holiday-name" style="color:#666;">None</div>
-                <div class="holiday-sub" style="color:#555;">No specific holiday synergy.</div>
-            </div>
-        `;
+    if (validTargetIds.length === 0) {
+        holidayContainer.innerHTML = `<div style="color:#666; font-style:italic;">Identify target audience first.</div>`;
     } else {
-        const targetNames = validTargetIds.map(id => GAME_DATA.demographics[id].name);
-        let formattedTargets = "";
-        if (targetNames.length === 1) {
-            formattedTargets = targetNames[0];
-        } else if (targetNames.length === 2) {
-            formattedTargets = `${targetNames[0]} and ${targetNames[1]}`;
-        } else {
-            const last = targetNames.pop();
-            formattedTargets = `${targetNames.join(', ')}, and ${last}`;
-        }
+        const rankedHolidays = GAME_DATA.holidays.map(h => {
+            let isApplicable = false;
+            let matchType = "NONE";
 
-        let bonusText = bestHoliday.name === "Christmas" 
-            ? "Small Bonus for Everyone" 
-            : `Bonus for ${formattedTargets}`;
+            if (h.target === "ALL") {
+                isApplicable = true;
+                matchType = "ALL";
+            } else if (Array.isArray(h.target)) {
+                if (h.target.some(t => validTargetIds.includes(t))) {
+                    isApplicable = true;
+                    matchType = "SPECIFIC";
+                }
+            } else {
+                if (validTargetIds.includes(h.target)) {
+                    isApplicable = true;
+                    matchType = "SPECIFIC";
+                }
+            }
+
+            let sortValue = 0;
+            const nums = h.bonus.match(/\d+/g);
+            if (nums) {
+                if (nums.length === 1) sortValue = parseInt(nums[0]);
+                else if (nums.length >= 2) sortValue = (parseInt(nums[0]) + parseInt(nums[1])) / 2;
+            }
             
-        holidayContainer.innerHTML = `
-            <div class="holiday-hero">
-                <div class="holiday-name">${bestHoliday.name}</div>
-                <div class="holiday-sub">${bestHoliday.bonus} ${bonusText}</div>
-            </div>
-        `;
+            return {
+                ...h,
+                isApplicable,
+                matchType,
+                sortValue
+            };
+        });
+
+        const viableHolidays = rankedHolidays.filter(h => h.isApplicable).sort((a, b) => {
+            return b.sortValue - a.sortValue;
+        });
+
+        if (viableHolidays.length === 0) {
+            holidayContainer.innerHTML = `
+                <div class="holiday-row-empty">
+                    <span>No beneficial holidays found.</span>
+                </div>`;
+        } else {
+            viableHolidays.forEach((h, index) => {
+                const isBest = index === 0;
+
+                let targetText = "Universal";
+                if(h.matchType === "SPECIFIC") {
+                    if(Array.isArray(h.target)) {
+                        const names = h.target.map(id => GAME_DATA.demographics[id].name);
+                        targetText = names.length > 2 ? names[0] + "..." : names.join(" & ");
+                    } else {
+                        targetText = GAME_DATA.demographics[h.target].name;
+                    }
+                }
+
+                const div = document.createElement('div');
+                div.className = `holiday-row ${isBest ? 'best' : ''}`;
+                
+                div.innerHTML = `
+                    <div class="hol-left">
+                        <span class="hol-name">${h.name}</span>
+                        <span class="hol-target">${targetText}</span>
+                    </div>
+                    <div class="hol-right">
+                        <span class="hol-bonus">${h.bonus}</span>
+                    </div>
+                `;
+                holidayContainer.appendChild(div);
+            });
+        }
     }
 
-    // 8. Campaign Duration Logic
     let preDuration = 6;
     let releaseDuration = 4;
     let postDuration = 0;
@@ -834,9 +841,6 @@ function analyzeMovie() {
     document.getElementById('results-advertisers').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ---------------------------------------------
-// SYNERGY CALCULATOR LOGIC
-// ---------------------------------------------
 function calculateSynergy() {
     const selectedTags = collectTagInputs('synergy');
     if (selectedTags.length === 0) {
@@ -945,22 +949,18 @@ function calculateMatrixScore(tags) {
     return { totalScore, spoilers, rawAverage };
 }
 
-// Fixed calculation to include ALL tags in bonuses, not just Genre Pairs
 function calculateTotalBonuses(tags) {
     let totalArt = 0;
     let totalCom = 0;
 
-    // 1. Calculate Genre Bonus (Pair or Single)
     const genrePair = calculateGenrePairScore(tags);
     if (genrePair) {
         totalArt += genrePair.art;
         totalCom += genrePair.com;
     } else {
-        // Fallback: If no pair, check single highest genre
         const genres = tags.filter(t => t.category === "Genre").sort((a, b) => b.percent - a.percent);
         if (genres.length > 0) {
             const topGenre = GAME_DATA.tags[genres[0].id];
-            // Simple logic: add base value if it exists
             if (topGenre) {
                 totalArt += topGenre.art;
                 totalCom += topGenre.com;
@@ -968,7 +968,6 @@ function calculateTotalBonuses(tags) {
         }
     }
 
-    // 2. Add Bonuses from Non-Genre Tags (Setting, Content, etc.)
     tags.forEach(tag => {
         if (tag.category !== "Genre") {
             const data = GAME_DATA.tags[tag.id];
@@ -1030,17 +1029,14 @@ function renderSynergyResults(matrix, bonuses) {
     else if (matrix.rawAverage < 2.5) avgEl.style.color = 'var(--danger)';
     else avgEl.style.color = '#fff';
 
-    // Script Synergy (Keep raw so user sees how bad the penalty is)
     const baseScoreEl = document.getElementById('synergyTotalDisplay');
     baseScoreEl.innerText = formatScore(matrix.totalScore);
     baseScoreEl.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
 
-    // Breakdown Row: Script Synergy
     const breakdownBase = document.getElementById('breakdownBaseScore');
     breakdownBase.innerText = formatScore(matrix.totalScore);
     breakdownBase.style.color = matrix.totalScore >= 0 ? 'var(--success)' : 'var(--danger)';
 
-    // Breakdown Rows: Bonuses
     const breakdownCom = document.getElementById('breakdownComBonus');
     const breakdownArt = document.getElementById('breakdownArtBonus');
     
@@ -1050,22 +1046,17 @@ function renderSynergyResults(matrix, bonuses) {
     breakdownArt.innerText = formatSimpleScore(bonuses.art);
     breakdownArt.style.color = bonuses.art > 0 ? '#a0a0ff' : (bonuses.art < 0 ? 'var(--danger)' : '#fff');
 
-    // --- UPDATED LOGIC HERE ---
     const MAX_GAME_SCORE = 9.9; 
 
-    // Calculate raw totals
     const totalComRaw = matrix.totalScore + bonuses.com;
     const totalArtRaw = matrix.totalScore + bonuses.art;
 
-    // Convert to Game Scale (0 - 9.9) AND CLAMP TO MINIMUM 0
-    // Math.max(0, ...) ensures we never go below zero.
     let displayCom = Math.max(0, totalComRaw * MAX_GAME_SCORE);
     let displayArt = Math.max(0, totalArtRaw * MAX_GAME_SCORE);
 
     const totalComEl = document.getElementById('totalComScore');
     const totalArtEl = document.getElementById('totalArtScore');
 
-    // Helper to format the final string
     function formatFinalRating(val) {
         if (val > MAX_GAME_SCORE) {
             return `${MAX_GAME_SCORE}`;
@@ -1079,7 +1070,6 @@ function renderSynergyResults(matrix, bonuses) {
     totalArtEl.innerHTML = formatFinalRating(displayArt);
     totalArtEl.style.color = displayArt > 0 ? '#a0a0ff' : 'var(--danger)'; 
 
-    // Spoilers / Conflicts
     const spoilerEl = document.getElementById('spoilerDisplay');
     if (matrix.spoilers.length > 0) {
         let uniqueSpoilers = [...new Set(matrix.spoilers)];
