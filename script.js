@@ -588,16 +588,40 @@ function generateScripts() {
 
     const generatedBatch = [];
     
-    // Generate 5 Options
+    // Generate 5 Output Slots
     for(let i=0; i<5; i++) {
-        const result = runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags);
-        generatedBatch.push(result);
+        // --- MULTI-ATTEMPT RESTART STRATEGY ---
+        let bestCandidate = null;
+        
+        // Try up to 50 times to find a script that meets criteria
+        const MAX_ATTEMPTS = 50;
+        
+        for(let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            const candidate = runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags);
+            
+            // Logic to determine "better":
+            // 1. Prefer higher compatibility
+            if (!bestCandidate || candidate.stats.avgComp > bestCandidate.stats.avgComp) {
+                bestCandidate = candidate;
+            }
+            
+            // Acceptance Criteria to stop early:
+            // If we met the Target Compatibility AND we avoided conflicts (Movie Score > 0)
+            if (bestCandidate.stats.avgComp >= targetComp && parseFloat(bestCandidate.stats.movieScore) > 0) {
+                break; // Found a good one, lock it in for this slot
+            }
+        }
+        
+        generatedBatch.push(bestCandidate);
     }
     
     // Sort by Movie Score (Descending), then Average Compatibility (Descending)
     generatedBatch.sort((a, b) => {
-        if (b.stats.movieScore !== a.stats.movieScore) {
-            return b.stats.movieScore - a.stats.movieScore;
+        const scoreA = parseFloat(a.stats.movieScore);
+        const scoreB = parseFloat(b.stats.movieScore);
+        
+        if (scoreA !== scoreB) {
+            return scoreB - scoreA;
         }
         return b.stats.avgComp - a.stats.avgComp;
     });
