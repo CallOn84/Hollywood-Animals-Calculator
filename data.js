@@ -8,6 +8,25 @@ const GAME_DATA = {
             audienceWeight: 0.4, 
             scoreWeights: [0.25, 0.5, 0.25], 
             thresholds: [0.16, 0.23, 0.30, 0.37, 0.44, 0.51, 0.58, 0.65, 0.72, 0.79, 0.86, 0.93] 
+        },
+        // Constants for the Movie Distribution Calculator
+        DISTRIBUTION: {
+            multipliers: {
+                WEEK_ONE: 2,
+                WEEK_TWO: 1,
+                BASE: 1000
+            },
+            weeklyCalculation: {
+                NUMBER_OF_WEEKS: 8,
+                WEEKLY_REDUCTION_RATE: 0.8,
+                REDUCTION_START_INDEX: 2
+            },
+            rounding: {
+                ROUND_UP_UNTIL_INDEX: 4
+            },
+            defaults: {
+                AVAILABLE_SCREENINGS: 3200
+            }
         }
     },
 

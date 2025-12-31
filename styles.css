@@ -631,9 +631,8 @@ input[type="text"] {
 .results-container {
     display: flex;
     flex-direction: column;
-    /* Removed gap because section titles handle spacing now */
-    gap: 15px; 
-    margin-top: 20px;
+    gap: 25px; 
+    margin-top: 25px;
 }
 
 .results-container .card {
@@ -926,4 +925,108 @@ footer { text-align: center; color: #555; font-size: 0.8rem; margin-top: 40px; }
     .select-row { gap: 6px; }
     select { min-width: 0 !important; width: 100%; flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     select.tag-selector { font-size: 0.85rem; padding: 8px 4px; }
+}
+
+/* ========================================= */
+/* --- DISTRIBUTION CALCULATOR STYLES --- */
+/* ========================================= */
+
+#dist-wrapper {
+    animation: fadeIn 0.5s ease;
+}
+
+.dist-input-row {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media(min-width: 600px) {
+    .dist-input-row {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+.dist-input-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.dist-input-group label {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.screenings-input {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-family: 'Inter', monospace;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: center;
+    border-radius: 4px;
+    padding: 8px;
+    width: 100px;
+}
+
+.screenings-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.dist-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+@media(min-width: 600px) {
+    .dist-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.week-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.week-box:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.week-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+}
+
+.week-val {
+    font-family: 'Inter', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #666; /* Inactive/Zero color */
+}
+
+.week-val.active {
+    color: #fff;
 }

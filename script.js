@@ -1210,7 +1210,151 @@ function analyzeMovie() {
             Total Duration: <strong style="color:#fff;">${totalWeeks} Weeks</strong>
         </div>
     `;
+
+    // --- RENDER DISTRIBUTION CALCULATOR ---
+    renderDistributionCalculator(inputCom);
+
     document.getElementById('results-advertisers').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ---------------------------------------------
+// DISTRIBUTION CALCULATOR LOGIC
+// ---------------------------------------------
+
+function renderDistributionCalculator(commercialScore) {
+    const parent = document.getElementById('results-advertisers');
+    let distWrapper = document.getElementById('dist-wrapper');
+    
+    // Check if user already typed something, otherwise default to 10
+    let currentOwned = 10;
+    if (distWrapper) {
+        const input = document.getElementById('ownedScreeningsInput');
+        if (input && input.value) {
+            currentOwned = parseInt(input.value);
+        }
+    }
+
+    // Create wrapper if not exists
+    if (!distWrapper) {
+        distWrapper = document.createElement('div');
+        distWrapper.id = 'dist-wrapper';
+        distWrapper.className = 'card result-card';
+        
+        // Header
+        const header = document.createElement('h3');
+        header.innerText = 'Distribution Calculator';
+        distWrapper.appendChild(header);
+
+        // Input Area
+        const inputRow = document.createElement('div');
+        inputRow.className = 'dist-input-row';
+        inputRow.innerHTML = `
+            <div class="dist-input-group">
+                <label for="ownedScreeningsInput">Owned Theatres (Screenings)</label>
+                <input type="number" id="ownedScreeningsInput" class="screenings-input" value="${currentOwned}" min="0" step="1">
+            </div>
+            <p class="subtitle" style="margin:0; align-self:center;">Enter your owned screenings to see independent booking requirements.</p>
+        `;
+        distWrapper.appendChild(inputRow);
+
+        // Grid Area
+        const grid = document.createElement('div');
+        grid.id = 'dist-results-grid';
+        grid.className = 'dist-grid';
+        distWrapper.appendChild(grid);
+
+        parent.appendChild(distWrapper);
+
+        // Attach listener
+        const inputEl = document.getElementById('ownedScreeningsInput');
+        inputEl.addEventListener('input', () => {
+             const val = parseInt(inputEl.value) || 0;
+             updateDistributionUI(commercialScore, val);
+        });
+    } else {
+        // Update stored value if wrapper existed but was re-rendered (though we handle persistence above)
+        // Just ensures the listener has the NEW commercial score in scope
+        const inputEl = document.getElementById('ownedScreeningsInput');
+        
+        // Remove old listener to avoid stacking (by cloning)
+        const newEl = inputEl.cloneNode(true);
+        inputEl.parentNode.replaceChild(newEl, inputEl);
+        
+        newEl.addEventListener('input', () => {
+             const val = parseInt(newEl.value) || 0;
+             updateDistributionUI(commercialScore, val);
+        });
+        
+        // Restore focus if needed or just update val
+        newEl.value = currentOwned;
+    }
+
+    updateDistributionUI(commercialScore, currentOwned);
+}
+
+function updateDistributionUI(score, owned) {
+    const results = calculateWeeklyDistribution(score, owned);
+    const grid = document.getElementById('dist-results-grid');
+    grid.innerHTML = '';
+
+    results.forEach((val, index) => {
+        const weekNum = index + 1;
+        const box = document.createElement('div');
+        box.className = 'week-box';
+        
+        // Visual indicator for high demand
+        const isHigh = val > 5000;
+        
+        box.innerHTML = `
+            <span class="week-label">Week ${weekNum}</span>
+            <span class="week-val ${val > 0 ? 'active' : ''}">${val.toLocaleString()}</span>
+        `;
+        grid.appendChild(box);
+    });
+}
+
+/**
+ * Weekly Results Logic based on Kotlin source:
+ * Week 1: (Score * 2 * 1000) - Screenings
+ * Week 2: (Score * 1 * 1000) - Screenings
+ * Week 3..8: Week 2 Result * 0.8 (recursive decay)
+ * Rounding: Week 1-4 (Ceil), Week 5-8 (Floor)
+ */
+function calculateWeeklyDistribution(commercialScore, availableScreenings) {
+    const BASE = 1000;
+    const W1_MULT = 2;
+    const W2_MULT = 1;
+    const DECAY = 0.8;
+
+    // Week 1
+    const rawW1 = (commercialScore * W1_MULT * BASE) - availableScreenings;
+    const w1 = Math.max(0.0, rawW1);
+
+    // Week 2
+    const rawW2 = (commercialScore * W2_MULT * BASE) - availableScreenings;
+    const w2 = Math.max(0.0, rawW2);
+
+    let results = [w1, w2];
+    let currentDecayBase = w2;
+
+    // Weeks 3 to 8 (Indices 2 to 7)
+    // Kotlin logic: Takes Week 2 result and applies consecutive weekly reductions.
+    // Note: It does NOT subtract screenings again for weeks 3-8, it decays the overflow.
+    for (let i = 2; i < 8; i++) {
+        currentDecayBase *= DECAY;
+        results.push(currentDecayBase);
+    }
+
+    // Apply Rounding Rules
+    // Indices 0..3 (Weeks 1-4) -> Ceil
+    // Indices 4..7 (Weeks 5-8) -> Floor
+    return results.map((val, index) => {
+        if (index < 4) {
+            return Math.ceil(val);
+        } else {
+            return Math.floor(val);
+        }
+    });
 }
 
 // ---------------------------------------------
