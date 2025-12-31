@@ -45,7 +45,7 @@
 
         <div class="container">
             
-            <!-- TAB 1: SCRIPT BUILDER (Synergy) -->
+            <!-- TAB 1: SCRIPT BUILDER (MANUAL) -->
             <div id="tab-synergy" class="tab-content active">
                 
                 <div class="card search-card">
@@ -88,34 +88,42 @@
 
                     <!-- SECTION 2: Detailed Breakdown -->
                     <div class="card result-card breakdown-container">
+                        
+                        <!-- Left Side: The Inputs -->
                         <div class="breakdown-col left-col">
                             <h4 class="col-header">Bonuses</h4>
+                            
                             <div class="breakdown-row">
                                 <span class="b-label">Script Synergy:</span>
                                 <span class="b-value" id="breakdownBaseScore">0.00</span>
                             </div>
+                            
                             <div class="breakdown-row">
                                 <span class="b-label">Commercial Bonus:</span>
                                 <span class="b-value" id="breakdownComBonus">0</span>
                             </div>
+
                             <div class="breakdown-row">
                                 <span class="b-label">Artistic Bonus:</span>
                                 <span class="b-value" id="breakdownArtBonus">0</span>
                             </div>
                         </div>
 
+                        <!-- Right Side: The Totals -->
                         <div class="breakdown-col right-col">
                             <h4 class="col-header highlight-header">Max Potential Movie Score</h4>
+                            
                             <div class="total-row">
                                 <span class="t-label">Commercial Movie Score:</span>
                                 <span class="t-value" id="totalComScore">0.00</span>
                             </div>
+
                             <div class="total-row">
                                 <span class="t-label">Artistic Movie Score:</span>
                                 <span class="t-value" id="totalArtScore">0.00</span>
                             </div>
-                            <p class="context-text">
-                                Script synergy is the foundation of your movie score. Movie scores are not final and subject to production quality.
+                             <p class="context-text">
+                                Script synergy is the foundation of your movie score, scaled by your scriptwriter's skill.
                             </p>
                         </div>
                     </div>
@@ -123,138 +131,84 @@
                     <!-- Conflicts / Spoilers -->
                     <div class="card result-card" style="border-left: 4px solid var(--danger);">
                         <h3>Conflicts</h3>
+                        <div class="list-subtitle">Severe clashes that ruin the script</div>
                         <div id="spoilerDisplay" class="strategy-content">
                             <div style="color: #888; font-style: italic;">No conflicts found.</div>
                         </div>
                     </div>
 
                     <div class="action-area" style="margin-top: 0;">
-                        <button class="analyze-btn secondary-btn" onclick="transferTagsToAdvertisers()">Find Best Advertisers &rarr;</button>
+                        <button class="analyze-btn secondary-btn" onclick="transferTagsToAdvertisers('synergy')">Find Best Advertisers &rarr;</button>
                     </div>
-
                 </div>
             </div>
 
             <!-- TAB 2: SCRIPT GENERATOR (NEW) -->
             <div id="tab-generator" class="tab-content hidden">
                 
-                <div class="generator-layout">
-                    <!-- LEFT COLUMN: CONTROLS -->
-                    <div class="gen-controls">
-                        <div class="card builder-card">
-                            <div class="card-header">
-                                <h3>Generator Settings</h3>
-                                <button class="reset-btn" onclick="resetGenerator()">Reset</button>
+                <div class="card builder-card">
+                    <div class="card-header">
+                        <h3>Generator Configuration</h3>
+                        <button class="reset-btn" onclick="resetGenerator()">Reset</button>
+                    </div>
+
+                    <!-- Controls: Target Score -->
+                    <div class="generator-controls">
+                        <div class="gen-control-row">
+                            <label>Target Average Compatibility</label>
+                            <div class="range-wrapper" style="margin-top:5px;">
+                                <input type="range" id="genTargetScore" class="styled-slider com-slider" min="1" max="5" step="0.1" value="4.5">
                             </div>
+                            <div class="gen-value-display"><span id="genTargetDisplay">4.5</span> / 5.0</div>
+                        </div>
 
-                            <!-- 1. Seeds -->
-                            <div class="gen-section">
-                                <h4>1. Locked Elements (Optional)</h4>
-                                <p class="subtitle sm">Pick elements you definitely want.</p>
-                                <div id="selectors-container-generator"></div>
+                        <!-- Controls: Counts -->
+                        <div class="gen-counts-grid">
+                            <div class="count-box">
+                                <label>Genres</label>
+                                <input type="number" id="genCountGenre" min="1" max="3" value="1">
                             </div>
-
-                            <hr class="gen-divider">
-
-                            <!-- 2. Targets -->
-                            <div class="gen-section">
-                                <h4>2. Targets</h4>
-                                
-                                <!-- Avg Compatibility -->
-                                <div class="slider-group">
-                                    <div class="label-row">
-                                        <label>Avg Compatibility</label>
-                                        <span id="genTargetCompVal">4.5</span>
-                                    </div>
-                                    <input type="range" id="genTargetComp" class="styled-slider com-slider" min="0" max="5" step="0.1" value="4.5" oninput="document.getElementById('genTargetCompVal').innerText = this.value; updateSliderTrack(this);">
-                                </div>
-
-                                <!-- Movie Score Targets -->
-                                <div class="slider-group">
-                                    <div class="label-row">
-                                        <label>Target Commercial Score</label>
-                                        <span id="genTargetComScoreVal">6.0</span>
-                                    </div>
-                                    <input type="range" id="genTargetComScore" class="styled-slider com-slider" min="4" max="10" step="1" value="6" oninput="document.getElementById('genTargetComScoreVal').innerText = this.value + '.0'; updateSliderTrack(this);">
-                                </div>
-
-                                <div class="slider-group">
-                                    <div class="label-row">
-                                        <label>Target Artistic Score</label>
-                                        <span id="genTargetArtScoreVal">6.0</span>
-                                    </div>
-                                    <input type="range" id="genTargetArtScore" class="styled-slider art-slider" min="4" max="10" step="1" value="6" oninput="document.getElementById('genTargetArtScoreVal').innerText = this.value + '.0'; updateSliderTrack(this);">
-                                </div>
-                                <p class="subtitle sm" style="margin-top:5px;">Target scores determine the number of story elements added.</p>
+                            <div class="count-box">
+                                <label>Themes</label>
+                                <input type="number" id="genCountTheme" min="0" max="3" value="1">
                             </div>
-
-                            <hr class="gen-divider">
-
-                            <!-- 3. Structure -->
-                            <div class="gen-section">
-                                <h4>3. Structure Preferences</h4>
-                                
-                                <div class="counter-row">
-                                    <label>Genres Count</label>
-                                    <select id="genCountGenre" class="mini-select">
-                                        <option value="1">1</option>
-                                        <option value="2">2</option>
-                                    </select>
-                                </div>
-                                <div class="counter-row">
-                                    <label>Themes & Events</label>
-                                    <select id="genCountTheme" class="mini-select">
-                                        <option value="random">Random</option>
-                                        <option value="0">0</option>
-                                        <option value="1">1</option>
-                                        <option value="2">2</option>
-                                        <option value="3">3</option>
-                                    </select>
-                                </div>
-                                <div class="counter-row">
-                                    <label>Supporting Chars</label>
-                                    <select id="genCountSupport" class="mini-select">
-                                        <option value="random">Random</option>
-                                        <option value="0">0</option>
-                                        <option value="1">1</option>
-                                        <option value="2">2</option>
-                                        <option value="3">3</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="action-area">
-                                <button class="analyze-btn" onclick="generateScripts()">Generate Scripts</button>
+                            <div class="count-box">
+                                <label>Supp. Chars</label>
+                                <input type="number" id="genCountSupport" min="0" max="3" value="1">
                             </div>
                         </div>
                     </div>
 
-                    <!-- RIGHT COLUMN: RESULTS -->
-                    <div class="gen-results">
-                        
-                        <!-- Pinned Section -->
-                        <div id="pinned-scripts-container" class="card result-card hidden">
-                            <div class="card-header">
-                                <h3 style="color: var(--success);">Saved Scripts</h3>
-                            </div>
-                            <div id="pinned-list" class="accordion-list"></div>
-                        </div>
+                    <hr class="separator">
 
-                        <!-- Generated Section -->
-                        <div id="generated-scripts-container" class="card result-card hidden">
-                            <div class="card-header">
-                                <h3>Generated Options</h3>
-                            </div>
-                            <div id="generated-list" class="accordion-list"></div>
-                        </div>
+                    <!-- Locking Mechanism -->
+                    <div class="card-header" style="margin-top: 20px;">
+                        <h3>Locked Elements (Optional)</h3>
+                    </div>
+                    <p class="subtitle">Select elements you MUST have. The generator will fill the rest.</p>
+                    <div id="selectors-container-generator"></div>
 
-                        <div id="gen-placeholder" class="card result-card placeholder-card">
-                            <div style="text-align: center; color: #666; font-style: italic;">
-                                Configure settings on the left and click Generate.
-                            </div>
-                        </div>
+                    <div class="action-area">
+                        <button class="analyze-btn" id="btn-generate" onclick="runGenerator()">Generate Scripts</button>
                     </div>
                 </div>
+
+                <!-- Saved Scripts Section -->
+                <div id="saved-scripts-container" class="results-container hidden">
+                    <div class="section-divider">
+                        <span>Pinned Scripts</span>
+                    </div>
+                    <div id="saved-list"></div>
+                </div>
+
+                <!-- Generated Results -->
+                <div id="generated-results-container" class="results-container hidden">
+                    <div class="section-divider">
+                        <span>New Results</span>
+                    </div>
+                    <div id="generated-list"></div>
+                </div>
+
             </div>
 
             <!-- TAB 3: BEST ADVERTISERS -->

@@ -1,12 +1,15 @@
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
 let currentTab = 'synergy'; 
-let generatedResults = [];
-let pinnedScripts = [];
 
 // --- LOCALIZATION VARIABLES ---
-let localizationMap = {}; // Stores ID -> "Clean Name"
+let localizationMap = {}; 
 let currentLanguage = 'English';
+
+// --- GENERATOR STATE ---
+let generatedScripts = [];
+let savedScripts = [];
+let savedScriptIdCounter = 0;
 
 window.onload = async function() {
     try {
@@ -15,14 +18,12 @@ window.onload = async function() {
         
         initializeSelectors('advertisers');
         initializeSelectors('synergy');
-        initializeSelectors('generator'); // Initialize generator seeds
+        initializeSelectors('generator');
         
         buildSearchIndex();
         setupSearchListeners();
-        setupScoreSync();
-        
-        // Generator Setup
-        setupGeneratorSliders();
+        setupScoreSync(); 
+        setupGeneratorSync(); // New listener for generator slider
         
         console.log("Initialization Complete.");
     } catch (error) {
@@ -52,7 +53,7 @@ async function changeLanguage(langName, shouldRender = true) {
                 const savedSynergy = collectTagInputs('synergy');
                 const savedAdvertisers = collectTagInputs('advertisers');
                 const savedGenerator = collectTagInputs('generator');
-
+                
                 initializeSelectors('synergy');
                 initializeSelectors('advertisers');
                 initializeSelectors('generator');
@@ -60,6 +61,10 @@ async function changeLanguage(langName, shouldRender = true) {
                 restoreSelection('synergy', savedSynergy);
                 restoreSelection('advertisers', savedAdvertisers);
                 restoreSelection('generator', savedGenerator);
+                
+                // Re-render generated lists with new names
+                renderGeneratedScripts();
+                renderSavedScripts();
             }
         }
     } catch (e) {
@@ -80,6 +85,8 @@ function restoreSelection(context, savedInputs) {
         const containerId = `inputs-${category.replace(/\s/g, '-')}-${context}`;
         const container = document.getElementById(containerId);
         if(!container) return;
+        
+        // Find empty slot
         const selects = container.querySelectorAll('select');
         let placed = false;
         for(let sel of selects) {
@@ -89,12 +96,13 @@ function restoreSelection(context, savedInputs) {
                 break;
             }
         }
+        // If no empty slot, add one
         if(!placed && MULTI_SELECT_CATEGORIES.includes(category)) {
             addDropdown(category, input.id, context);
             placed = true;
         }
     });
-    // Genre Percentages only apply to Builder tabs, not generator seeds
+    
     if(context !== 'generator' && savedInputs.some(i => i.category === 'Genre')) {
         updateGenreControls(context);
         const genreRows = document.querySelectorAll(`#inputs-Genre-${context} .genre-row`);
@@ -118,7 +126,7 @@ function switchTab(tabName) {
     if(tabName === 'synergy') btns[0].classList.add('active');
     else if(tabName === 'generator') btns[1].classList.add('active');
     else btns[2].classList.add('active');
-
+    
     document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
     document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 }
@@ -131,6 +139,8 @@ function setupScoreSync() {
     pairs.forEach(pair => {
         const slider = document.getElementById(pair.slider);
         const input = document.getElementById(pair.input);
+        if(!slider || !input) return;
+        
         slider.addEventListener('input', (e) => {
             input.value = e.target.value;
             updateSliderTrack(slider);
@@ -148,10 +158,16 @@ function setupScoreSync() {
     });
 }
 
-function setupGeneratorSliders() {
-    // Just visual update for tracks
-    const sliders = document.querySelectorAll('#tab-generator .styled-slider');
-    sliders.forEach(s => updateSliderTrack(s));
+function setupGeneratorSync() {
+    const slider = document.getElementById('genTargetScore');
+    const display = document.getElementById('genTargetDisplay');
+    if(slider) {
+        slider.addEventListener('input', (e) => {
+            display.innerText = parseFloat(e.target.value).toFixed(1);
+            updateSliderTrack(slider);
+        });
+        updateSliderTrack(slider);
+    }
 }
 
 function updateSliderTrack(slider) {
@@ -180,6 +196,7 @@ async function loadExternalData() {
         const weightDataRaw = await weightRes.json();
         if (compRes.ok) GAME_DATA.compatibility = await compRes.json();
         if (genreRes.ok) GAME_DATA.genrePairs = await genreRes.json();
+        
         for (const [tagId, data] of Object.entries(tagDataRaw)) {
             if (!weightDataRaw[tagId]) continue;
             let category = "Unknown";
@@ -196,6 +213,7 @@ async function loadExternalData() {
                 }
             } 
             if (tagId.startsWith("EVENTS_")) category = "Theme & Event";
+            
             GAME_DATA.tags[tagId] = {
                 id: tagId,
                 name: beautifyTagName(tagId),
@@ -255,9 +273,7 @@ function initializeSelectors(context) {
         label.className = 'category-label';
         label.innerText = category;
         header.appendChild(label);
-
-        // For generator, we only allow 1 of each seed type except themes/supporting if we wanted, 
-        // but for simplicity, let's keep the logic consistent with other tabs
+        
         if (MULTI_SELECT_CATEGORIES.includes(category)) {
             const addBtn = document.createElement('button');
             addBtn.className = 'add-btn';
@@ -265,15 +281,15 @@ function initializeSelectors(context) {
             addBtn.onclick = () => addDropdown(category, null, context);
             header.appendChild(addBtn);
         }
-        
         groupDiv.appendChild(header);
+        
         const inputsContainer = document.createElement('div');
         inputsContainer.className = 'inputs-container';
         inputsContainer.id = `inputs-${category.replace(/\s/g, '-')}-${context}`;
         groupDiv.appendChild(inputsContainer);
         container.appendChild(groupDiv);
         
-        // Add initial dropdown
+        // Initial drop down
         addDropdown(category, null, context);
     });
 }
@@ -283,8 +299,7 @@ function addDropdown(category, selectedId = null, context = currentTab) {
     const container = document.getElementById(containerId);
     if (!container) return;
     
-    // Generator Logic: Seeds are optional, so "Select" means "Random" effectively
-    // But visual logic remains same
+    // For single-selects in non-generator tabs, avoid duplicates if one exists
     if (!MULTI_SELECT_CATEGORIES.includes(category) && container.children.length > 0) {
         const select = container.querySelector('select');
         if (selectedId) select.value = selectedId;
@@ -297,14 +312,14 @@ function addDropdown(category, selectedId = null, context = currentTab) {
     const row = document.createElement('div');
     row.className = 'select-row';
     if (category === 'Genre' && context !== 'generator') row.classList.add('genre-row'); 
-
+    
     const select = document.createElement('select');
     select.className = 'tag-selector';
     select.dataset.category = category;
     
     const defOpt = document.createElement('option');
     defOpt.value = "";
-    defOpt.innerText = selectedId ? "-- Select --" : (context === 'generator' ? `-- Random / None --` : `-- Select ${category} --`);
+    defOpt.innerText = selectedId ? "-- Select --" : `-- Select ${category} --`;
     select.appendChild(defOpt);
     
     tags.forEach(tag => {
@@ -317,22 +332,25 @@ function addDropdown(category, selectedId = null, context = currentTab) {
     if (selectedId) select.value = selectedId;
     row.appendChild(select);
 
-    // Percentage sliders for Genre (Not in Generator)
+    // Percentage logic only for manual builders (Synergy/Advertisers)
     if (category === 'Genre' && context !== 'generator') {
         const percentWrapper = document.createElement('div');
         percentWrapper.className = 'genre-percent-wrapper hidden'; 
+        
         const numInput = document.createElement('input');
         numInput.type = 'number';
         numInput.className = 'percent-input';
         numInput.min = 0;
         numInput.max = 100;
         numInput.value = 100;
+        
         const slider = document.createElement('input');
         slider.type = 'range';
         slider.className = 'styled-slider percent-slider';
         slider.min = 0;
         slider.max = 100;
         slider.value = 100;
+        
         const label = document.createElement('span');
         label.innerText = '%';
         label.style.fontSize = '0.8rem';
@@ -346,8 +364,8 @@ function addDropdown(category, selectedId = null, context = currentTab) {
             numInput.value = e.target.value;
             updatePercentSliderTrack(slider);
         });
-        
         updatePercentSliderTrack(slider);
+        
         percentWrapper.appendChild(slider);
         percentWrapper.appendChild(numInput);
         percentWrapper.appendChild(label);
@@ -377,10 +395,12 @@ function updateGenreControls(context) {
     const rows = container.querySelectorAll('.genre-row');
     const count = rows.length;
     const evenSplit = Math.floor(100 / count);
+    
     rows.forEach(row => {
         const wrapper = row.querySelector('.genre-percent-wrapper');
         const input = row.querySelector('.percent-input');
         const slider = row.querySelector('.percent-slider');
+        
         if (count > 1) {
             wrapper.classList.remove('hidden');
             if (input.value == 100 && count > 1) {
@@ -413,6 +433,7 @@ function setupSearchListeners() {
 function setupSingleSearch(inputId, resultId, context) {
     const input = document.getElementById(inputId);
     const resultsBox = document.getElementById(resultId);
+    
     input.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
         resultsBox.innerHTML = '';
@@ -420,10 +441,12 @@ function setupSingleSearch(inputId, resultId, context) {
             resultsBox.classList.add('hidden');
             return;
         }
+        
         const matches = searchIndex.filter(item => 
             item.name.toLowerCase().includes(query) || 
             item.category.toLowerCase().includes(query)
         );
+        
         if (matches.length > 0) {
             resultsBox.classList.remove('hidden');
             matches.forEach(match => {
@@ -441,6 +464,7 @@ function setupSingleSearch(inputId, resultId, context) {
             resultsBox.classList.add('hidden');
         }
     });
+
     document.addEventListener('click', (e) => {
         if (e.target !== input && e.target !== resultsBox) {
             resultsBox.classList.add('hidden');
@@ -453,6 +477,8 @@ function selectTagFromSearch(tagObj, context) {
     const containerId = `inputs-${category.replace(/\s/g, '-')}-${context}`;
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    // Check existing
     const selects = container.querySelectorAll('select.tag-selector');
     let filled = false;
     for (let select of selects) {
@@ -462,6 +488,8 @@ function selectTagFromSearch(tagObj, context) {
             break;
         }
     }
+    
+    // Add new if full
     if (!filled) {
         if (MULTI_SELECT_CATEGORIES.includes(category)) {
             addDropdown(category, tagObj.id, context);
@@ -469,6 +497,7 @@ function selectTagFromSearch(tagObj, context) {
             if (selects.length > 0) selects[0].value = tagObj.id;
         }
     }
+
     const group = document.getElementById(`group-${category.replace(/\s/g, '-')}-${context}`);
     if (group) {
         group.style.borderColor = '#d4af37';
@@ -479,12 +508,9 @@ function selectTagFromSearch(tagObj, context) {
 
 function collectTagInputs(context) {
     const tagInputs = []; 
-    // Genre logic
-    const genreContainer = document.getElementById(`inputs-Genre-${context}`);
-    const genreRows = genreContainer ? genreContainer.querySelectorAll('.genre-row') : [];
     
-    // For Generator, we handle genres simply as IDs since percentage isn't user-defined there initially
     if (context === 'generator') {
+        // Generator doesn't use percentages, just IDs
         const container = document.getElementById(`selectors-container-${context}`);
         container.querySelectorAll('.tag-selector').forEach(sel => {
             if (sel.value) {
@@ -498,9 +524,12 @@ function collectTagInputs(context) {
         return tagInputs;
     }
 
-    // Normal Contexts
+    // Normal logic with percentages for Synergy/Advertisers
+    const genreContainer = document.getElementById(`inputs-Genre-${context}`);
+    const genreRows = genreContainer ? genreContainer.querySelectorAll('.genre-row') : [];
     let totalGenreInput = 0;
     const genreData = [];
+    
     genreRows.forEach(row => {
         const select = row.querySelector('select');
         const input = row.querySelector('.percent-input');
@@ -514,7 +543,9 @@ function collectTagInputs(context) {
             });
         }
     });
+    
     if (totalGenreInput === 0 && genreData.length > 0) totalGenreInput = 1;
+    
     genreData.forEach(g => {
         tagInputs.push({
             id: g.id,
@@ -522,6 +553,7 @@ function collectTagInputs(context) {
             category: "Genre"
         });
     });
+
     const container = document.getElementById(`selectors-container-${context}`);
     container.querySelectorAll('.tag-selector').forEach(sel => {
         if (sel.dataset.category === "Genre") return; 
@@ -533,14 +565,23 @@ function collectTagInputs(context) {
             });
         }
     });
+
     return tagInputs;
 }
 
 // ---------------------------------------------
-// ANALYZE MOVIE (Advertisers)
+// ADVERTISER / ANALYSIS LOGIC
 // ---------------------------------------------
-function analyzeMovie() {
-    const tagInputs = collectTagInputs('advertisers');
+function analyzeMovie(scriptOverride = null) {
+    // scriptOverride is used when transferring from Generator
+    let tagInputs;
+    
+    if(scriptOverride) {
+        tagInputs = scriptOverride;
+    } else {
+        tagInputs = collectTagInputs('advertisers');
+    }
+
     if(tagInputs.length === 0) {
         alert("Please select at least one tag.");
         return;
@@ -636,9 +677,11 @@ function analyzeMovie() {
     if (targetAudiences.length > 0) {
         targetAudiences.sort((a, b) => b.score - a.score);
         targetAudiences.forEach(d => {
-            let tierClass = "pill-moderate";
-            if(d.score >= THRESHOLD_GOOD) tierClass = "pill-best";
             const chip = document.createElement('div');
+            let tierClass = "pill-moderate";
+            if(d.score >= THRESHOLD_GOOD) {
+                tierClass = "pill-best";
+            }
             chip.className = `audience-pill ${tierClass}`;
             chip.innerHTML = `${d.name}`;
             audienceContainer.appendChild(chip);
@@ -700,7 +743,7 @@ function analyzeMovie() {
         agentContainer.innerHTML = agentHtml;
     }
 
-    // --- HOLIDAY LOGIC ---
+    // Holiday Logic
     const holidayContainer = document.getElementById('holidayDisplay');
     holidayContainer.innerHTML = '';
 
@@ -715,6 +758,7 @@ function analyzeMovie() {
         const rankedHolidays = GAME_DATA.holidays.map(h => {
             let totalScore = 0;
             let parts = [];
+
             primaryTargets.forEach(id => {
                 const bonus = h.bonuses[id] || 0;
                 if (bonus > 0) {
@@ -725,6 +769,7 @@ function analyzeMovie() {
                     });
                 }
             });
+
             parts.sort((a, b) => b.val - a.val);
             const contextText = parts.length > 0 ? parts.map(p => p.text).join(', ') : "No significant bonus.";
 
@@ -756,7 +801,7 @@ function analyzeMovie() {
             `;
             holidayContainer.appendChild(bestRow);
 
-            const alternatives = viableHolidays.slice(1, 4); 
+            const alternatives = viableHolidays.slice(1, 4);
             if(alternatives.length > 0) {
                 const altHeader = document.createElement('div');
                 altHeader.className = 'holiday-section-label';
@@ -810,7 +855,10 @@ function analyzeMovie() {
             Total Duration: <strong style="color:#fff;">${totalWeeks} Weeks</strong>
         </div>
     `;
-    document.getElementById('results-advertisers').scrollIntoView({ behavior: 'smooth' });
+    
+    if(!scriptOverride) {
+        document.getElementById('results-advertisers').scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
 // ---------------------------------------------
@@ -832,6 +880,7 @@ function calculateMatrixScore(tags) {
     let spoilers = [];
     let rawSum = 0;
     let pairCount = 0;
+    
     for (let i = 0; i < tags.length; i++) {
         for (let j = i + 1; j < tags.length; j++) {
             let tA = tags[i];
@@ -847,11 +896,13 @@ function calculateMatrixScore(tags) {
         }
     }
     let rawAverage = pairCount > 0 ? (rawSum / pairCount) : 3.0; 
+    
     tags.forEach(tagA => {
         let rowSum = 0;
         let rowWeight = 0;
         let worstVal = 6.0; 
         let worstPartner = "";
+        
         tags.forEach(tagB => {
             if (tagA.id === tagB.id) return;
             let rawVal = 3.0;
@@ -860,8 +911,10 @@ function calculateMatrixScore(tags) {
             } else if (GAME_DATA.compatibility[tagB.id] && GAME_DATA.compatibility[tagB.id][tagA.id]) {
                 rawVal = parseFloat(GAME_DATA.compatibility[tagB.id][tagA.id]);
             }
+            
             let score = (rawVal - 3.0) / 2.0;
             let weight = 1.0;
+            
             if (score < 0) {
                 if (tagB.category === "Genre") {
                     score *= 20.0 * tagB.percent;
@@ -886,10 +939,12 @@ function calculateMatrixScore(tags) {
                 worstPartner = tagB.id;
             }
         });
+        
         let rowAverage = 0;
         if (rowWeight > 0) rowAverage = rowSum / rowWeight;
         let transformedWorst = (worstVal - 3.0) / 2.0;
         let finalRowScore = rowAverage;
+        
         if (worstVal <= 1.0) {
             let partnerName = worstPartner && GAME_DATA.tags[worstPartner] ? GAME_DATA.tags[worstPartner].name : "another selected tag";
             spoilers.push(`${GAME_DATA.tags[tagA.id].name} conflicts with ${partnerName}`);
@@ -899,8 +954,10 @@ function calculateMatrixScore(tags) {
         }
         totalScore += finalRowScore * tagA.percent;
     });
+    
     if (totalScore >= 0) totalScore *= 0.9;
     else totalScore *= 1.25;
+    
     return { totalScore, spoilers, rawAverage };
 }
 
@@ -969,6 +1026,7 @@ function renderSynergyResults(matrix, bonuses) {
     document.getElementById('results-synergy').classList.remove('hidden');
     const avgEl = document.getElementById('synergyAverageDisplay');
     avgEl.innerHTML = `${matrix.rawAverage.toFixed(1)} <span class="sub-value">/ 5.0</span>`;
+    
     if (matrix.rawAverage >= 3.5) avgEl.style.color = 'var(--success)';
     else if (matrix.rawAverage < 2.5) avgEl.style.color = 'var(--danger)';
     else avgEl.style.color = '#fff';
@@ -997,9 +1055,7 @@ function renderSynergyResults(matrix, bonuses) {
     const totalComEl = document.getElementById('totalComScore');
     const totalArtEl = document.getElementById('totalArtScore');
     function formatFinalRating(val) {
-        if (val > MAX_GAME_SCORE) {
-            return `${MAX_GAME_SCORE}`;
-        }
+        if (val > MAX_GAME_SCORE) return `${MAX_GAME_SCORE}`;
         return val.toFixed(1);
     }
     totalComEl.innerHTML = formatFinalRating(displayCom);
@@ -1019,21 +1075,348 @@ function renderSynergyResults(matrix, bonuses) {
     document.getElementById('results-synergy').scrollIntoView({ behavior: 'smooth' });
 }
 
+// ---------------------------------------------
+// SCRIPT GENERATOR LOGIC
+// ---------------------------------------------
+
+function resetGenerator() {
+    initializeSelectors('generator');
+    document.getElementById('genTargetScore').value = 4.5;
+    document.getElementById('genTargetDisplay').innerText = "4.5";
+    updateSliderTrack(document.getElementById('genTargetScore'));
+    document.getElementById('genCountGenre').value = 1;
+    document.getElementById('genCountTheme').value = 1;
+    document.getElementById('genCountSupport').value = 1;
+    document.getElementById('generated-results-container').classList.add('hidden');
+    generatedScripts = [];
+    renderGeneratedScripts();
+}
+
+function runGenerator() {
+    const targetScore = parseFloat(document.getElementById('genTargetScore').value);
+    const countGenre = parseInt(document.getElementById('genCountGenre').value) || 1;
+    const countTheme = parseInt(document.getElementById('genCountTheme').value) || 1;
+    const countSupport = parseInt(document.getElementById('genCountSupport').value) || 1;
+    
+    // Get Locked Tags
+    const lockedInputs = collectTagInputs('generator');
+    const lockedIds = lockedInputs.map(t => t.id);
+
+    generatedScripts = [];
+    const NUM_SCRIPTS = 5;
+
+    for (let i = 0; i < NUM_SCRIPTS; i++) {
+        // Try to generate a script
+        const script = generateSingleScript(targetScore, lockedIds, countGenre, countTheme, countSupport);
+        if (script) {
+            generatedScripts.push(script);
+        }
+    }
+
+    renderGeneratedScripts();
+    document.getElementById('generated-results-container').classList.remove('hidden');
+    document.getElementById('generated-results-container').scrollIntoView({ behavior: 'smooth' });
+}
+
+function generateSingleScript(targetScore, lockedIds, nGenre, nTheme, nSupport) {
+    // 1. Define required structure
+    const structure = [
+        { cat: "Genre", count: Math.min(3, Math.max(1, nGenre)) },
+        { cat: "Setting", count: 1 },
+        { cat: "Protagonist", count: 1 },
+        { cat: "Antagonist", count: 1 },
+        { cat: "Supporting Character", count: Math.min(3, Math.max(0, nSupport)) },
+        { cat: "Theme & Event", count: Math.min(3, Math.max(0, nTheme)) },
+        { cat: "Finale", count: 1 }
+    ];
+
+    let currentTags = [];
+
+    // 2. Apply Locks
+    structure.forEach(slot => {
+        const lockedInCat = lockedIds.filter(lid => GAME_DATA.tags[lid].category === slot.cat);
+        // Add locked items up to the count
+        for (let i = 0; i < Math.min(slot.count, lockedInCat.length); i++) {
+            currentTags.push({ id: lockedInCat[i], category: slot.cat, percent: 1.0, locked: true });
+        }
+    });
+
+    // 3. Random Fill remaining slots
+    const allTags = Object.values(GAME_DATA.tags);
+    structure.forEach(slot => {
+        const currentCount = currentTags.filter(t => t.category === slot.cat).length;
+        const needed = slot.count - currentCount;
+
+        if (needed > 0) {
+            const candidates = allTags.filter(t => t.category === slot.cat && !currentTags.some(ct => ct.id === t.id));
+            // Shuffle candidates
+            for (let i = candidates.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+            }
+            
+            for (let k = 0; k < needed; k++) {
+                if (candidates[k]) {
+                    currentTags.push({ id: candidates[k].id, category: slot.cat, percent: 1.0, locked: false });
+                }
+            }
+        }
+    });
+
+    // 4. Normalize Genre Percents (Simple Equal Split for generation)
+    normalizeGeneratorGenres(currentTags);
+
+    // 5. Optimization (Hill Climbing / Simulated Annealing Lite)
+    let bestTags = JSON.parse(JSON.stringify(currentTags));
+    let currentScoreObj = calculateMatrixScore(currentTags);
+    let bestDiff = Math.abs(currentScoreObj.rawAverage - targetScore);
+    
+    const ITERATIONS = 100;
+    
+    for (let i = 0; i < ITERATIONS; i++) {
+        // Pick a non-locked tag to swap
+        const mutableTags = currentTags.filter(t => !t.locked);
+        if (mutableTags.length === 0) break; 
+        
+        const tagToSwap = mutableTags[Math.floor(Math.random() * mutableTags.length)];
+        
+        // Find replacements
+        const replacements = allTags.filter(t => 
+            t.category === tagToSwap.category && 
+            !currentTags.some(ct => ct.id === t.id)
+        );
+        
+        if (replacements.length === 0) continue;
+        
+        const replacement = replacements[Math.floor(Math.random() * replacements.length)];
+        
+        // Perform Swap
+        const originalId = tagToSwap.id;
+        tagToSwap.id = replacement.id;
+        
+        // Calculate new score
+        const newScoreObj = calculateMatrixScore(currentTags);
+        const newDiff = Math.abs(newScoreObj.rawAverage - targetScore);
+        
+        // Acceptance criteria: If better, keep. If strictly worse, revert.
+        // We want to get CLOSE to targetScore.
+        if (newDiff < bestDiff) {
+            bestDiff = newDiff;
+            bestTags = JSON.parse(JSON.stringify(currentTags)); // Save snapshot
+        } else {
+            // Revert
+            tagToSwap.id = originalId;
+        }
+        
+        // Early exit if very close
+        if (bestDiff < 0.05) break;
+    }
+
+    // Recalculate final stats for the best set
+    const finalMatrix = calculateMatrixScore(bestTags);
+    const finalBonuses = calculateTotalBonuses(bestTags);
+    
+    // Calc Max Potential
+    const MAX_GAME_SCORE = 9.9;
+    const totalComRaw = finalMatrix.totalScore + finalBonuses.com;
+    const totalArtRaw = finalMatrix.totalScore + finalBonuses.art;
+    const maxCom = Math.min(MAX_GAME_SCORE, Math.max(0, totalComRaw * MAX_GAME_SCORE)).toFixed(1);
+    const maxArt = Math.min(MAX_GAME_SCORE, Math.max(0, totalArtRaw * MAX_GAME_SCORE)).toFixed(1);
+
+    return {
+        id: Date.now() + Math.random(),
+        tags: bestTags,
+        avgComp: finalMatrix.rawAverage.toFixed(1),
+        maxCom: maxCom,
+        maxArt: maxArt,
+        spoilers: finalMatrix.spoilers
+    };
+}
+
+function normalizeGeneratorGenres(tags) {
+    const genres = tags.filter(t => t.category === "Genre");
+    const count = genres.length;
+    if (count > 0) {
+        const pct = 1.0 / count;
+        genres.forEach(g => g.percent = pct);
+    }
+}
+
+function renderGeneratedScripts() {
+    const container = document.getElementById('generated-list');
+    container.innerHTML = '';
+    
+    generatedScripts.forEach(script => {
+        container.appendChild(createScriptCard(script, false));
+    });
+}
+
+function renderSavedScripts() {
+    const container = document.getElementById('saved-list');
+    container.innerHTML = '';
+    
+    if (savedScripts.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:#666; font-style:italic; padding:20px;">No saved scripts yet.</div>`;
+    } else {
+        savedScripts.forEach(script => {
+            container.appendChild(createScriptCard(script, true));
+        });
+    }
+    
+    const wrapper = document.getElementById('saved-scripts-container');
+    if (savedScripts.length > 0) wrapper.classList.remove('hidden');
+    else wrapper.classList.add('hidden');
+}
+
+function createScriptCard(script, isSaved) {
+    const card = document.createElement('div');
+    card.className = 'script-item';
+    
+    // Color coding for Avg Comp
+    const avgVal = parseFloat(script.avgComp);
+    let colorClass = "med";
+    if (avgVal >= 3.5) colorClass = "high";
+    else if (avgVal < 2.5) colorClass = "low";
+
+    const tagHtml = script.tags.map(t => {
+        const name = GAME_DATA.tags[t.id].name;
+        let classes = "tag-chip";
+        if (t.category === "Genre") classes += " genre";
+        if (t.category === "Theme & Event") classes += " theme";
+        return `<span class="${classes}">${name}</span>`;
+    }).join('');
+
+    // Actions
+    const saveIcon = isSaved ? '★' : '☆';
+    const saveClass = isSaved ? 'save-active' : '';
+    
+    card.innerHTML = `
+        <div class="script-header" onclick="toggleScriptView(this)">
+            <div class="script-summary">
+                <div class="s-score-box">
+                    <span class="s-label">Avg Comp</span>
+                    <span class="s-value ${colorClass}">${script.avgComp}</span>
+                </div>
+                <div class="s-score-box max-pot">
+                    <span class="s-label">Max Potential</span>
+                    <span class="s-value" style="font-size: 1rem; color:#ccc;">
+                        <span style="color:var(--accent);">${script.maxCom}</span> / 
+                        <span style="color:#a0a0ff;">${script.maxArt}</span>
+                    </span>
+                </div>
+            </div>
+            <div class="script-actions">
+                <button class="icon-btn ${saveClass}" onclick="handleSaveClick(event, '${script.id}', ${isSaved})" title="${isSaved ? 'Unpin' : 'Pin Script'}">${saveIcon}</button>
+                <button class="icon-btn" onclick="handleTransferClick(event, '${script.id}', ${isSaved})" title="Check Advertisers">➔</button>
+            </div>
+        </div>
+        <div class="script-body">
+            <div style="font-size:0.8rem; color:#888; text-transform:uppercase; margin-bottom:5px;">Composition</div>
+            <div class="tag-list">
+                ${tagHtml}
+            </div>
+        </div>
+    `;
+    return card;
+}
+
+function toggleScriptView(header) {
+    const body = header.nextElementSibling;
+    body.classList.toggle('expanded');
+}
+
+function handleSaveClick(e, id, isCurrentlySaved) {
+    e.stopPropagation();
+    if (isCurrentlySaved) {
+        // Unsave
+        savedScripts = savedScripts.filter(s => s.id != id);
+    } else {
+        // Save
+        const script = generatedScripts.find(s => s.id == id);
+        if (script) {
+            // Clone to avoid ref issues
+            const clone = JSON.parse(JSON.stringify(script));
+            clone.id = "saved_" + (++savedScriptIdCounter); // new ID for saved list
+            savedScripts.push(clone);
+        }
+    }
+    renderGeneratedScripts(); // Re-render gen list to update stars if we wanted, but logic separates them. 
+    // Actually, if we unsave from saved list, just update saved list.
+    renderSavedScripts();
+}
+
+function handleTransferClick(e, id, isSaved) {
+    e.stopPropagation();
+    const list = isSaved ? savedScripts : generatedScripts;
+    const script = list.find(s => s.id == id);
+    if (!script) return;
+
+    // Switch tab
+    switchTab('advertisers');
+    
+    // Clear current advertisers selection
+    initializeSelectors('advertisers');
+    
+    // Populate inputs (UI only)
+    script.tags.forEach(tag => {
+        const container = document.getElementById(`inputs-${tag.category.replace(/\s/g, '-')}-advertisers`);
+        if(!container) return;
+        
+        // Find empty
+        let selects = container.querySelectorAll('select');
+        let placed = false;
+        for(let sel of selects) {
+            if(sel.value === "") {
+                sel.value = tag.id;
+                placed = true;
+                break;
+            }
+        }
+        if(!placed) {
+            addDropdown(tag.category, tag.id, 'advertisers');
+        }
+    });
+
+    // Handle genres percentages specifically for the UI inputs
+    const genres = script.tags.filter(t => t.category === "Genre");
+    if (genres.length > 0) {
+        updateGenreControls('advertisers');
+        const genreRows = document.querySelectorAll('#inputs-Genre-advertisers .genre-row');
+        genres.forEach((g, idx) => {
+             if(genreRows[idx]) {
+                const percentVal = Math.round(g.percent * 100);
+                genreRows[idx].querySelector('.percent-input').value = percentVal;
+                genreRows[idx].querySelector('.percent-slider').value = percentVal;
+                updatePercentSliderTrack(genreRows[idx].querySelector('.percent-slider'));
+             }
+        });
+    }
+
+    // Run analysis directly
+    analyzeMovie(script.tags);
+}
+
+// ---------------------------------------------
+// UI HELPERS (Existing)
+// ---------------------------------------------
 function resetSelectors(context) {
     initializeSelectors(context);
     document.getElementById(`results-${context}`).classList.add('hidden');
 }
 
-function transferTagsToAdvertisers() {
-    const inputs = collectTagInputs('synergy');
+function transferTagsToAdvertisers(sourceContext) {
+    const inputs = collectTagInputs(sourceContext);
     if (inputs.length === 0) return;
+    
     switchTab('advertisers');
     initializeSelectors('advertisers');
+    
     inputs.forEach(input => {
         const category = input.category;
         const containerId = `inputs-${category.replace(/\s/g, '-')}-advertisers`;
         const container = document.getElementById(containerId);
         if (!container) return;
+        
         const existingSelects = container.querySelectorAll('select');
         let placed = false;
         for (let sel of existingSelects) {
@@ -1047,6 +1430,7 @@ function transferTagsToAdvertisers() {
             addDropdown(category, input.id, 'advertisers');
         }
     });
+    
     const genreInputs = inputs.filter(i => i.category === 'Genre');
     if (genreInputs.length > 1) {
         updateGenreControls('advertisers');
@@ -1060,386 +1444,6 @@ function transferTagsToAdvertisers() {
             }
         });
     }
-    analyzeMovie();
-}
-
-// ---------------------------------------------
-// SCRIPT GENERATOR LOGIC (NEW)
-// ---------------------------------------------
-function resetGenerator() {
-    initializeSelectors('generator');
-    document.getElementById('genTargetComp').value = 4.5;
-    document.getElementById('genTargetCompVal').innerText = "4.5";
-    document.getElementById('genTargetComScore').value = 6;
-    document.getElementById('genTargetComScoreVal').innerText = "6.0";
-    document.getElementById('genTargetArtScore').value = 6;
-    document.getElementById('genTargetArtScoreVal').innerText = "6.0";
-    document.getElementById('genCountGenre').value = "1";
-    document.getElementById('genCountTheme').value = "random";
-    document.getElementById('genCountSupport').value = "random";
-    updateSliderTrack(document.getElementById('genTargetComp'));
-    updateSliderTrack(document.getElementById('genTargetComScore'));
-    updateSliderTrack(document.getElementById('genTargetArtScore'));
-}
-
-function generateScripts() {
-    // 1. Collect inputs
-    const seeds = collectTagInputs('generator');
-    const targetComp = parseFloat(document.getElementById('genTargetComp').value);
-    const targetComScore = parseFloat(document.getElementById('genTargetComScore').value);
-    const targetArtScore = parseFloat(document.getElementById('genTargetArtScore').value);
     
-    // 2. Determine Number of Elements needed based on max requested score
-    // 4.0 -> 3 elements (Protag, Setting, Genre)
-    // 5.0 -> 4 elements (+1)
-    // 6.0 -> 5 elements (+2) ...
-    const maxRequestedScore = Math.max(targetComScore, targetArtScore);
-    const requiredElements = calculateMovieElementCount(maxRequestedScore);
-
-    // 3. Determine structure counts
-    const genreCount = parseInt(document.getElementById('genCountGenre').value);
-    let themeCount = document.getElementById('genCountTheme').value;
-    let supportCount = document.getElementById('genCountSupport').value;
-
-    generatedResults = [];
-    const NUM_SCRIPTS = 5;
-
-    for (let i = 0; i < NUM_SCRIPTS; i++) {
-        // Run optimization algorithm
-        const result = runGenerationAlgorithm(seeds, requiredElements, genreCount, themeCount, supportCount, targetComp, targetComScore, targetArtScore);
-        if (result) {
-            generatedResults.push(result);
-        }
-    }
-
-    renderGeneratedScripts();
-}
-
-function calculateMovieElementCount(score) {
-    if (score <= 4.0) return 3;
-    if (score <= 5.0) return 4;
-    if (score <= 6.0) return 5;
-    if (score <= 7.0) return 6;
-    if (score <= 8.0) return 7;
-    return 8; // Max for 9.0+
-}
-
-function runGenerationAlgorithm(seeds, totalSlots, genreCount, themeReq, supportReq, targetComp, targetCom, targetArt) {
-    // Categories pool
-    const pool = {
-        Genre: Object.values(GAME_DATA.tags).filter(t => t.category === "Genre"),
-        Setting: Object.values(GAME_DATA.tags).filter(t => t.category === "Setting"),
-        Protagonist: Object.values(GAME_DATA.tags).filter(t => t.category === "Protagonist"),
-        Antagonist: Object.values(GAME_DATA.tags).filter(t => t.category === "Antagonist"),
-        Supporting: Object.values(GAME_DATA.tags).filter(t => t.category === "Supporting Character"),
-        Theme: Object.values(GAME_DATA.tags).filter(t => t.category === "Theme & Event"),
-        Finale: Object.values(GAME_DATA.tags).filter(t => t.category === "Finale")
-    };
-
-    // Helper to get random item from array
-    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
-    const randRemove = (arr) => {
-        const idx = Math.floor(Math.random() * arr.length);
-        return arr.splice(idx, 1)[0];
-    };
-
-    // Initialize current candidate with seeds
-    let candidate = [...seeds]; // Start with locked items
-    
-    // Fill Mandatory Slots if not seeded
-    if (!candidate.some(t => t.category === "Genre")) candidate.push({ ...rand(pool.Genre), percent: 1 });
-    if (!candidate.some(t => t.category === "Setting")) candidate.push({ ...rand(pool.Setting), percent: 1 });
-    if (!candidate.some(t => t.category === "Protagonist")) candidate.push({ ...rand(pool.Protagonist), percent: 1 });
-
-    // Handle Extra Genre if requested
-    const currentGenres = candidate.filter(t => t.category === "Genre").length;
-    if (genreCount > currentGenres) {
-        const availableGenres = pool.Genre.filter(g => !candidate.some(c => c.id === g.id));
-        if (availableGenres.length > 0) candidate.push({ ...rand(availableGenres), percent: 1 });
-    }
-
-    // Determine "Meaningful" slots filled so far (Protag, Setting, Antag, Supp, Theme, Finale)
-    // Genre does NOT count towards the element count for score threshold
-    const getMeaningfulCount = (list) => list.filter(t => t.category !== "Genre").length;
-    
-    let currentMeaningful = getMeaningfulCount(candidate);
-    let slotsNeeded = totalSlots - currentMeaningful;
-
-    // Logic to fill remaining slots
-    // Priority: Requirements -> Random distribution
-    let availableTypes = [];
-    
-    // 1. Check specifics
-    let tCount = (themeReq === 'random') ? -1 : parseInt(themeReq);
-    let sCount = (supportReq === 'random') ? -1 : parseInt(supportReq);
-
-    // Add specific requirements if we have space
-    while (tCount > 0 && slotsNeeded > 0) {
-        availableTypes.push('Theme');
-        tCount--;
-        slotsNeeded--;
-    }
-    while (sCount > 0 && slotsNeeded > 0) {
-        availableTypes.push('Supporting');
-        sCount--;
-        slotsNeeded--;
-    }
-
-    // Fill rest randomly with valid structure types
-    // Max 1 Antagonist, Max 1 Finale
-    const hasAntag = candidate.some(t => t.category === "Antagonist");
-    const hasFinale = candidate.some(t => t.category === "Finale");
-    
-    // Fill pool of types for remaining slots
-    while (slotsNeeded > 0) {
-        let options = ['Theme', 'Supporting'];
-        if (!hasAntag && !candidate.some(t => t.category === "Antagonist") && !availableTypes.includes('Antagonist')) options.push('Antagonist');
-        if (!hasFinale && !candidate.some(t => t.category === "Finale") && !availableTypes.includes('Finale')) options.push('Finale');
-        
-        availableTypes.push(rand(options));
-        slotsNeeded--;
-    }
-
-    // Add the tags for the determined types
-    availableTypes.forEach(type => {
-        let list = pool[type].filter(item => !candidate.some(c => c.id === item.id));
-        if (list.length > 0) {
-            candidate.push({ ...rand(list), percent: 1 });
-        }
-    });
-
-    // Fix percents for genres if 2
-    const genres = candidate.filter(t => t.category === "Genre");
-    if (genres.length > 1) {
-        genres.forEach(g => g.percent = 0.5);
-    }
-
-    // OPTIMIZATION LOOP (Hill Climbing)
-    // We want to minimize distance to Target Comp
-    // And Maximize Scores towards targets
-    
-    let bestCandidate = JSON.parse(JSON.stringify(candidate));
-    let bestError = 9999;
-    
-    const iterations = 500; 
-
-    for (let k = 0; k < iterations; k++) {
-        // Calculate Metrics
-        let stats = calculateStats(candidate);
-        
-        // Error Function
-        // 1. Compatibility Distance (We want to hit the target, not just max it)
-        let compDiff = Math.abs(stats.matrix.rawAverage - targetComp);
-        
-        // 2. Score Deficit (We want to be AT LEAST the target)
-        // If we are below target, huge penalty. If above, small bonus.
-        // Convert max potential score logic
-        const MAX = 9.9;
-        let estCom = Math.max(0, (stats.matrix.totalScore + stats.bonuses.com) * MAX);
-        let estArt = Math.max(0, (stats.matrix.totalScore + stats.bonuses.art) * MAX);
-        
-        let scoreError = 0;
-        if (estCom < targetCom) scoreError += (targetCom - estCom) * 5; // Heavy penalty for missing
-        if (estArt < targetArt) scoreError += (targetArt - estArt) * 5;
-
-        let totalError = (compDiff * 10) + scoreError;
-
-        if (totalError < bestError) {
-            bestError = totalError;
-            bestCandidate = JSON.parse(JSON.stringify(candidate));
-        }
-
-        // Mutate for next iteration
-        // Pick a random tag (not a seed) and swap with same category
-        // Indices of non-seed tags
-        let mutableIndices = candidate.map((t, idx) => {
-            // Check if this tag ID is in seeds
-            if (seeds.some(s => s.id === t.id)) return -1;
-            return idx;
-        }).filter(i => i !== -1);
-
-        if (mutableIndices.length > 0) {
-            let idxToSwap = rand(mutableIndices);
-            let tagToSwap = candidate[idxToSwap];
-            let cat = tagToSwap.category;
-            // Map category names to pool keys if needed
-            let poolKey = cat === "Theme & Event" ? "Theme" : (cat === "Supporting Character" ? "Supporting" : cat);
-            
-            if (pool[poolKey]) {
-                let options = pool[poolKey].filter(x => !candidate.some(c => c.id === x.id));
-                if (options.length > 0) {
-                    let newTag = rand(options);
-                    candidate[idxToSwap] = { ...newTag, percent: tagToSwap.percent };
-                }
-            }
-        }
-    }
-
-    // Return finalized object
-    let finalStats = calculateStats(bestCandidate);
-    const MAX = 9.9;
-    return {
-        tags: bestCandidate,
-        avgComp: finalStats.matrix.rawAverage,
-        maxCom: Math.min(10, Math.max(0, (finalStats.matrix.totalScore + finalStats.bonuses.com) * MAX)).toFixed(1),
-        maxArt: Math.min(10, Math.max(0, (finalStats.matrix.totalScore + finalStats.bonuses.art) * MAX)).toFixed(1),
-        id: Date.now() + Math.random()
-    };
-}
-
-function calculateStats(tags) {
-    return {
-        matrix: calculateMatrixScore(tags),
-        bonuses: calculateTotalBonuses(tags)
-    };
-}
-
-function renderGeneratedScripts() {
-    document.getElementById('gen-placeholder').classList.add('hidden');
-    document.getElementById('generated-scripts-container').classList.remove('hidden');
-    
-    const list = document.getElementById('generated-list');
-    list.innerHTML = '';
-
-    generatedResults.forEach((script, index) => {
-        const item = createAccordionItem(script, false);
-        list.appendChild(item);
-    });
-}
-
-function createAccordionItem(script, isPinned) {
-    const item = document.createElement('div');
-    item.className = 'accordion-item';
-    
-    // Header
-    const header = document.createElement('div');
-    header.className = 'accordion-header';
-    header.onclick = (e) => {
-        if(!e.target.closest('.icon-btn')) {
-            item.classList.toggle('expanded');
-        }
-    };
-
-    // Summary Stats
-    const summary = document.createElement('div');
-    summary.className = 'acc-summary';
-    summary.innerHTML = `
-        <div class="acc-stat">
-            <span class="acc-label">Avg Comp</span>
-            <span class="acc-val ${script.avgComp >= 4 ? 'good' : (script.avgComp < 2.5 ? 'bad' : '')}">${script.avgComp.toFixed(1)}</span>
-        </div>
-        <div class="acc-stat">
-            <span class="acc-label">Com Score</span>
-            <span class="acc-val">${script.maxCom}</span>
-        </div>
-        <div class="acc-stat">
-            <span class="acc-label">Art Score</span>
-            <span class="acc-val" style="color:#a0a0ff;">${script.maxArt}</span>
-        </div>
-    `;
-
-    // Controls
-    const controls = document.createElement('div');
-    controls.className = 'acc-controls';
-    
-    const pinBtn = document.createElement('button');
-    pinBtn.className = `icon-btn ${isPinned ? 'pinned' : ''}`;
-    pinBtn.innerHTML = isPinned ? '★' : '☆';
-    pinBtn.title = isPinned ? "Unsave" : "Save Script";
-    pinBtn.onclick = () => togglePinScript(script);
-
-    controls.appendChild(pinBtn);
-    header.appendChild(summary);
-    header.appendChild(controls);
-
-    // Body
-    const body = document.createElement('div');
-    body.className = 'accordion-body';
-    
-    const tagsContainer = document.createElement('div');
-    tagsContainer.className = 'script-tags-grid';
-    
-    script.tags.forEach(t => {
-        const tagSpan = document.createElement('span');
-        tagSpan.className = `script-tag ${t.category === 'Genre' ? 'genre-tag' : ''}`;
-        tagSpan.innerHTML = `${t.name} <small>${t.category}</small>`;
-        tagsContainer.appendChild(tagSpan);
-    });
-
-    const transferBtn = document.createElement('button');
-    transferBtn.className = 'transfer-btn';
-    transferBtn.innerText = 'Analyze Advertisers &rarr;';
-    transferBtn.onclick = () => transferGeneratedScript(script);
-
-    body.appendChild(tagsContainer);
-    body.appendChild(transferBtn);
-
-    item.appendChild(header);
-    item.appendChild(body);
-    return item;
-}
-
-function togglePinScript(script) {
-    const index = pinnedScripts.findIndex(s => s.id === script.id);
-    if (index >= 0) {
-        pinnedScripts.splice(index, 1);
-    } else {
-        pinnedScripts.push(script);
-    }
-    renderPinnedScripts();
-    // Re-render generated list to update stars
-    renderGeneratedScripts();
-}
-
-function renderPinnedScripts() {
-    const container = document.getElementById('pinned-scripts-container');
-    const list = document.getElementById('pinned-list');
-    list.innerHTML = '';
-    
-    if (pinnedScripts.length === 0) {
-        container.classList.add('hidden');
-    } else {
-        container.classList.remove('hidden');
-        pinnedScripts.forEach(script => {
-            const item = createAccordionItem(script, true);
-            list.appendChild(item);
-        });
-    }
-}
-
-function transferGeneratedScript(script) {
-    switchTab('advertisers');
-    initializeSelectors('advertisers'); // Reset
-    
-    script.tags.forEach(tag => {
-        const category = tag.category;
-        const containerId = `inputs-${category.replace(/\s/g, '-')}-advertisers`;
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        
-        // Find empty slot or add new
-        const existingSelects = container.querySelectorAll('select');
-        let placed = false;
-        for (let sel of existingSelects) {
-            if (sel.value === "") {
-                sel.value = tag.id;
-                placed = true;
-                break;
-            }
-        }
-        if (!placed) {
-            addDropdown(category, tag.id, 'advertisers');
-        }
-    });
-
-    // Handle scores input transfer from the generated prediction
-    document.getElementById('comScoreInput').value = script.maxCom;
-    document.getElementById('comScoreSlider').value = script.maxCom;
-    updateSliderTrack(document.getElementById('comScoreSlider'));
-
-    document.getElementById('artScoreInput').value = script.maxArt;
-    document.getElementById('artScoreSlider').value = script.maxArt;
-    updateSliderTrack(document.getElementById('artScoreSlider'));
-
     analyzeMovie();
 }
