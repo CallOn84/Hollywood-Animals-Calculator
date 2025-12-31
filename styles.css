@@ -581,7 +581,7 @@ select:focus { outline: none; border-color: var(--accent); }
     justify-content: space-between;
     align-items: center;
     background: rgba(255, 255, 255, 0.05);
-    padding: 10px 12px;
+    padding: 12px 14px;
     border-radius: 6px;
     border: 1px solid transparent;
 }
@@ -606,11 +606,14 @@ select:focus { outline: none; border-color: var(--accent); }
     font-weight: 700;
     font-size: 0.95rem;
     color: #fff;
+    margin-bottom: 2px;
 }
 
 .hol-target {
     font-size: 0.75rem;
     color: #aaa;
+    /* Added max width to prevent super long text overflowing on small mobile screens */
+    max-width: 100%; 
 }
 
 .hol-right {

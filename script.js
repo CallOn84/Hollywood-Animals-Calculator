@@ -751,7 +751,7 @@ function analyzeMovie() {
         agentContainer.innerHTML = agentHtml;
     }
 
-    // 7. RANKED HOLIDAY LOGIC (NEW REVISED)
+    // 7. RANKED HOLIDAY LOGIC (NEW REVISED + CONTEXTUAL)
     const holidayContainer = document.getElementById('holidayDisplay');
     holidayContainer.innerHTML = '';
 
@@ -763,28 +763,38 @@ function analyzeMovie() {
             let targetsModerate = false;
             let isUniversal = false;
             
+            // This is the CRITICAL FIX for "Boys..." showing up when irrelevant.
+            // matchedTargets will ONLY contain audiences that are BOTH in the holiday's target list
+            // AND in the movie's validTargetIds.
             let matchedTargets = [];
 
             if (h.target === "ALL") {
                 isUniversal = true;
                 matchedTargets = ["Universal"];
-                if (highInterestIds.length > 0) targetsHigh = true; // Universal counts as high if high exist? Or neutral?
-                // Logic: Usually specific high > universal. Universal usually 10-15%.
-                // We will treat Universal as "Targets Moderate" tier unless bonuses are high.
             } else {
                 const targets = Array.isArray(h.target) ? h.target : [h.target];
                 
                 targets.forEach(t => {
-                    if(highInterestIds.includes(t)) targetsHigh = true;
-                    if(moderateInterestIds.includes(t)) targetsModerate = true;
+                    if (validTargetIds.includes(t)) {
+                        matchedTargets.push(GAME_DATA.demographics[t].name);
+                        
+                        if(highInterestIds.includes(t)) targetsHigh = true;
+                        if(moderateInterestIds.includes(t)) targetsModerate = true;
+                    }
                 });
-
-                if(targetsHigh || targetsModerate) {
-                    matchedTargets = targets.map(id => GAME_DATA.demographics[id].name);
-                }
             }
 
-            // Parse bonus
+            // Calculate Priority
+            let priority = -1;
+            
+            // Only valid if it hits at least one relevant target (or is universal)
+            if (isUniversal || matchedTargets.length > 0) {
+                if (targetsHigh && !isUniversal) priority = 2; // Specific High Interest
+                else if (targetsModerate && !isUniversal) priority = 1; // Specific Moderate Interest
+                else if (isUniversal) priority = 0; // Universal Fallback
+            }
+
+            // Parse bonus for sorting
             let sortValue = 0;
             const nums = h.bonus.match(/\d+/g);
             if (nums) {
@@ -792,32 +802,26 @@ function analyzeMovie() {
                 else if (nums.length >= 2) sortValue = (parseInt(nums[0]) + parseInt(nums[1])) / 2;
             }
 
-            // Determine Priority Score
-            // 2 = Targets High Interest specifically
-            // 1 = Targets Moderate Interest specifically
-            // 0 = Universal / Non-specific match
-            // -1 = No match
-            
-            let priority = -1;
-            if (targetsHigh && !isUniversal) priority = 2;
-            else if (targetsModerate && !isUniversal) priority = 1;
-            else if (isUniversal) priority = 0; 
-            
-            // Special Case: If High Interest exists, Universal is better than nothing, but worse than specific High.
-            // If ONLY Moderate Interest exists, Universal might compete with specific Moderate based on bonus.
-            // To simplify: Strict Priority: High > Moderate > Universal.
-            // BUT: If no specific high exists, then Moderate is king.
-            
+            // Create Contextual Text string
+            let contextText = "";
+            if(isUniversal) {
+                contextText = `${h.bonus} Bonus for Everyone`;
+            } else if (matchedTargets.length > 0) {
+                const names = matchedTargets.length > 2 ? matchedTargets.slice(0, 2).join(", ") + "..." : matchedTargets.join(" & ");
+                contextText = `${h.bonus} Bonus for ${names}`;
+            }
+
             return {
                 ...h,
                 priority,
                 sortValue,
-                formattedTarget: matchedTargets.length > 2 ? matchedTargets[0] + "..." : matchedTargets.join(" & ")
+                contextText,
+                hasMatch: (priority >= 0)
             };
         });
 
         // Filter valid
-        let viableHolidays = rankedHolidays.filter(h => h.priority >= 0);
+        let viableHolidays = rankedHolidays.filter(h => h.hasMatch);
 
         // Sort: Priority DESC, then SortValue DESC
         viableHolidays.sort((a, b) => {
@@ -841,10 +845,7 @@ function analyzeMovie() {
             bestRow.innerHTML = `
                 <div class="hol-left">
                     <span class="hol-name">${best.name}</span>
-                    <span class="hol-target">${best.formattedTarget}</span>
-                </div>
-                <div class="hol-right">
-                    <span class="hol-bonus">${best.bonus}</span>
+                    <span class="hol-target">${best.contextText}</span>
                 </div>
             `;
             holidayContainer.appendChild(bestRow);
@@ -855,7 +856,7 @@ function analyzeMovie() {
                 const altHeader = document.createElement('div');
                 altHeader.className = 'holiday-section-label';
                 altHeader.innerText = "Alternatives";
-                altHeader.style.marginTop = "15px";
+                altHeader.style.marginTop = "20px";
                 holidayContainer.appendChild(altHeader);
 
                 alternatives.forEach(alt => {
@@ -864,10 +865,7 @@ function analyzeMovie() {
                     row.innerHTML = `
                         <div class="hol-left">
                             <span class="hol-name">${alt.name}</span>
-                            <span class="hol-target">${alt.formattedTarget}</span>
-                        </div>
-                        <div class="hol-right">
-                            <span class="hol-bonus">${alt.bonus}</span>
+                            <span class="hol-target">${alt.contextText}</span>
                         </div>
                     `;
                     holidayContainer.appendChild(row);
