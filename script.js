@@ -786,11 +786,27 @@ function createScriptCardHTML(scriptObj, isPinned) {
     const fixedInputs = collectTagInputs('generator');
     const fixedIds = new Set(fixedInputs.map(t => t.id));
     
-    // Sort so genres appear first
+    // Define Sort Order
+    const categoryOrder = [
+        "Genre", 
+        "Setting", 
+        "Protagonist", 
+        "Antagonist", 
+        "Supporting Character", 
+        "Theme & Event", 
+        "Finale"
+    ];
+
+    // Sort tags based on category order
     const sortedTags = [...scriptObj.tags].sort((a, b) => {
-        if(a.category === 'Genre' && b.category !== 'Genre') return -1;
-        if(a.category !== 'Genre' && b.category === 'Genre') return 1;
-        return 0;
+        let idxA = categoryOrder.indexOf(a.category);
+        let idxB = categoryOrder.indexOf(b.category);
+        
+        // Safety: If category not found, put at end
+        if (idxA === -1) idxA = 99;
+        if (idxB === -1) idxB = 99;
+        
+        return idxA - idxB;
     });
 
     sortedTags.forEach(t => {
