@@ -1,6 +1,8 @@
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
 let currentTab = 'synergy'; 
+let generatedScriptsCache = []; // Stores the current batch of 5 scripts
+let pinnedScripts = []; // Stores saved scripts
 
 // --- LOCALIZATION VARIABLES ---
 let localizationMap = {}; // Stores ID -> "Clean Name"
@@ -12,9 +14,15 @@ window.onload = async function() {
         await loadExternalData();
         initializeSelectors('advertisers');
         initializeSelectors('synergy');
+        
+        // Init generator tab selectors (Locked and Excluded)
+        initializeSelectors('generator'); 
+        initializeSelectors('excluded');
+
         buildSearchIndex();
         setupSearchListeners();
         setupScoreSync(); 
+        setupGeneratorControls(); 
         console.log("Initialization Complete.");
     } catch (error) {
         console.error("Failed to load data:", error);
@@ -42,10 +50,18 @@ async function changeLanguage(langName, shouldRender = true) {
             if (shouldRender) {
                 const savedSynergy = collectTagInputs('synergy');
                 const savedAdvertisers = collectTagInputs('advertisers');
+                const savedGenerator = collectTagInputs('generator');
+                const savedExcluded = collectTagInputs('excluded');
+                
                 initializeSelectors('synergy');
                 initializeSelectors('advertisers');
+                initializeSelectors('generator');
+                initializeSelectors('excluded');
+                
                 restoreSelection('synergy', savedSynergy);
                 restoreSelection('advertisers', savedAdvertisers);
+                restoreSelection('generator', savedGenerator);
+                restoreSelection('excluded', savedExcluded);
             }
         }
     } catch (e) {
@@ -98,14 +114,19 @@ function restoreSelection(context, savedInputs) {
 function switchTab(tabName) {
     currentTab = tabName;
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Simple index mapping or selector matching
     const btns = document.querySelectorAll('.tab-btn');
-    if(tabName === 'synergy') btns[0].classList.add('active');
-    else btns[1].classList.add('active');
+    if(tabName === 'generator') btns[0].classList.add('active');
+    else if(tabName === 'synergy') btns[1].classList.add('active');
+    else btns[2].classList.add('active');
+    
     document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
     document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 }
 
 function setupScoreSync() {
+    // Existing Advertiser Tab Sync
     const pairs = [
         { slider: 'comScoreSlider', input: 'comScoreInput' },
         { slider: 'artScoreSlider', input: 'artScoreInput' }
@@ -130,10 +151,67 @@ function setupScoreSync() {
     });
 }
 
-function updateSliderTrack(slider) {
+function setupGeneratorControls() {
+    // Generator Tab Sliders + Inputs
+    const genCompSlider = document.getElementById('genCompSlider');
+    const genCompInput = document.getElementById('genCompInput');
+    
+    genCompSlider.addEventListener('input', (e) => {
+        genCompInput.value = parseFloat(e.target.value).toFixed(1);
+        updateSliderTrack(genCompSlider, '#4cd964');
+    });
+    genCompInput.addEventListener('input', (e) => {
+        let val = parseFloat(e.target.value);
+        if (val > 5) val = 5;
+        if (val < 1) val = 1;
+        if (!isNaN(val)) {
+            genCompSlider.value = val;
+            updateSliderTrack(genCompSlider, '#4cd964');
+        }
+    });
+    updateSliderTrack(genCompSlider, '#4cd964');
+
+    const genScoreSlider = document.getElementById('genScoreSlider');
+    const genScoreInput = document.getElementById('genScoreInput');
+    const requiredTagsDisplay = document.getElementById('genTagsRequiredDisplay');
+
+    function updateScoreDisplay(val) {
+        // Update Help Text for Tag Count
+        let requiredTags = 0;
+        if(val <= 6) requiredTags = 4;
+        else if(val === 7) requiredTags = 6;
+        else if(val === 8) requiredTags = 8;
+        else if(val === 9) requiredTags = 9;
+        else if(val === 10) requiredTags = 10;
+        
+        requiredTagsDisplay.innerText = `Requires ~${requiredTags} Story Elements (excluding Genre).`;
+        updateSliderTrack(genScoreSlider, '#d4af37');
+    }
+
+    genScoreSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        genScoreInput.value = val;
+        updateScoreDisplay(val);
+    });
+    genScoreInput.addEventListener('input', (e) => {
+        let val = parseInt(e.target.value);
+        if(val > 10) val = 10;
+        if(val < 6) val = 6;
+        if(!isNaN(val)) {
+            genScoreSlider.value = val;
+            updateScoreDisplay(val);
+        }
+    });
+    updateSliderTrack(genScoreSlider, '#d4af37');
+}
+
+function updateSliderTrack(slider, colorOverride = null) {
     const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
     const isArt = slider.classList.contains('art-slider');
-    const color = isArt ? '#a0a0ff' : '#d4af37'; 
+    // Default logic
+    let color = isArt ? '#a0a0ff' : '#d4af37'; 
+    if (colorOverride) color = colorOverride;
+    
     slider.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${value}%, #444 ${value}%, #444 100%)`;
 }
 
@@ -218,16 +296,20 @@ function initializeSelectors(context) {
             t.category === category
         ).sort((a, b) => a.name.localeCompare(b.name));
         if (tagsInCategory.length === 0) return;
+        
         const groupDiv = document.createElement('div');
         groupDiv.className = 'category-group';
         groupDiv.id = `group-${category.replace(/\s/g, '-')}-${context}`;
+        
         const header = document.createElement('div');
         header.className = 'category-header';
         const label = document.createElement('div');
         label.className = 'category-label';
         label.innerText = category;
         header.appendChild(label);
-        if (MULTI_SELECT_CATEGORIES.includes(category)) {
+        
+        // Excluded list is always multi-select for all categories
+        if (context === 'excluded' || MULTI_SELECT_CATEGORIES.includes(category)) {
             const addBtn = document.createElement('button');
             addBtn.className = 'add-btn';
             addBtn.innerHTML = '+';
@@ -235,10 +317,12 @@ function initializeSelectors(context) {
             header.appendChild(addBtn);
         }
         groupDiv.appendChild(header);
+        
         const inputsContainer = document.createElement('div');
         inputsContainer.className = 'inputs-container';
         inputsContainer.id = `inputs-${category.replace(/\s/g, '-')}-${context}`;
         groupDiv.appendChild(inputsContainer);
+        
         container.appendChild(groupDiv);
         addDropdown(category, null, context);
     });
@@ -248,16 +332,20 @@ function addDropdown(category, selectedId = null, context = currentTab) {
     const containerId = `inputs-${category.replace(/\s/g, '-')}-${context}`;
     const container = document.getElementById(containerId);
     if (!container) return;
-    if (!MULTI_SELECT_CATEGORIES.includes(category) && container.children.length > 0) {
+    
+    // Logic for Single-select categories in 'synergy' or 'generator' (locked) context
+    if (context !== 'excluded' && !MULTI_SELECT_CATEGORIES.includes(category) && container.children.length > 0) {
         const select = container.querySelector('select');
         if (selectedId) select.value = selectedId;
         return;
     }
+    
     const tags = Object.values(GAME_DATA.tags).filter(t => t.category === category)
                  .sort((a, b) => a.name.localeCompare(b.name));
     const row = document.createElement('div');
     row.className = 'select-row';
-    if (category === 'Genre') row.classList.add('genre-row'); 
+    if (category === 'Genre' && context !== 'excluded') row.classList.add('genre-row'); 
+    
     const select = document.createElement('select');
     select.className = 'tag-selector';
     select.dataset.category = category;
@@ -273,7 +361,9 @@ function addDropdown(category, selectedId = null, context = currentTab) {
     });
     if (selectedId) select.value = selectedId;
     row.appendChild(select);
-    if (category === 'Genre') {
+    
+    // Add percent slider only for Genre in Synergy/Advertisers (not Excluded or simple Lock)
+    if (category === 'Genre' && context !== 'excluded') {
         const percentWrapper = document.createElement('div');
         percentWrapper.className = 'genre-percent-wrapper hidden'; 
         const numInput = document.createElement('input');
@@ -306,18 +396,19 @@ function addDropdown(category, selectedId = null, context = currentTab) {
         percentWrapper.appendChild(label);
         row.appendChild(percentWrapper);
     }
-    if (MULTI_SELECT_CATEGORIES.includes(category)) {
+    
+    if (context === 'excluded' || MULTI_SELECT_CATEGORIES.includes(category)) {
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-btn';
         removeBtn.innerHTML = '×';
         removeBtn.onclick = () => {
             row.remove();
-            if (category === 'Genre') updateGenreControls(context);
+            if (category === 'Genre' && context !== 'excluded') updateGenreControls(context);
         };
         row.appendChild(removeBtn);
     }
     container.appendChild(row);
-    if (category === 'Genre') {
+    if (category === 'Genre' && context !== 'excluded') {
         updateGenreControls(context);
     }
 }
@@ -438,7 +529,7 @@ function collectTagInputs(context) {
         const select = row.querySelector('select');
         const input = row.querySelector('.percent-input');
         if (select.value) {
-            let val = parseFloat(input.value);
+            let val = parseFloat(input ? input.value : 100);
             if (isNaN(val) || val < 0) val = 0;
             totalGenreInput += val;
             genreData.push({
@@ -468,6 +559,375 @@ function collectTagInputs(context) {
     });
     return tagInputs;
 }
+
+/* =========================================================================
+   SCRIPT GENERATOR LOGIC
+   ========================================================================= */
+
+function generateScripts() {
+    const targetComp = parseFloat(document.getElementById('genCompInput').value);
+    const targetScoreInput = parseInt(document.getElementById('genScoreInput').value);
+    
+    // Map Movie Score to Required Non-Genre Tag Count
+    let targetCount = 4; // Default for 6
+    if (targetScoreInput === 7) targetCount = 6;
+    else if (targetScoreInput === 8) targetCount = 8;
+    else if (targetScoreInput === 9) targetCount = 9;
+    else if (targetScoreInput >= 10) targetCount = 10;
+
+    // Get Fixed Tags
+    const fixedTags = collectTagInputs('generator');
+    const excludedTags = collectTagInputs('excluded');
+    
+    // Validate
+    const nonGenreFixed = fixedTags.filter(t => t.category !== "Genre");
+    if (nonGenreFixed.length > targetCount) {
+        alert(`You have locked ${nonGenreFixed.length} elements, but the target Movie Score only allows for ${targetCount}. Increase the target Movie Score or remove locked elements.`);
+        return;
+    }
+
+    const generatedBatch = [];
+    
+    // Generate 5 Output Slots
+    for(let i=0; i<5; i++) {
+        // --- MULTI-ATTEMPT RESTART STRATEGY ---
+        let bestCandidate = null;
+        
+        // Try up to 50 times to find a script that meets criteria
+        const MAX_ATTEMPTS = 50;
+        
+        for(let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            const candidate = runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags);
+            
+            // Logic to determine "better":
+            // 1. Prefer higher compatibility
+            if (!bestCandidate || candidate.stats.avgComp > bestCandidate.stats.avgComp) {
+                bestCandidate = candidate;
+            }
+            
+            // Acceptance Criteria to stop early:
+            // If we met the Target Compatibility AND we avoided conflicts (Movie Score > 0)
+            if (bestCandidate.stats.avgComp >= targetComp && parseFloat(bestCandidate.stats.movieScore) > 0) {
+                break; // Found a good one, lock it in for this slot
+            }
+        }
+        
+        generatedBatch.push(bestCandidate);
+    }
+    
+    // Sort by Movie Score (Descending), then Average Compatibility (Descending)
+    generatedBatch.sort((a, b) => {
+        const scoreA = parseFloat(a.stats.movieScore);
+        const scoreB = parseFloat(b.stats.movieScore);
+        
+        if (scoreA !== scoreB) {
+            return scoreB - scoreA;
+        }
+        return b.stats.avgComp - a.stats.avgComp;
+    });
+
+    generatedScriptsCache = generatedBatch;
+    renderGeneratedScripts(generatedBatch);
+}
+
+function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags) {
+    const excludedIds = new Set(excludedTags.map(t => t.id));
+    
+    // 1. Setup Initial Candidate
+    let currentTags = [...fixedTags];
+    const categoriesPresent = new Set(currentTags.map(t => t.category));
+    
+    // A. Handle Genres (Ensure at least 1, maybe 2)
+    const fixedGenreCount = currentTags.filter(t => t.category === "Genre").length;
+    if (fixedGenreCount === 0) {
+        // No genre locked: Pick 1 or 2
+        const genre1 = getRandomTagByCategory("Genre", currentTags, excludedIds);
+        if (genre1) {
+            genre1.percent = 1.0;
+            currentTags.push(genre1);
+            
+            // Chance for Multi-Genre (30%)
+            if (Math.random() < 0.3) {
+                const genre2 = getRandomTagByCategory("Genre", currentTags, excludedIds);
+                if (genre2) {
+                    // Update percents to 50/50 for dual genre
+                    genre1.percent = 0.5;
+                    genre2.percent = 0.5;
+                    currentTags.push(genre2);
+                }
+            }
+        }
+    }
+
+    // B. Fill Mandatory Categories
+    const mandatorycats = ["Setting", "Protagonist", "Antagonist", "Finale"];
+    mandatorycats.forEach(cat => {
+        if(!categoriesPresent.has(cat) && getNonGenreCount(currentTags) < targetCount) {
+            const randomTag = getRandomTagByCategory(cat, currentTags, excludedIds);
+            if(randomTag) currentTags.push(randomTag);
+        }
+    });
+
+    // C. Fill remaining slots
+    const fillerCats = ["Supporting Character", "Theme & Event"];
+    while(getNonGenreCount(currentTags) < targetCount) {
+        const randCat = fillerCats[Math.floor(Math.random() * fillerCats.length)];
+        const randomTag = getRandomTagByCategory(randCat, currentTags, excludedIds);
+        if(randomTag) currentTags.push(randomTag);
+        else break; 
+    }
+    
+    // 2. Optimization Loop (Simple Randomized Hill Climbing)
+    let bestSet = [...currentTags];
+    let bestStats = calculateMatrixScore(bestSet);
+    
+    const iterations = 200; 
+    for(let i=0; i<iterations; i++) {
+        let candidate = [...bestSet];
+        const fixedIds = new Set(fixedTags.map(t => t.id));
+        const mutableIndices = candidate.map((t, idx) => ({t, idx}))
+                                        .filter(item => !fixedIds.has(item.t.id) && item.t.category !== 'Genre')
+                                        .map(item => item.idx);
+        
+        if(mutableIndices.length === 0) break; 
+        
+        const swapIdx = mutableIndices[Math.floor(Math.random() * mutableIndices.length)];
+        const tagToSwap = candidate[swapIdx];
+        
+        const newTag = getRandomTagByCategory(tagToSwap.category, candidate, excludedIds); 
+        
+        if(newTag) {
+            candidate[swapIdx] = newTag;
+            const newStats = calculateMatrixScore(candidate);
+            
+            if(newStats.rawAverage > bestStats.rawAverage) {
+                bestSet = candidate;
+                bestStats = newStats;
+            }
+        }
+    }
+    
+    // 3. Calculate Final Stats
+    // Calculate Tag Cap (based on element count)
+    const ngCount = getNonGenreCount(bestSet);
+    let tagCap = 6;
+    let maxScriptQual = 5;
+
+    if(ngCount >= 10) { tagCap = 10; maxScriptQual = 10; }
+    else if(ngCount >= 9) { tagCap = 9; maxScriptQual = 8; }
+    else if(ngCount >= 7) { tagCap = 8; maxScriptQual = 7; } // 7-8 tags
+    else if(ngCount >= 5) { tagCap = 7; maxScriptQual = 6; } // 5-6 tags
+    // else <5: tagCap 6, script 5
+    
+    // Calculate Max Potential Score from Synergy & Bonuses
+    const bonuses = calculateTotalBonuses(bestSet);
+    const MAX_GAME_SCORE = 9.9;
+    const rawCom = (bestStats.totalScore + bonuses.com) * MAX_GAME_SCORE;
+    const rawArt = (bestStats.totalScore + bonuses.art) * MAX_GAME_SCORE;
+    const maxPotential = Math.max(0, Math.max(rawCom, rawArt));
+    
+    // Final Display Movie Score is the lower of the Tag Cap and Max Potential
+    const finalMovieScore = Math.min(tagCap, maxPotential);
+
+    return {
+        tags: bestSet,
+        stats: {
+            avgComp: bestStats.rawAverage,
+            synergySum: bestStats.totalScore,
+            maxScriptQuality: maxScriptQual,
+            movieScore: finalMovieScore.toFixed(1) // Return formatted string
+        },
+        uniqueId: Date.now() + Math.random().toString()
+    };
+}
+
+function getNonGenreCount(tags) {
+    return tags.filter(t => t.category !== "Genre").length;
+}
+
+function getRandomTagByCategory(category, currentTags, excludedIds) {
+    const existingIds = new Set(currentTags.map(t => t.id));
+    const allTags = Object.values(GAME_DATA.tags).filter(t => t.category === category);
+    
+    // Filter out Used AND Excluded
+    const available = allTags.filter(t => !existingIds.has(t.id) && !excludedIds.has(t.id));
+    
+    if(available.length === 0) return null;
+    const picked = available[Math.floor(Math.random() * available.length)];
+    
+    return {
+        id: picked.id,
+        percent: 1.0, 
+        category: category
+    };
+}
+
+function renderGeneratedScripts(scripts) {
+    const container = document.getElementById('generatorResultsList');
+    container.innerHTML = '';
+    document.getElementById('results-generator').classList.remove('hidden');
+
+    scripts.forEach((script, index) => {
+        const card = createScriptCardHTML(script, false); 
+        container.appendChild(card);
+    });
+}
+
+function createScriptCardHTML(scriptObj, isPinned) {
+    const div = document.createElement('div');
+    div.className = 'gen-card';
+    div.dataset.id = scriptObj.uniqueId;
+    
+    // Determine badge colors
+    const compClass = scriptObj.stats.avgComp >= 4.0 ? 'val-high' : (scriptObj.stats.avgComp >= 3.0 ? 'val-mid' : 'val-low');
+    
+    // Tag Chips
+    let tagsHtml = '';
+    const fixedInputs = collectTagInputs('generator');
+    const fixedIds = new Set(fixedInputs.map(t => t.id));
+    
+    // Define Sort Order
+    const categoryOrder = [
+        "Genre", 
+        "Setting", 
+        "Protagonist", 
+        "Antagonist", 
+        "Supporting Character", 
+        "Theme & Event", 
+        "Finale"
+    ];
+
+    // Sort tags based on category order
+    const sortedTags = [...scriptObj.tags].sort((a, b) => {
+        let idxA = categoryOrder.indexOf(a.category);
+        let idxB = categoryOrder.indexOf(b.category);
+        
+        // Safety: If category not found, put at end
+        if (idxA === -1) idxA = 99;
+        if (idxB === -1) idxB = 99;
+        
+        return idxA - idxB;
+    });
+
+    sortedTags.forEach(t => {
+        const tagName = GAME_DATA.tags[t.id].name;
+        const isFixed = fixedIds.has(t.id);
+        tagsHtml += `<span class="gen-tag-chip ${isFixed ? 'tag-fixed' : ''}">${tagName} <small>${t.category}</small></span>`;
+    });
+
+    const pinClass = isPinned ? 'pinned' : '';
+    const pinTitle = isPinned ? 'Unpin' : 'Pin to Save';
+
+    div.innerHTML = `
+        <div class="gen-header" onclick="toggleScriptCard(this)">
+            <div class="gen-info-row">
+                <div class="gen-badge-group">
+                    <span class="gen-badge-label">Avg Comp</span>
+                    <span class="gen-badge-val ${compClass}">${scriptObj.stats.avgComp.toFixed(1)}</span>
+                </div>
+                <div class="gen-badge-group">
+                    <span class="gen-badge-label">Movie Score</span>
+                    <span class="gen-badge-val val-mid">${scriptObj.stats.movieScore}</span>
+                </div>
+                <div class="gen-badge-group">
+                    <span class="gen-badge-label">Script Qual</span>
+                    <span class="gen-badge-val val-mid">${scriptObj.stats.maxScriptQuality}</span>
+                </div>
+            </div>
+            <button class="pin-btn ${pinClass}" title="${pinTitle}" onclick="togglePin('${scriptObj.uniqueId}', event)">
+                ${isPinned ? '★' : '☆'}
+            </button>
+        </div>
+        <div class="gen-details hidden">
+            <div class="gen-tags-grid">
+                ${tagsHtml}
+            </div>
+            <div class="gen-actions">
+                <span style="font-size:0.8rem; color:#666;">ID: ${scriptObj.uniqueId.substring(scriptObj.uniqueId.length-6)}</span>
+                <button class="transfer-link-btn" onclick="transferScriptToAdvertisers('${scriptObj.uniqueId}')">
+                    Use in Advertisers &rarr;
+                </button>
+            </div>
+        </div>
+    `;
+    return div;
+}
+
+function toggleScriptCard(headerEl) {
+    const details = headerEl.nextElementSibling;
+    details.classList.toggle('hidden');
+}
+
+function togglePin(uniqueId, event) {
+    event.stopPropagation(); 
+    
+    const existingIndex = pinnedScripts.findIndex(s => s.uniqueId === uniqueId);
+    if(existingIndex > -1) {
+        pinnedScripts.splice(existingIndex, 1);
+    } else {
+        const script = generatedScriptsCache.find(s => s.uniqueId === uniqueId);
+        if(script) pinnedScripts.push(script);
+    }
+    renderPinnedScripts();
+    renderGeneratedScripts(generatedScriptsCache);
+}
+
+function renderPinnedScripts() {
+    const container = document.getElementById('pinnedResultsList');
+    const wrapper = document.getElementById('pinned-scripts-container');
+    container.innerHTML = '';
+    
+    if(pinnedScripts.length === 0) {
+        wrapper.classList.add('hidden');
+        return;
+    }
+    
+    wrapper.classList.remove('hidden');
+    pinnedScripts.forEach(script => {
+        const card = createScriptCardHTML(script, true);
+        container.appendChild(card);
+    });
+}
+
+function transferScriptToAdvertisers(uniqueId) {
+    let script = pinnedScripts.find(s => s.uniqueId === uniqueId);
+    if(!script) script = generatedScriptsCache.find(s => s.uniqueId === uniqueId);
+    
+    if(!script) return;
+    
+    switchTab('advertisers');
+    initializeSelectors('advertisers'); 
+    
+    script.tags.forEach(t => {
+        const category = t.category;
+        const containerId = `inputs-${category.replace(/\s/g, '-')}-advertisers`;
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const existingSelects = container.querySelectorAll('select');
+        let placed = false;
+        for (let sel of existingSelects) {
+            if (sel.value === "") {
+                sel.value = t.id;
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) {
+            addDropdown(category, t.id, 'advertisers');
+        }
+    });
+    
+    const genres = script.tags.filter(t => t.category === "Genre");
+    if(genres.length > 1) {
+        updateGenreControls('advertisers');
+    }
+    
+    analyzeMovie();
+}
+
+
+// --- EXISTING CALCULATOR LOGIC BELOW ---
 
 function analyzeMovie() {
     const tagInputs = collectTagInputs('advertisers');
@@ -961,7 +1421,12 @@ function renderSynergyResults(matrix, bonuses) {
 
 function resetSelectors(context) {
     initializeSelectors(context);
-    document.getElementById(`results-${context}`).classList.add('hidden');
+    // Hide appropriate results
+    if (context === 'generator' || context === 'excluded') {
+        document.getElementById(`results-generator`).classList.add('hidden');
+    } else {
+        document.getElementById(`results-${context}`).classList.add('hidden');
+    }
 }
 
 function transferTagsToAdvertisers() {
