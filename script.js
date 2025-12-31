@@ -1,6 +1,8 @@
 const MULTI_SELECT_CATEGORIES = ["Genre", "Supporting Character", "Theme & Event"];
 let searchIndex = [];
 let currentTab = 'synergy'; 
+let generatedResults = [];
+let pinnedScripts = [];
 
 // --- LOCALIZATION VARIABLES ---
 let localizationMap = {}; // Stores ID -> "Clean Name"
@@ -10,11 +12,18 @@ window.onload = async function() {
     try {
         await changeLanguage('English', false); 
         await loadExternalData();
+        
         initializeSelectors('advertisers');
         initializeSelectors('synergy');
+        initializeSelectors('generator'); // Initialize generator seeds
+        
         buildSearchIndex();
         setupSearchListeners();
-        setupScoreSync(); 
+        setupScoreSync();
+        
+        // Generator Setup
+        setupGeneratorSliders();
+        
         console.log("Initialization Complete.");
     } catch (error) {
         console.error("Failed to load data:", error);
@@ -42,10 +51,15 @@ async function changeLanguage(langName, shouldRender = true) {
             if (shouldRender) {
                 const savedSynergy = collectTagInputs('synergy');
                 const savedAdvertisers = collectTagInputs('advertisers');
+                const savedGenerator = collectTagInputs('generator');
+
                 initializeSelectors('synergy');
                 initializeSelectors('advertisers');
+                initializeSelectors('generator');
+                
                 restoreSelection('synergy', savedSynergy);
                 restoreSelection('advertisers', savedAdvertisers);
+                restoreSelection('generator', savedGenerator);
             }
         }
     } catch (e) {
@@ -80,7 +94,8 @@ function restoreSelection(context, savedInputs) {
             placed = true;
         }
     });
-    if(savedInputs.some(i => i.category === 'Genre')) {
+    // Genre Percentages only apply to Builder tabs, not generator seeds
+    if(context !== 'generator' && savedInputs.some(i => i.category === 'Genre')) {
         updateGenreControls(context);
         const genreRows = document.querySelectorAll(`#inputs-Genre-${context} .genre-row`);
         const genres = savedInputs.filter(i => i.category === 'Genre');
@@ -99,8 +114,11 @@ function switchTab(tabName) {
     currentTab = tabName;
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     const btns = document.querySelectorAll('.tab-btn');
+    
     if(tabName === 'synergy') btns[0].classList.add('active');
-    else btns[1].classList.add('active');
+    else if(tabName === 'generator') btns[1].classList.add('active');
+    else btns[2].classList.add('active');
+
     document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
     document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 }
@@ -128,6 +146,12 @@ function setupScoreSync() {
         });
         updateSliderTrack(slider);
     });
+}
+
+function setupGeneratorSliders() {
+    // Just visual update for tracks
+    const sliders = document.querySelectorAll('#tab-generator .styled-slider');
+    sliders.forEach(s => updateSliderTrack(s));
 }
 
 function updateSliderTrack(slider) {
@@ -217,16 +241,23 @@ function initializeSelectors(context) {
         const tagsInCategory = Object.values(GAME_DATA.tags).filter(t => 
             t.category === category
         ).sort((a, b) => a.name.localeCompare(b.name));
+        
         if (tagsInCategory.length === 0) return;
+        
         const groupDiv = document.createElement('div');
         groupDiv.className = 'category-group';
         groupDiv.id = `group-${category.replace(/\s/g, '-')}-${context}`;
+        
         const header = document.createElement('div');
         header.className = 'category-header';
+        
         const label = document.createElement('div');
         label.className = 'category-label';
         label.innerText = category;
         header.appendChild(label);
+
+        // For generator, we only allow 1 of each seed type except themes/supporting if we wanted, 
+        // but for simplicity, let's keep the logic consistent with other tabs
         if (MULTI_SELECT_CATEGORIES.includes(category)) {
             const addBtn = document.createElement('button');
             addBtn.className = 'add-btn';
@@ -234,12 +265,15 @@ function initializeSelectors(context) {
             addBtn.onclick = () => addDropdown(category, null, context);
             header.appendChild(addBtn);
         }
+        
         groupDiv.appendChild(header);
         const inputsContainer = document.createElement('div');
         inputsContainer.className = 'inputs-container';
         inputsContainer.id = `inputs-${category.replace(/\s/g, '-')}-${context}`;
         groupDiv.appendChild(inputsContainer);
         container.appendChild(groupDiv);
+        
+        // Add initial dropdown
         addDropdown(category, null, context);
     });
 }
@@ -248,32 +282,43 @@ function addDropdown(category, selectedId = null, context = currentTab) {
     const containerId = `inputs-${category.replace(/\s/g, '-')}-${context}`;
     const container = document.getElementById(containerId);
     if (!container) return;
+    
+    // Generator Logic: Seeds are optional, so "Select" means "Random" effectively
+    // But visual logic remains same
     if (!MULTI_SELECT_CATEGORIES.includes(category) && container.children.length > 0) {
         const select = container.querySelector('select');
         if (selectedId) select.value = selectedId;
         return;
     }
+
     const tags = Object.values(GAME_DATA.tags).filter(t => t.category === category)
                  .sort((a, b) => a.name.localeCompare(b.name));
+    
     const row = document.createElement('div');
     row.className = 'select-row';
-    if (category === 'Genre') row.classList.add('genre-row'); 
+    if (category === 'Genre' && context !== 'generator') row.classList.add('genre-row'); 
+
     const select = document.createElement('select');
     select.className = 'tag-selector';
     select.dataset.category = category;
+    
     const defOpt = document.createElement('option');
     defOpt.value = "";
-    defOpt.innerText = selectedId ? "-- Select --" : `-- Select ${category} --`;
+    defOpt.innerText = selectedId ? "-- Select --" : (context === 'generator' ? `-- Random / None --` : `-- Select ${category} --`);
     select.appendChild(defOpt);
+    
     tags.forEach(tag => {
         const opt = document.createElement('option');
         opt.value = tag.id;
         opt.innerText = tag.name;
         select.appendChild(opt);
     });
+    
     if (selectedId) select.value = selectedId;
     row.appendChild(select);
-    if (category === 'Genre') {
+
+    // Percentage sliders for Genre (Not in Generator)
+    if (category === 'Genre' && context !== 'generator') {
         const percentWrapper = document.createElement('div');
         percentWrapper.className = 'genre-percent-wrapper hidden'; 
         const numInput = document.createElement('input');
@@ -292,6 +337,7 @@ function addDropdown(category, selectedId = null, context = currentTab) {
         label.innerText = '%';
         label.style.fontSize = '0.8rem';
         label.style.color = '#888';
+        
         numInput.addEventListener('input', (e) => {
             slider.value = e.target.value;
             updatePercentSliderTrack(slider);
@@ -300,24 +346,27 @@ function addDropdown(category, selectedId = null, context = currentTab) {
             numInput.value = e.target.value;
             updatePercentSliderTrack(slider);
         });
+        
         updatePercentSliderTrack(slider);
         percentWrapper.appendChild(slider);
         percentWrapper.appendChild(numInput);
         percentWrapper.appendChild(label);
         row.appendChild(percentWrapper);
     }
+
     if (MULTI_SELECT_CATEGORIES.includes(category)) {
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-btn';
         removeBtn.innerHTML = '×';
         removeBtn.onclick = () => {
             row.remove();
-            if (category === 'Genre') updateGenreControls(context);
+            if (category === 'Genre' && context !== 'generator') updateGenreControls(context);
         };
         row.appendChild(removeBtn);
     }
+    
     container.appendChild(row);
-    if (category === 'Genre') {
+    if (category === 'Genre' && context !== 'generator') {
         updateGenreControls(context);
     }
 }
@@ -430,8 +479,26 @@ function selectTagFromSearch(tagObj, context) {
 
 function collectTagInputs(context) {
     const tagInputs = []; 
+    // Genre logic
     const genreContainer = document.getElementById(`inputs-Genre-${context}`);
     const genreRows = genreContainer ? genreContainer.querySelectorAll('.genre-row') : [];
+    
+    // For Generator, we handle genres simply as IDs since percentage isn't user-defined there initially
+    if (context === 'generator') {
+        const container = document.getElementById(`selectors-container-${context}`);
+        container.querySelectorAll('.tag-selector').forEach(sel => {
+            if (sel.value) {
+                tagInputs.push({
+                    id: sel.value,
+                    percent: 1.0, 
+                    category: sel.dataset.category
+                });
+            }
+        });
+        return tagInputs;
+    }
+
+    // Normal Contexts
     let totalGenreInput = 0;
     const genreData = [];
     genreRows.forEach(row => {
@@ -469,6 +536,9 @@ function collectTagInputs(context) {
     return tagInputs;
 }
 
+// ---------------------------------------------
+// ANALYZE MOVIE (Advertisers)
+// ---------------------------------------------
 function analyzeMovie() {
     const tagInputs = collectTagInputs('advertisers');
     if(tagInputs.length === 0) {
@@ -566,11 +636,9 @@ function analyzeMovie() {
     if (targetAudiences.length > 0) {
         targetAudiences.sort((a, b) => b.score - a.score);
         targetAudiences.forEach(d => {
-            const chip = document.createElement('div');
             let tierClass = "pill-moderate";
-            if(d.score >= THRESHOLD_GOOD) {
-                tierClass = "pill-best";
-            }
+            if(d.score >= THRESHOLD_GOOD) tierClass = "pill-best";
+            const chip = document.createElement('div');
             chip.className = `audience-pill ${tierClass}`;
             chip.innerHTML = `${d.name}`;
             audienceContainer.appendChild(chip);
@@ -632,14 +700,13 @@ function analyzeMovie() {
         agentContainer.innerHTML = agentHtml;
     }
 
-    // --- REVISED HOLIDAY LOGIC (Detailed Breakdown) ---
+    // --- HOLIDAY LOGIC ---
     const holidayContainer = document.getElementById('holidayDisplay');
     holidayContainer.innerHTML = '';
 
     if (validTargetIds.length === 0) {
         holidayContainer.innerHTML = `<div style="color:#666; font-style:italic;">Identify target audience first.</div>`;
     } else {
-        // Determine Priority Targets (High if exist, else Moderate)
         let primaryTargets = highInterestIds;
         if (primaryTargets.length === 0) {
             primaryTargets = moderateInterestIds;
@@ -648,8 +715,6 @@ function analyzeMovie() {
         const rankedHolidays = GAME_DATA.holidays.map(h => {
             let totalScore = 0;
             let parts = [];
-
-            // Iterate over the ACTIVE target list to build text
             primaryTargets.forEach(id => {
                 const bonus = h.bonuses[id] || 0;
                 if (bonus > 0) {
@@ -660,8 +725,6 @@ function analyzeMovie() {
                     });
                 }
             });
-
-            // Sort parts by bonus value descending for display
             parts.sort((a, b) => b.val - a.val);
             const contextText = parts.length > 0 ? parts.map(p => p.text).join(', ') : "No significant bonus.";
 
@@ -672,13 +735,11 @@ function analyzeMovie() {
             };
         });
 
-        // Filter and Sort by Total Score
         const viableHolidays = rankedHolidays.filter(h => h.totalScore > 0).sort((a, b) => b.totalScore - a.totalScore);
 
         if (viableHolidays.length === 0) {
             holidayContainer.innerHTML = `<div class="holiday-row-empty"><span>No beneficial holidays found for your primary audience.</span></div>`;
         } else {
-            // Render Best Option
             const best = viableHolidays[0];
             const bestHeader = document.createElement('div');
             bestHeader.className = 'holiday-section-label';
@@ -695,8 +756,7 @@ function analyzeMovie() {
             `;
             holidayContainer.appendChild(bestRow);
 
-            // Render Alternatives
-            const alternatives = viableHolidays.slice(1, 4); // Take next 3
+            const alternatives = viableHolidays.slice(1, 4); 
             if(alternatives.length > 0) {
                 const altHeader = document.createElement('div');
                 altHeader.className = 'holiday-section-label';
@@ -1000,5 +1060,386 @@ function transferTagsToAdvertisers() {
             }
         });
     }
+    analyzeMovie();
+}
+
+// ---------------------------------------------
+// SCRIPT GENERATOR LOGIC (NEW)
+// ---------------------------------------------
+function resetGenerator() {
+    initializeSelectors('generator');
+    document.getElementById('genTargetComp').value = 4.5;
+    document.getElementById('genTargetCompVal').innerText = "4.5";
+    document.getElementById('genTargetComScore').value = 6;
+    document.getElementById('genTargetComScoreVal').innerText = "6.0";
+    document.getElementById('genTargetArtScore').value = 6;
+    document.getElementById('genTargetArtScoreVal').innerText = "6.0";
+    document.getElementById('genCountGenre').value = "1";
+    document.getElementById('genCountTheme').value = "random";
+    document.getElementById('genCountSupport').value = "random";
+    updateSliderTrack(document.getElementById('genTargetComp'));
+    updateSliderTrack(document.getElementById('genTargetComScore'));
+    updateSliderTrack(document.getElementById('genTargetArtScore'));
+}
+
+function generateScripts() {
+    // 1. Collect inputs
+    const seeds = collectTagInputs('generator');
+    const targetComp = parseFloat(document.getElementById('genTargetComp').value);
+    const targetComScore = parseFloat(document.getElementById('genTargetComScore').value);
+    const targetArtScore = parseFloat(document.getElementById('genTargetArtScore').value);
+    
+    // 2. Determine Number of Elements needed based on max requested score
+    // 4.0 -> 3 elements (Protag, Setting, Genre)
+    // 5.0 -> 4 elements (+1)
+    // 6.0 -> 5 elements (+2) ...
+    const maxRequestedScore = Math.max(targetComScore, targetArtScore);
+    const requiredElements = calculateMovieElementCount(maxRequestedScore);
+
+    // 3. Determine structure counts
+    const genreCount = parseInt(document.getElementById('genCountGenre').value);
+    let themeCount = document.getElementById('genCountTheme').value;
+    let supportCount = document.getElementById('genCountSupport').value;
+
+    generatedResults = [];
+    const NUM_SCRIPTS = 5;
+
+    for (let i = 0; i < NUM_SCRIPTS; i++) {
+        // Run optimization algorithm
+        const result = runGenerationAlgorithm(seeds, requiredElements, genreCount, themeCount, supportCount, targetComp, targetComScore, targetArtScore);
+        if (result) {
+            generatedResults.push(result);
+        }
+    }
+
+    renderGeneratedScripts();
+}
+
+function calculateMovieElementCount(score) {
+    if (score <= 4.0) return 3;
+    if (score <= 5.0) return 4;
+    if (score <= 6.0) return 5;
+    if (score <= 7.0) return 6;
+    if (score <= 8.0) return 7;
+    return 8; // Max for 9.0+
+}
+
+function runGenerationAlgorithm(seeds, totalSlots, genreCount, themeReq, supportReq, targetComp, targetCom, targetArt) {
+    // Categories pool
+    const pool = {
+        Genre: Object.values(GAME_DATA.tags).filter(t => t.category === "Genre"),
+        Setting: Object.values(GAME_DATA.tags).filter(t => t.category === "Setting"),
+        Protagonist: Object.values(GAME_DATA.tags).filter(t => t.category === "Protagonist"),
+        Antagonist: Object.values(GAME_DATA.tags).filter(t => t.category === "Antagonist"),
+        Supporting: Object.values(GAME_DATA.tags).filter(t => t.category === "Supporting Character"),
+        Theme: Object.values(GAME_DATA.tags).filter(t => t.category === "Theme & Event"),
+        Finale: Object.values(GAME_DATA.tags).filter(t => t.category === "Finale")
+    };
+
+    // Helper to get random item from array
+    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const randRemove = (arr) => {
+        const idx = Math.floor(Math.random() * arr.length);
+        return arr.splice(idx, 1)[0];
+    };
+
+    // Initialize current candidate with seeds
+    let candidate = [...seeds]; // Start with locked items
+    
+    // Fill Mandatory Slots if not seeded
+    if (!candidate.some(t => t.category === "Genre")) candidate.push({ ...rand(pool.Genre), percent: 1 });
+    if (!candidate.some(t => t.category === "Setting")) candidate.push({ ...rand(pool.Setting), percent: 1 });
+    if (!candidate.some(t => t.category === "Protagonist")) candidate.push({ ...rand(pool.Protagonist), percent: 1 });
+
+    // Handle Extra Genre if requested
+    const currentGenres = candidate.filter(t => t.category === "Genre").length;
+    if (genreCount > currentGenres) {
+        const availableGenres = pool.Genre.filter(g => !candidate.some(c => c.id === g.id));
+        if (availableGenres.length > 0) candidate.push({ ...rand(availableGenres), percent: 1 });
+    }
+
+    // Determine "Meaningful" slots filled so far (Protag, Setting, Antag, Supp, Theme, Finale)
+    // Genre does NOT count towards the element count for score threshold
+    const getMeaningfulCount = (list) => list.filter(t => t.category !== "Genre").length;
+    
+    let currentMeaningful = getMeaningfulCount(candidate);
+    let slotsNeeded = totalSlots - currentMeaningful;
+
+    // Logic to fill remaining slots
+    // Priority: Requirements -> Random distribution
+    let availableTypes = [];
+    
+    // 1. Check specifics
+    let tCount = (themeReq === 'random') ? -1 : parseInt(themeReq);
+    let sCount = (supportReq === 'random') ? -1 : parseInt(supportReq);
+
+    // Add specific requirements if we have space
+    while (tCount > 0 && slotsNeeded > 0) {
+        availableTypes.push('Theme');
+        tCount--;
+        slotsNeeded--;
+    }
+    while (sCount > 0 && slotsNeeded > 0) {
+        availableTypes.push('Supporting');
+        sCount--;
+        slotsNeeded--;
+    }
+
+    // Fill rest randomly with valid structure types
+    // Max 1 Antagonist, Max 1 Finale
+    const hasAntag = candidate.some(t => t.category === "Antagonist");
+    const hasFinale = candidate.some(t => t.category === "Finale");
+    
+    // Fill pool of types for remaining slots
+    while (slotsNeeded > 0) {
+        let options = ['Theme', 'Supporting'];
+        if (!hasAntag && !candidate.some(t => t.category === "Antagonist") && !availableTypes.includes('Antagonist')) options.push('Antagonist');
+        if (!hasFinale && !candidate.some(t => t.category === "Finale") && !availableTypes.includes('Finale')) options.push('Finale');
+        
+        availableTypes.push(rand(options));
+        slotsNeeded--;
+    }
+
+    // Add the tags for the determined types
+    availableTypes.forEach(type => {
+        let list = pool[type].filter(item => !candidate.some(c => c.id === item.id));
+        if (list.length > 0) {
+            candidate.push({ ...rand(list), percent: 1 });
+        }
+    });
+
+    // Fix percents for genres if 2
+    const genres = candidate.filter(t => t.category === "Genre");
+    if (genres.length > 1) {
+        genres.forEach(g => g.percent = 0.5);
+    }
+
+    // OPTIMIZATION LOOP (Hill Climbing)
+    // We want to minimize distance to Target Comp
+    // And Maximize Scores towards targets
+    
+    let bestCandidate = JSON.parse(JSON.stringify(candidate));
+    let bestError = 9999;
+    
+    const iterations = 500; 
+
+    for (let k = 0; k < iterations; k++) {
+        // Calculate Metrics
+        let stats = calculateStats(candidate);
+        
+        // Error Function
+        // 1. Compatibility Distance (We want to hit the target, not just max it)
+        let compDiff = Math.abs(stats.matrix.rawAverage - targetComp);
+        
+        // 2. Score Deficit (We want to be AT LEAST the target)
+        // If we are below target, huge penalty. If above, small bonus.
+        // Convert max potential score logic
+        const MAX = 9.9;
+        let estCom = Math.max(0, (stats.matrix.totalScore + stats.bonuses.com) * MAX);
+        let estArt = Math.max(0, (stats.matrix.totalScore + stats.bonuses.art) * MAX);
+        
+        let scoreError = 0;
+        if (estCom < targetCom) scoreError += (targetCom - estCom) * 5; // Heavy penalty for missing
+        if (estArt < targetArt) scoreError += (targetArt - estArt) * 5;
+
+        let totalError = (compDiff * 10) + scoreError;
+
+        if (totalError < bestError) {
+            bestError = totalError;
+            bestCandidate = JSON.parse(JSON.stringify(candidate));
+        }
+
+        // Mutate for next iteration
+        // Pick a random tag (not a seed) and swap with same category
+        // Indices of non-seed tags
+        let mutableIndices = candidate.map((t, idx) => {
+            // Check if this tag ID is in seeds
+            if (seeds.some(s => s.id === t.id)) return -1;
+            return idx;
+        }).filter(i => i !== -1);
+
+        if (mutableIndices.length > 0) {
+            let idxToSwap = rand(mutableIndices);
+            let tagToSwap = candidate[idxToSwap];
+            let cat = tagToSwap.category;
+            // Map category names to pool keys if needed
+            let poolKey = cat === "Theme & Event" ? "Theme" : (cat === "Supporting Character" ? "Supporting" : cat);
+            
+            if (pool[poolKey]) {
+                let options = pool[poolKey].filter(x => !candidate.some(c => c.id === x.id));
+                if (options.length > 0) {
+                    let newTag = rand(options);
+                    candidate[idxToSwap] = { ...newTag, percent: tagToSwap.percent };
+                }
+            }
+        }
+    }
+
+    // Return finalized object
+    let finalStats = calculateStats(bestCandidate);
+    const MAX = 9.9;
+    return {
+        tags: bestCandidate,
+        avgComp: finalStats.matrix.rawAverage,
+        maxCom: Math.min(10, Math.max(0, (finalStats.matrix.totalScore + finalStats.bonuses.com) * MAX)).toFixed(1),
+        maxArt: Math.min(10, Math.max(0, (finalStats.matrix.totalScore + finalStats.bonuses.art) * MAX)).toFixed(1),
+        id: Date.now() + Math.random()
+    };
+}
+
+function calculateStats(tags) {
+    return {
+        matrix: calculateMatrixScore(tags),
+        bonuses: calculateTotalBonuses(tags)
+    };
+}
+
+function renderGeneratedScripts() {
+    document.getElementById('gen-placeholder').classList.add('hidden');
+    document.getElementById('generated-scripts-container').classList.remove('hidden');
+    
+    const list = document.getElementById('generated-list');
+    list.innerHTML = '';
+
+    generatedResults.forEach((script, index) => {
+        const item = createAccordionItem(script, false);
+        list.appendChild(item);
+    });
+}
+
+function createAccordionItem(script, isPinned) {
+    const item = document.createElement('div');
+    item.className = 'accordion-item';
+    
+    // Header
+    const header = document.createElement('div');
+    header.className = 'accordion-header';
+    header.onclick = (e) => {
+        if(!e.target.closest('.icon-btn')) {
+            item.classList.toggle('expanded');
+        }
+    };
+
+    // Summary Stats
+    const summary = document.createElement('div');
+    summary.className = 'acc-summary';
+    summary.innerHTML = `
+        <div class="acc-stat">
+            <span class="acc-label">Avg Comp</span>
+            <span class="acc-val ${script.avgComp >= 4 ? 'good' : (script.avgComp < 2.5 ? 'bad' : '')}">${script.avgComp.toFixed(1)}</span>
+        </div>
+        <div class="acc-stat">
+            <span class="acc-label">Com Score</span>
+            <span class="acc-val">${script.maxCom}</span>
+        </div>
+        <div class="acc-stat">
+            <span class="acc-label">Art Score</span>
+            <span class="acc-val" style="color:#a0a0ff;">${script.maxArt}</span>
+        </div>
+    `;
+
+    // Controls
+    const controls = document.createElement('div');
+    controls.className = 'acc-controls';
+    
+    const pinBtn = document.createElement('button');
+    pinBtn.className = `icon-btn ${isPinned ? 'pinned' : ''}`;
+    pinBtn.innerHTML = isPinned ? '★' : '☆';
+    pinBtn.title = isPinned ? "Unsave" : "Save Script";
+    pinBtn.onclick = () => togglePinScript(script);
+
+    controls.appendChild(pinBtn);
+    header.appendChild(summary);
+    header.appendChild(controls);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'accordion-body';
+    
+    const tagsContainer = document.createElement('div');
+    tagsContainer.className = 'script-tags-grid';
+    
+    script.tags.forEach(t => {
+        const tagSpan = document.createElement('span');
+        tagSpan.className = `script-tag ${t.category === 'Genre' ? 'genre-tag' : ''}`;
+        tagSpan.innerHTML = `${t.name} <small>${t.category}</small>`;
+        tagsContainer.appendChild(tagSpan);
+    });
+
+    const transferBtn = document.createElement('button');
+    transferBtn.className = 'transfer-btn';
+    transferBtn.innerText = 'Analyze Advertisers &rarr;';
+    transferBtn.onclick = () => transferGeneratedScript(script);
+
+    body.appendChild(tagsContainer);
+    body.appendChild(transferBtn);
+
+    item.appendChild(header);
+    item.appendChild(body);
+    return item;
+}
+
+function togglePinScript(script) {
+    const index = pinnedScripts.findIndex(s => s.id === script.id);
+    if (index >= 0) {
+        pinnedScripts.splice(index, 1);
+    } else {
+        pinnedScripts.push(script);
+    }
+    renderPinnedScripts();
+    // Re-render generated list to update stars
+    renderGeneratedScripts();
+}
+
+function renderPinnedScripts() {
+    const container = document.getElementById('pinned-scripts-container');
+    const list = document.getElementById('pinned-list');
+    list.innerHTML = '';
+    
+    if (pinnedScripts.length === 0) {
+        container.classList.add('hidden');
+    } else {
+        container.classList.remove('hidden');
+        pinnedScripts.forEach(script => {
+            const item = createAccordionItem(script, true);
+            list.appendChild(item);
+        });
+    }
+}
+
+function transferGeneratedScript(script) {
+    switchTab('advertisers');
+    initializeSelectors('advertisers'); // Reset
+    
+    script.tags.forEach(tag => {
+        const category = tag.category;
+        const containerId = `inputs-${category.replace(/\s/g, '-')}-advertisers`;
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        // Find empty slot or add new
+        const existingSelects = container.querySelectorAll('select');
+        let placed = false;
+        for (let sel of existingSelects) {
+            if (sel.value === "") {
+                sel.value = tag.id;
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) {
+            addDropdown(category, tag.id, 'advertisers');
+        }
+    });
+
+    // Handle scores input transfer from the generated prediction
+    document.getElementById('comScoreInput').value = script.maxCom;
+    document.getElementById('comScoreSlider').value = script.maxCom;
+    updateSliderTrack(document.getElementById('comScoreSlider'));
+
+    document.getElementById('artScoreInput').value = script.maxArt;
+    document.getElementById('artScoreSlider').value = script.maxArt;
+    updateSliderTrack(document.getElementById('artScoreSlider'));
+
     analyzeMovie();
 }
