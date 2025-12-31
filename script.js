@@ -608,6 +608,29 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
     let currentTags = [...fixedTags];
     const categoriesPresent = new Set(currentTags.map(t => t.category));
     
+    // A. Handle Genres (Ensure at least 1, maybe 2)
+    const fixedGenreCount = currentTags.filter(t => t.category === "Genre").length;
+    if (fixedGenreCount === 0) {
+        // No genre locked: Pick 1 or 2
+        const genre1 = getRandomTagByCategory("Genre", currentTags, excludedIds);
+        if (genre1) {
+            genre1.percent = 1.0;
+            currentTags.push(genre1);
+            
+            // Chance for Multi-Genre (30%)
+            if (Math.random() < 0.3) {
+                const genre2 = getRandomTagByCategory("Genre", currentTags, excludedIds);
+                if (genre2) {
+                    // Update percents to 50/50 for dual genre
+                    genre1.percent = 0.5;
+                    genre2.percent = 0.5;
+                    currentTags.push(genre2);
+                }
+            }
+        }
+    }
+
+    // B. Fill Mandatory Categories
     const mandatorycats = ["Setting", "Protagonist", "Antagonist", "Finale"];
     mandatorycats.forEach(cat => {
         if(!categoriesPresent.has(cat) && getNonGenreCount(currentTags) < targetCount) {
@@ -616,7 +639,7 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
         }
     });
 
-    // Fill remaining slots
+    // C. Fill remaining slots
     const fillerCats = ["Supporting Character", "Theme & Event"];
     while(getNonGenreCount(currentTags) < targetCount) {
         const randCat = fillerCats[Math.floor(Math.random() * fillerCats.length)];
@@ -723,7 +746,14 @@ function createScriptCardHTML(scriptObj, isPinned) {
     const fixedInputs = collectTagInputs('generator');
     const fixedIds = new Set(fixedInputs.map(t => t.id));
     
-    scriptObj.tags.forEach(t => {
+    // Sort so genres appear first
+    const sortedTags = [...scriptObj.tags].sort((a, b) => {
+        if(a.category === 'Genre' && b.category !== 'Genre') return -1;
+        if(a.category !== 'Genre' && b.category === 'Genre') return 1;
+        return 0;
+    });
+
+    sortedTags.forEach(t => {
         const tagName = GAME_DATA.tags[t.id].name;
         const isFixed = fixedIds.has(t.id);
         tagsHtml += `<span class="gen-tag-chip ${isFixed ? 'tag-fixed' : ''}">${tagName} <small>${t.category}</small></span>`;
