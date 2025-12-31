@@ -657,8 +657,15 @@ function analyzeMovie() {
     }
 
     // 4. CATEGORIZATION THRESHOLDS
+    // UPDATE: Matched to C# Code (Hollywood Animal)
+    // Good: >= 0.67
+    // Normal: > 0.33 and < 0.67
+    // Bad: <= 0.33
     const THRESHOLD_GOOD = 0.67;
-    const targetAudiences = demoGrades.filter(d => d.score >= THRESHOLD_GOOD);
+    const THRESHOLD_BAD = 0.33; // Scores <= 0.33 are considered Bad
+
+    // Filter: Show Moderate (Normal) and Good. Hide Bad.
+    const targetAudiences = demoGrades.filter(d => d.score > THRESHOLD_BAD);
 
     // 5. UI Rendering
     document.getElementById('results-advertisers').classList.remove('hidden');
@@ -669,7 +676,14 @@ function analyzeMovie() {
         targetAudiences.sort((a, b) => b.score - a.score);
         targetAudiences.forEach(d => {
             const chip = document.createElement('div');
-            chip.className = 'audience-pill';
+            
+            // Assign Tier Class
+            let tierClass = "pill-moderate";
+            if(d.score >= THRESHOLD_GOOD) {
+                tierClass = "pill-best";
+            }
+            
+            chip.className = `audience-pill ${tierClass}`;
             chip.innerHTML = `${d.name}`;
             audienceContainer.appendChild(chip);
         });

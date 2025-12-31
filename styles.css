@@ -9,6 +9,7 @@
     --border: #333;
     --danger: #ff5f5f;
     --success: #4cd964;
+    --moderate: #ff9f0a; /* Orange for Moderate */
     --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     --radius: 8px;
 }
@@ -79,9 +80,8 @@ h2 {
     font-family: 'Inter', sans-serif;
     cursor: pointer;
     outline: none;
-    appearance: none; /* Remove default arrow */
-    padding-right: 30px; /* Space for custom arrow */
-    /* Custom SVG Arrow encoded as Data URI */
+    appearance: none;
+    padding-right: 30px;
     background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23d4af37%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.7-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
     background-repeat: no-repeat;
     background-position: right 10px top 50%;
@@ -467,7 +467,6 @@ select:focus { outline: none; border-color: var(--accent); }
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 24px;
-    /* Ensures cards in the same row are equal height */
     align-items: stretch; 
 }
 
@@ -490,6 +489,38 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 
 /* --- TARGET AUDIENCE (Chips) --- */
+
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.card-header-row h3 { margin-bottom: 0; }
+
+.audience-legend {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+.legend-dot.best { background-color: var(--success); box-shadow: 0 0 5px var(--success); }
+.legend-dot.moderate { background-color: var(--moderate); box-shadow: 0 0 5px var(--moderate); }
+
+
 .landscape-content {
     display: flex;
     flex-wrap: wrap;
@@ -504,11 +535,23 @@ select:focus { outline: none; border-color: var(--accent); }
     font-size: 0.95rem;
     font-weight: 500;
     color: var(--text-main);
-    transition: background 0.2s;
+    transition: all 0.2s;
+    border: 1px solid transparent;
 }
 
-.audience-pill:hover {
-    background: rgba(255, 255, 255, 0.15);
+/* New Logic: Modifiers for Match Quality */
+.audience-pill.pill-best {
+    border-color: var(--success);
+    color: #fff;
+    background: rgba(76, 217, 100, 0.1);
+    box-shadow: 0 0 10px rgba(76, 217, 100, 0.2);
+}
+
+.audience-pill.pill-moderate {
+    border-color: var(--moderate);
+    color: #fff;
+    background: rgba(255, 159, 10, 0.1);
+    box-shadow: 0 0 8px rgba(255, 159, 10, 0.15);
 }
 
 /* --- PREFERRED HOLIDAY (Hero Text) --- */
