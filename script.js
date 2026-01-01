@@ -580,6 +580,9 @@ function selectTagFromSearch(tagObj, context) {
 
 function collectTagInputs(context) {
     const tagInputs = []; 
+    
+    // BLOCK 1: Handling Genres (usually with percentages)
+    // Note: Excluded genres do NOT have the .genre-row class, so this is skipped for exclusions.
     const genreContainer = document.getElementById(`inputs-Genre-${context}`);
     const genreRows = genreContainer ? genreContainer.querySelectorAll('.genre-row') : [];
     let totalGenreInput = 0;
@@ -605,9 +608,17 @@ function collectTagInputs(context) {
             category: "Genre"
         });
     });
+
+    // BLOCK 2: Handling Everything Else (and Genres for exclusions)
     const container = document.getElementById(`selectors-container-${context}`);
     container.querySelectorAll('.tag-selector').forEach(sel => {
-        if (sel.dataset.category === "Genre") return; 
+        // BUG FIX: 
+        // Previously: if (sel.dataset.category === "Genre") return;
+        // The issue: "Excluded" genres don't have .genre-row (Block 1), 
+        // so if we skip them here too, they are never collected.
+        // Fix: Only skip genres here if they ARE NOT exclusions.
+        if (sel.dataset.category === "Genre" && context !== 'excluded') return; 
+
         if (sel.value) {
             tagInputs.push({
                 id: sel.value,
