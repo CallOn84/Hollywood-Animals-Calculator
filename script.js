@@ -880,7 +880,7 @@ function createScriptCardHTML(scriptObj, isPinned) {
             <div class="gen-actions">
                 <span style="font-size:0.8rem; color:#666;">ID: ${scriptObj.uniqueId.substring(scriptObj.uniqueId.length-6)}</span>
                 <button class="transfer-link-btn" onclick="transferScriptToAdvertisers('${scriptObj.uniqueId}')">
-                    Use in Advertisers &rarr;
+                    Find Best Advertisers &rarr;
                 </button>
             </div>
         </div>
