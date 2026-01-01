@@ -252,6 +252,53 @@ h3 {
 .art-slider::-webkit-slider-thumb { background: #a0a0ff; }
 .com-slider::-webkit-slider-thumb { background: var(--accent); }
 
+/* --- PROFILE BUTTONS --- */
+.profile-control-container {
+    background: #252525;
+    padding: 15px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+    transition: border-color 0.2s;
+}
+.profile-control-container:hover { border-color: #555; }
+
+.profile-label-row {
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.profile-btn-group {
+    display: flex;
+    gap: 10px;
+}
+
+.profile-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.profile-btn:hover {
+    border-color: var(--text-main);
+    color: var(--text-main);
+}
+
+.profile-btn.active {
+    background: var(--text-main);
+    color: #000;
+    border-color: var(--text-main);
+}
+
 /* --- SELECTORS GRID --- */
 .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
 
@@ -510,6 +557,34 @@ input[type="text"] {
 
 .gen-header:hover {
     background: rgba(255,255,255,0.05);
+}
+
+.gen-left-col {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    margin-right: 15px;
+    min-width: 0; /* Prevent flex overflow */
+}
+
+/* Pinned Name Input */
+.script-name-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    color: var(--text-main);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.2s;
+    padding: 5px 0;
+}
+
+.script-name-input:focus {
+    outline: none;
+    border-bottom-color: var(--accent);
 }
 
 .gen-info-row {

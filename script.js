@@ -8,6 +8,9 @@ let pinnedScripts = []; // Stores saved scripts
 let localizationMap = {}; // Stores ID -> "Clean Name"
 let currentLanguage = 'English';
 
+// --- NEW: PROFILE STATE ---
+let currentGenProfile = 'custom'; // 'custom' or 'starting'
+
 window.onload = async function() {
     try {
         await changeLanguage('English', false); 
@@ -23,11 +26,63 @@ window.onload = async function() {
         setupSearchListeners();
         setupScoreSync(); 
         setupGeneratorControls(); 
+        
+        // Initialize Default Profile
+        setGeneratorProfile('custom');
+
         console.log("Initialization Complete.");
     } catch (error) {
         console.error("Failed to load data:", error);
     }
 };
+
+/* =========================================================================
+   PROFILE MANAGEMENT
+   ========================================================================= */
+
+function setGeneratorProfile(profileName) {
+    currentGenProfile = profileName;
+
+    // 1. Update Buttons Visual State
+    document.getElementById('btn-profile-custom').classList.remove('active');
+    document.getElementById('btn-profile-starting').classList.remove('active');
+    document.getElementById(`btn-profile-${profileName}`).classList.add('active');
+
+    // 2. Update Description Text
+    const descText = document.getElementById('profile-desc-text');
+    if (profileName === 'starting') {
+        descText.innerHTML = "Only <strong style='color:var(--accent);'>Starting Tags</strong> are available. Everything else is moved to Excluded.";
+    } else {
+        descText.innerHTML = "All tags are available. You can manually exclude tags below.";
+    }
+
+    // 3. Handle Exclusion Logic
+    if (profileName === 'starting') {
+        populateExcludedForStartingProfile();
+    } else {
+        // Custom: Reset exclusions
+        initializeSelectors('excluded'); 
+    }
+}
+
+function populateExcludedForStartingProfile() {
+    initializeSelectors('excluded');
+    const whitelist = new Set(GAME_DATA.starterWhitelist || []);
+    const allTags = Object.values(GAME_DATA.tags);
+    const container = document.getElementById('selectors-container-excluded');
+    
+    container.style.display = 'none'; // Performance optimization
+    allTags.forEach(tag => {
+        if (!whitelist.has(tag.id)) {
+            addDropdown(tag.category, tag.id, 'excluded');
+        }
+    });
+    container.style.display = 'grid'; 
+}
+
+/* =========================================================================
+   EXISTING LOGIC
+   ========================================================================= */
 
 async function changeLanguage(langName, shouldRender = true) {
     currentLanguage = langName;
@@ -62,6 +117,10 @@ async function changeLanguage(langName, shouldRender = true) {
                 restoreSelection('advertisers', savedAdvertisers);
                 restoreSelection('generator', savedGenerator);
                 restoreSelection('excluded', savedExcluded);
+                
+                if(currentGenProfile === 'starting') {
+                    populateExcludedForStartingProfile();
+                }
             }
         }
     } catch (e) {
@@ -569,11 +628,6 @@ function generateScripts() {
     const targetScoreInput = parseInt(document.getElementById('genScoreInput').value);
     
     // Map Movie Score to Required Scoring Elements (Excluding Genre AND Setting)
-    // Based on game rules: 
-    // 0-4 Elements -> Limit 5
-    // 5-6 Elements -> Limit 6
-    // 7-8 Elements -> Limit 7
-    // 9+ Elements  -> Limit 8+
     let targetCount = 4; // Default
     if (targetScoreInput === 6) targetCount = 5; // Reaches cap 6
     else if (targetScoreInput === 7) targetCount = 7; // Reaches cap 8 (safe)
@@ -584,7 +638,7 @@ function generateScripts() {
     const fixedTags = collectTagInputs('generator');
     const excludedTags = collectTagInputs('excluded');
     
-    // Validate - Ensure we don't count Setting towards the budget
+    // Validate
     const scoringFixed = fixedTags.filter(t => t.category !== "Genre" && t.category !== "Setting");
     
     if (scoringFixed.length > targetCount) {
@@ -596,39 +650,28 @@ function generateScripts() {
     
     // Generate 5 Output Slots
     for(let i=0; i<5; i++) {
-        // --- MULTI-ATTEMPT RESTART STRATEGY ---
         let bestCandidate = null;
-        
-        // Try up to 50 times to find a script that meets criteria
         const MAX_ATTEMPTS = 50;
         
         for(let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             const candidate = runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags);
             
-            // Logic to determine "better":
-            // 1. Prefer higher compatibility
             if (!bestCandidate || candidate.stats.avgComp > bestCandidate.stats.avgComp) {
                 bestCandidate = candidate;
             }
             
-            // Acceptance Criteria to stop early:
-            // If we met the Target Compatibility AND we avoided conflicts (Movie Score > 0)
             if (bestCandidate.stats.avgComp >= targetComp && parseFloat(bestCandidate.stats.movieScore) > 0) {
-                break; // Found a good one, lock it in for this slot
+                break;
             }
         }
         
         generatedBatch.push(bestCandidate);
     }
     
-    // Sort by Movie Score (Descending), then Average Compatibility (Descending)
     generatedBatch.sort((a, b) => {
         const scoreA = parseFloat(a.stats.movieScore);
         const scoreB = parseFloat(b.stats.movieScore);
-        
-        if (scoreA !== scoreB) {
-            return scoreB - scoreA;
-        }
+        if (scoreA !== scoreB) return scoreB - scoreA;
         return b.stats.avgComp - a.stats.avgComp;
     });
 
@@ -643,41 +686,30 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
     let currentTags = [...fixedTags];
     const categoriesPresent = new Set(currentTags.map(t => t.category));
     
-    // A. Handle Genres (Ensure at least 1, maybe 2)
+    // A. Handle Genres
     const fixedGenres = currentTags.filter(t => t.category === "Genre");
-    const fixedGenreCount = fixedGenres.length;
-
-    if (fixedGenreCount === 0) {
-        // No genre locked: Pick 1 or 2
+    if (fixedGenres.length === 0) {
         const genre1 = getRandomTagByCategory("Genre", currentTags, excludedIds);
-        
         if (genre1) {
-            // Check for Multi-Genre chance (30%)
-            // Only pick a second genre if it is compatible according to GenrePairs
             let partnerId = null;
-            
             if (Math.random() < 0.3) {
                  const partners = getCompatibleGenres(genre1.id, excludedIds);
                  if (partners.length > 0) {
                      partnerId = partners[Math.floor(Math.random() * partners.length)];
                  }
             }
-            
             if (partnerId) {
-                // Apply 50/50 split for dual genre
                 genre1.percent = 0.5;
                 currentTags.push(genre1);
                 currentTags.push({ id: partnerId, percent: 0.5, category: "Genre" });
             } else {
-                // Single genre
                 genre1.percent = 1.0;
                 currentTags.push(genre1);
             }
         }
     }
 
-    // B. Handle Mandatory Setting (Does not count toward targetCount!)
-    // If setting is not locked, we must add one.
+    // B. Handle Mandatory Setting
     if (!categoriesPresent.has("Setting")) {
         const randomSetting = getRandomTagByCategory("Setting", currentTags, excludedIds);
         if(randomSetting) {
@@ -686,7 +718,7 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
         }
     }
 
-    // C. Fill Mandatory Scoring Categories (Protag, Antag, Finale)
+    // C. Fill Mandatory Scoring Categories
     const scoringMandatory = ["Protagonist", "Antagonist", "Finale"];
     scoringMandatory.forEach(cat => {
         if(!categoriesPresent.has(cat) && getScoringElementCount(currentTags) < targetCount) {
@@ -698,7 +730,7 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
         }
     });
 
-    // D. Fill remaining slots with Supporting Characters or Themes
+    // D. Fill remaining slots
     const fillerCats = ["Supporting Character", "Theme & Event"];
     while(getScoringElementCount(currentTags) < targetCount) {
         const randCat = fillerCats[Math.floor(Math.random() * fillerCats.length)];
@@ -707,7 +739,7 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
         else break; 
     }
     
-    // 2. Optimization Loop (Simple Randomized Hill Climbing)
+    // 2. Optimization Loop
     let bestSet = [...currentTags];
     let bestStats = calculateMatrixScore(bestSet);
     
@@ -718,18 +750,15 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
         const mutableIndices = candidate.map((t, idx) => ({t, idx}))
                                         .filter(item => !fixedIds.has(item.t.id) && item.t.category !== 'Genre')
                                         .map(item => item.idx);
-        
         if(mutableIndices.length === 0) break; 
         
         const swapIdx = mutableIndices[Math.floor(Math.random() * mutableIndices.length)];
         const tagToSwap = candidate[swapIdx];
-        
         const newTag = getRandomTagByCategory(tagToSwap.category, candidate, excludedIds); 
         
         if(newTag) {
             candidate[swapIdx] = newTag;
             const newStats = calculateMatrixScore(candidate);
-            
             if(newStats.rawAverage > bestStats.rawAverage) {
                 bestSet = candidate;
                 bestStats = newStats;
@@ -738,30 +767,21 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
     }
     
     // 3. Calculate Final Stats
-    // Calculate Tag Cap (based on SCORING element count)
     const ngCount = getScoringElementCount(bestSet);
     let tagCap = 6;
     let maxScriptQual = 5;
-
-    // Rules logic:
-    // < 5 Elements: Cap 5
-    // 5-6 Elements: Cap 6
-    // 7-8 Elements: Cap 7
-    // 9+ Elements: Cap 8+
     
     if(ngCount >= 9) { tagCap = 9; maxScriptQual = 8; }
     else if(ngCount >= 7) { tagCap = 8; maxScriptQual = 7; } 
     else if(ngCount >= 5) { tagCap = 7; maxScriptQual = 6; } 
-    else { tagCap = 6; maxScriptQual = 5; } // 0-4 elements
+    else { tagCap = 6; maxScriptQual = 5; }
     
-    // Calculate Max Potential Score from Synergy & Bonuses
     const bonuses = calculateTotalBonuses(bestSet);
     const MAX_GAME_SCORE = 9.9;
     const rawCom = (bestStats.totalScore + bonuses.com) * MAX_GAME_SCORE;
     const rawArt = (bestStats.totalScore + bonuses.art) * MAX_GAME_SCORE;
     const maxPotential = Math.max(0, Math.max(rawCom, rawArt));
     
-    // Final Display Movie Score is the lower of the Tag Cap and Max Potential
     const finalMovieScore = Math.min(tagCap, maxPotential);
 
     return {
@@ -770,7 +790,7 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
             avgComp: bestStats.rawAverage,
             synergySum: bestStats.totalScore,
             maxScriptQuality: maxScriptQual,
-            movieScore: finalMovieScore.toFixed(1) // Return formatted string
+            movieScore: finalMovieScore.toFixed(1)
         },
         uniqueId: Date.now() + Math.random().toString()
     };
@@ -778,36 +798,25 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
 
 function getCompatibleGenres(sourceId, excludedIds) {
     let valid = [];
-    
-    // 1. Check direct mappings (Source -> Target)
     if (GAME_DATA.genrePairs[sourceId]) {
         valid.push(...Object.keys(GAME_DATA.genrePairs[sourceId]));
     }
-    
-    // 2. Check reverse mappings (Target -> Source)
-    // We iterate the keys to find if sourceId appears as a target for any other genre
     for (const gKey in GAME_DATA.genrePairs) {
         if (GAME_DATA.genrePairs[gKey] && GAME_DATA.genrePairs[gKey][sourceId]) {
             valid.push(gKey);
         }
     }
-    
-    // 3. Deduplicate and filter excluded
     const unique = new Set(valid);
     return [...unique].filter(id => !excludedIds.has(id));
 }
 
-// CORRECTED COUNTING FUNCTION
 function getScoringElementCount(tags) {
-    // Exclude Genre AND Setting from the count that determines Score Limit
     return tags.filter(t => t.category !== "Genre" && t.category !== "Setting").length;
 }
 
 function getRandomTagByCategory(category, currentTags, excludedIds) {
     const existingIds = new Set(currentTags.map(t => t.id));
     const allTags = Object.values(GAME_DATA.tags).filter(t => t.category === category);
-    
-    // Filter out Used AND Excluded
     const available = allTags.filter(t => !existingIds.has(t.id) && !excludedIds.has(t.id));
     
     if(available.length === 0) return null;
@@ -826,44 +835,32 @@ function renderGeneratedScripts(scripts) {
     document.getElementById('results-generator').classList.remove('hidden');
 
     scripts.forEach((script, index) => {
+        // false passed here means it's NOT in the pinned section (no editable name)
         const card = createScriptCardHTML(script, false); 
         container.appendChild(card);
     });
 }
 
-function createScriptCardHTML(scriptObj, isPinned) {
+// --- UPDATED: createScriptCardHTML ---
+function createScriptCardHTML(scriptObj, isPinnedSection) {
     const div = document.createElement('div');
     div.className = 'gen-card';
     div.dataset.id = scriptObj.uniqueId;
     
-    // Determine badge colors
     const compClass = scriptObj.stats.avgComp >= 4.0 ? 'val-high' : (scriptObj.stats.avgComp >= 3.0 ? 'val-mid' : 'val-low');
     
-    // Tag Chips
+    // Tag Chips Logic
     let tagsHtml = '';
     const fixedInputs = collectTagInputs('generator');
     const fixedIds = new Set(fixedInputs.map(t => t.id));
-    
-    // Define Sort Order
     const categoryOrder = [
-        "Genre", 
-        "Setting", 
-        "Protagonist", 
-        "Antagonist", 
-        "Supporting Character", 
-        "Theme & Event", 
-        "Finale"
+        "Genre", "Setting", "Protagonist", "Antagonist", "Supporting Character", "Theme & Event", "Finale"
     ];
-
-    // Sort tags based on category order
     const sortedTags = [...scriptObj.tags].sort((a, b) => {
         let idxA = categoryOrder.indexOf(a.category);
         let idxB = categoryOrder.indexOf(b.category);
-        
-        // Safety: If category not found, put at end
         if (idxA === -1) idxA = 99;
         if (idxB === -1) idxB = 99;
-        
         return idxA - idxB;
     });
 
@@ -873,27 +870,38 @@ function createScriptCardHTML(scriptObj, isPinned) {
         tagsHtml += `<span class="gen-tag-chip ${isFixed ? 'tag-fixed' : ''}">${tagName} <small>${t.category}</small></span>`;
     });
 
-    const pinClass = isPinned ? 'pinned' : '';
-    const pinTitle = isPinned ? 'Unpin' : 'Pin to Save';
+    // Check if truly pinned to set Icon state
+    const isActuallyPinned = pinnedScripts.some(s => s.uniqueId === scriptObj.uniqueId);
+    const pinClass = isActuallyPinned ? 'pinned' : '';
+    const pinTitle = isActuallyPinned ? 'Unpin' : 'Pin to Save';
+
+    // Editable Name Input (Only if in pinned section)
+    const nameInputHtml = isPinnedSection 
+        ? `<input type="text" class="script-name-input" value="${scriptObj.name || 'Untitled Script'}" 
+           onclick="event.stopPropagation()" onkeyup="updateScriptName('${scriptObj.uniqueId}', this.value)" placeholder="Script Name">`
+        : '';
 
     div.innerHTML = `
         <div class="gen-header" onclick="toggleScriptCard(this)">
-            <div class="gen-info-row">
-                <div class="gen-badge-group">
-                    <span class="gen-badge-label">Avg Comp</span>
-                    <span class="gen-badge-val ${compClass}">${scriptObj.stats.avgComp.toFixed(1)}</span>
-                </div>
-                <div class="gen-badge-group">
-                    <span class="gen-badge-label">Movie Score</span>
-                    <span class="gen-badge-val val-mid">${scriptObj.stats.movieScore}</span>
-                </div>
-                <div class="gen-badge-group">
-                    <span class="gen-badge-label">Script Qual</span>
-                    <span class="gen-badge-val val-mid">${scriptObj.stats.maxScriptQuality}</span>
+            <div class="gen-left-col">
+                ${nameInputHtml}
+                <div class="gen-info-row">
+                    <div class="gen-badge-group">
+                        <span class="gen-badge-label">Avg Comp</span>
+                        <span class="gen-badge-val ${compClass}">${scriptObj.stats.avgComp.toFixed(1)}</span>
+                    </div>
+                    <div class="gen-badge-group">
+                        <span class="gen-badge-label">Movie Score</span>
+                        <span class="gen-badge-val val-mid">${scriptObj.stats.movieScore}</span>
+                    </div>
+                    <div class="gen-badge-group">
+                        <span class="gen-badge-label">Script Qual</span>
+                        <span class="gen-badge-val val-mid">${scriptObj.stats.maxScriptQuality}</span>
+                    </div>
                 </div>
             </div>
             <button class="pin-btn ${pinClass}" title="${pinTitle}" onclick="togglePin('${scriptObj.uniqueId}', event)">
-                ${isPinned ? '★' : '☆'}
+                ${isActuallyPinned ? '★' : '☆'}
             </button>
         </div>
         <div class="gen-details hidden">
@@ -911,6 +919,13 @@ function createScriptCardHTML(scriptObj, isPinned) {
     return div;
 }
 
+function updateScriptName(uniqueId, newName) {
+    const script = pinnedScripts.find(s => s.uniqueId === uniqueId);
+    if (script) {
+        script.name = newName;
+    }
+}
+
 function toggleScriptCard(headerEl) {
     const details = headerEl.nextElementSibling;
     details.classList.toggle('hidden');
@@ -924,7 +939,11 @@ function togglePin(uniqueId, event) {
         pinnedScripts.splice(existingIndex, 1);
     } else {
         const script = generatedScriptsCache.find(s => s.uniqueId === uniqueId);
-        if(script) pinnedScripts.push(script);
+        if(script) {
+            // Create a copy with a default name property
+            const newPinned = { ...script, name: "Untitled Script" };
+            pinnedScripts.push(newPinned);
+        }
     }
     renderPinnedScripts();
     renderGeneratedScripts(generatedScriptsCache);
@@ -942,6 +961,7 @@ function renderPinnedScripts() {
     
     wrapper.classList.remove('hidden');
     pinnedScripts.forEach(script => {
+        // true passed here means we are in the pinned section (show editable name)
         const card = createScriptCardHTML(script, true);
         container.appendChild(card);
     });
@@ -986,6 +1006,7 @@ function transferScriptToAdvertisers(uniqueId) {
 
 
 // --- EXISTING CALCULATOR LOGIC BELOW ---
+// (Kept intact, see original script for full block)
 
 function analyzeMovie() {
     const tagInputs = collectTagInputs('advertisers');
@@ -1157,7 +1178,6 @@ function analyzeMovie() {
     if (validTargetIds.length === 0) {
         holidayContainer.innerHTML = `<div style="color:#666; font-style:italic;">Identify target audience first.</div>`;
     } else {
-        // Determine Priority Targets (High if exist, else Moderate)
         let primaryTargets = highInterestIds;
         if (primaryTargets.length === 0) {
             primaryTargets = moderateInterestIds;
@@ -1166,8 +1186,6 @@ function analyzeMovie() {
         const rankedHolidays = GAME_DATA.holidays.map(h => {
             let totalScore = 0;
             let parts = [];
-
-            // Iterate over the ACTIVE target list to build text
             primaryTargets.forEach(id => {
                 const bonus = h.bonuses[id] || 0;
                 if (bonus > 0) {
@@ -1178,11 +1196,8 @@ function analyzeMovie() {
                     });
                 }
             });
-
-            // Sort parts by bonus value descending for display
             parts.sort((a, b) => b.val - a.val);
             const contextText = parts.length > 0 ? parts.map(p => p.text).join(', ') : "No significant bonus.";
-
             return {
                 name: h.name,
                 totalScore: totalScore,
@@ -1190,13 +1205,11 @@ function analyzeMovie() {
             };
         });
 
-        // Filter and Sort by Total Score
         const viableHolidays = rankedHolidays.filter(h => h.totalScore > 0).sort((a, b) => b.totalScore - a.totalScore);
 
         if (viableHolidays.length === 0) {
             holidayContainer.innerHTML = `<div class="holiday-row-empty"><span>No beneficial holidays found for your primary audience.</span></div>`;
         } else {
-            // Render Best Option
             const best = viableHolidays[0];
             const bestHeader = document.createElement('div');
             bestHeader.className = 'holiday-section-label';
@@ -1213,8 +1226,7 @@ function analyzeMovie() {
             `;
             holidayContainer.appendChild(bestRow);
 
-            // Render Alternatives
-            const alternatives = viableHolidays.slice(1, 4); // Take next 3
+            const alternatives = viableHolidays.slice(1, 4); 
             if(alternatives.length > 0) {
                 const altHeader = document.createElement('div');
                 altHeader.className = 'holiday-section-label';
@@ -1269,21 +1281,14 @@ function analyzeMovie() {
         </div>
     `;
 
-    // --- RENDER DISTRIBUTION CALCULATOR ---
     renderDistributionCalculator(inputCom);
 
     document.getElementById('results-advertisers').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ---------------------------------------------
-// DISTRIBUTION CALCULATOR LOGIC
-// ---------------------------------------------
-
 function renderDistributionCalculator(commercialScore) {
     const parent = document.getElementById('results-advertisers');
     let distWrapper = document.getElementById('dist-wrapper');
-    
-    // Check if user already typed something, otherwise default to 10
     let currentOwned = 10;
     if (distWrapper) {
         const input = document.getElementById('ownedScreeningsInput');
@@ -1292,19 +1297,14 @@ function renderDistributionCalculator(commercialScore) {
         }
     }
 
-    // Create wrapper if not exists
     if (!distWrapper) {
         distWrapper = document.createElement('div');
         distWrapper.id = 'dist-wrapper';
         distWrapper.className = 'card result-card';
-        // REMOVED manual margin-top; handled by CSS gap in container
-        
-        // Header
         const header = document.createElement('h3');
         header.innerText = 'Distribution Calculator';
         distWrapper.appendChild(header);
 
-        // Input Area
         const inputRow = document.createElement('div');
         inputRow.className = 'dist-input-row';
         inputRow.innerHTML = `
@@ -1316,7 +1316,6 @@ function renderDistributionCalculator(commercialScore) {
         `;
         distWrapper.appendChild(inputRow);
 
-        // Grid Area
         const grid = document.createElement('div');
         grid.id = 'dist-results-grid';
         grid.className = 'dist-grid';
@@ -1324,30 +1323,21 @@ function renderDistributionCalculator(commercialScore) {
 
         parent.appendChild(distWrapper);
 
-        // Attach listener
         const inputEl = document.getElementById('ownedScreeningsInput');
         inputEl.addEventListener('input', () => {
              const val = parseInt(inputEl.value) || 0;
              updateDistributionUI(commercialScore, val);
         });
     } else {
-        // Update stored value if wrapper existed but was re-rendered (though we handle persistence above)
-        // Just ensures the listener has the NEW commercial score in scope
         const inputEl = document.getElementById('ownedScreeningsInput');
-        
-        // Remove old listener to avoid stacking (by cloning)
         const newEl = inputEl.cloneNode(true);
         inputEl.parentNode.replaceChild(newEl, inputEl);
-        
         newEl.addEventListener('input', () => {
              const val = parseInt(newEl.value) || 0;
              updateDistributionUI(commercialScore, val);
         });
-        
-        // Restore focus if needed or just update val
         newEl.value = currentOwned;
     }
-
     updateDistributionUI(commercialScore, currentOwned);
 }
 
@@ -1360,10 +1350,7 @@ function updateDistributionUI(score, owned) {
         const weekNum = index + 1;
         const box = document.createElement('div');
         box.className = 'week-box';
-        
-        // Visual indicator for high demand
         const isHigh = val > 5000;
-        
         box.innerHTML = `
             <span class="week-label">Week ${weekNum}</span>
             <span class="week-val ${val > 0 ? 'active' : ''}">${val.toLocaleString()}</span>
@@ -1372,41 +1359,26 @@ function updateDistributionUI(score, owned) {
     });
 }
 
-/**
- * Weekly Results Logic based on Kotlin source:
- * Week 1: (Score * 2 * 1000) - Screenings
- * Week 2: (Score * 1 * 1000) - Screenings
- * Week 3..8: Week 2 Result * 0.8 (recursive decay)
- * Rounding: Week 1-4 (Ceil), Week 5-8 (Floor)
- */
 function calculateWeeklyDistribution(commercialScore, availableScreenings) {
     const BASE = 1000;
     const W1_MULT = 2;
     const W2_MULT = 1;
     const DECAY = 0.8;
 
-    // Week 1
     const rawW1 = (commercialScore * W1_MULT * BASE) - availableScreenings;
     const w1 = Math.max(0.0, rawW1);
 
-    // Week 2
     const rawW2 = (commercialScore * W2_MULT * BASE) - availableScreenings;
     const w2 = Math.max(0.0, rawW2);
 
     let results = [w1, w2];
     let currentDecayBase = w2;
 
-    // Weeks 3 to 8 (Indices 2 to 7)
-    // Kotlin logic: Takes Week 2 result and applies consecutive weekly reductions.
-    // Note: It does NOT subtract screenings again for weeks 3-8, it decays the overflow.
     for (let i = 2; i < 8; i++) {
         currentDecayBase *= DECAY;
         results.push(currentDecayBase);
     }
 
-    // Apply Rounding Rules
-    // Indices 0..3 (Weeks 1-4) -> Ceil
-    // Indices 4..7 (Weeks 5-8) -> Floor
     return results.map((val, index) => {
         if (index < 4) {
             return Math.ceil(val);
@@ -1416,9 +1388,6 @@ function calculateWeeklyDistribution(commercialScore, availableScreenings) {
     });
 }
 
-// ---------------------------------------------
-// SYNERGY CALCULATOR LOGIC
-// ---------------------------------------------
 function calculateSynergy() {
     const selectedTags = collectTagInputs('synergy');
     if (selectedTags.length === 0) {
@@ -1591,30 +1560,24 @@ function renderSynergyResults(matrix, bonuses, tags) {
     breakdownArt.innerText = formatSimpleScore(bonuses.art);
     breakdownArt.style.color = bonuses.art > 0 ? '#a0a0ff' : (bonuses.art < 0 ? 'var(--danger)' : '#fff');
 
-    // --- NEW LOGIC: Calculate Tag Cap based on SCORING ELEMENTS ONLY ---
+    // Tag Cap Logic
     let ngCount = 0;
     if (tags) {
         ngCount = getScoringElementCount(tags);
     }
     
     let tagCap = 6;
-    let maxScriptQual = 5; // For context display
-
-    // Same threshold logic as Generator
-    if(ngCount >= 9) { tagCap = 9; maxScriptQual = 8; }
-    else if(ngCount >= 7) { tagCap = 8; maxScriptQual = 7; }
-    else if(ngCount >= 5) { tagCap = 7; maxScriptQual = 6; }
-    // else < 5: tagCap = 6
+    if(ngCount >= 9) tagCap = 9;
+    else if(ngCount >= 7) tagCap = 8;
+    else if(ngCount >= 5) tagCap = 7;
 
     const MAX_GAME_SCORE = 9.9; 
     const totalComRaw = matrix.totalScore + bonuses.com;
     const totalArtRaw = matrix.totalScore + bonuses.art;
     
-    // Calculate raw potential
     let displayCom = Math.max(0, totalComRaw * MAX_GAME_SCORE);
     let displayArt = Math.max(0, totalArtRaw * MAX_GAME_SCORE);
 
-    // Apply the Cap
     displayCom = Math.min(tagCap, displayCom);
     displayArt = Math.min(tagCap, displayArt);
 
@@ -1622,7 +1585,6 @@ function renderSynergyResults(matrix, bonuses, tags) {
     const totalArtEl = document.getElementById('totalArtScore');
     
     function formatFinalRating(val) {
-        // Handle floating point edges or exactly 10
         if (val >= 10) return "10.0";
         return val.toFixed(1);
     }
@@ -1632,8 +1594,6 @@ function renderSynergyResults(matrix, bonuses, tags) {
     totalArtEl.innerHTML = formatFinalRating(displayArt);
     totalArtEl.style.color = displayArt > 0 ? '#a0a0ff' : 'var(--danger)'; 
     
-    // Add a small indicator of the cap in the right column
-    // We try to find if we already added a cap-label, if not create one
     let capLabel = document.getElementById('scoreCapLabel');
     if (!capLabel) {
         const rightCol = document.querySelector('#results-synergy .right-col');
@@ -1661,7 +1621,6 @@ function renderSynergyResults(matrix, bonuses, tags) {
 
 function resetSelectors(context) {
     initializeSelectors(context);
-    // Hide appropriate results
     if (context === 'generator' || context === 'excluded') {
         document.getElementById(`results-generator`).classList.add('hidden');
     } else {

@@ -53,6 +53,25 @@
                         <h3>Generator Settings</h3>
                     </div>
                     
+                    <!-- NEW: PROFILE SELECTION BUTTONS -->
+                    <div class="profile-control-container">
+                        <div class="profile-label-row">
+                            <label>Tag Availability</label>
+                        </div>
+                        <div class="profile-btn-group">
+                            <button id="btn-profile-starting" class="profile-btn" onclick="setGeneratorProfile('starting')">
+                                Starting Tags
+                            </button>
+                            <button id="btn-profile-custom" class="profile-btn active" onclick="setGeneratorProfile('custom')">
+                                Custom
+                            </button>
+                        </div>
+                        <p id="profile-desc-text" class="subtitle" style="margin-top:8px; font-size: 0.8rem;">
+                            Select which story elements are available for generation.
+                        </p>
+                    </div>
+                    <!-- END NEW SECTION -->
+
                     <div class="score-controls-wrapper">
                         <!-- TARGET COMPATIBILITY -->
                         <div class="score-control-group">
