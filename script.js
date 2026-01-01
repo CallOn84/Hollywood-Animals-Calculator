@@ -178,13 +178,13 @@ function setupGeneratorControls() {
     function updateScoreDisplay(val) {
         // Update Help Text for Tag Count
         let requiredTags = 0;
-        if(val <= 6) requiredTags = 4;
+        if(val <= 6) requiredTags = 4; // ~5 filled slots usually
         else if(val === 7) requiredTags = 6;
         else if(val === 8) requiredTags = 8;
         else if(val === 9) requiredTags = 9;
         else if(val === 10) requiredTags = 10;
         
-        requiredTagsDisplay.innerText = `Requires ~${requiredTags} Story Elements (excluding Genre).`;
+        requiredTagsDisplay.innerText = `Requires ~${requiredTags} Story Elements (excluding Genre & Setting).`;
         updateSliderTrack(genScoreSlider, '#d4af37');
     }
 
@@ -568,21 +568,27 @@ function generateScripts() {
     const targetComp = parseFloat(document.getElementById('genCompInput').value);
     const targetScoreInput = parseInt(document.getElementById('genScoreInput').value);
     
-    // Map Movie Score to Required Non-Genre Tag Count
-    let targetCount = 4; // Default for 6
-    if (targetScoreInput === 7) targetCount = 6;
+    // Map Movie Score to Required Scoring Elements (Excluding Genre AND Setting)
+    // Based on game rules: 
+    // 0-4 Elements -> Limit 5
+    // 5-6 Elements -> Limit 6
+    // 7-8 Elements -> Limit 7
+    // 9+ Elements  -> Limit 8+
+    let targetCount = 4; // Default
+    if (targetScoreInput === 6) targetCount = 5; // Reaches cap 6
+    else if (targetScoreInput === 7) targetCount = 7; // Reaches cap 8 (safe)
     else if (targetScoreInput === 8) targetCount = 8;
-    else if (targetScoreInput === 9) targetCount = 9;
-    else if (targetScoreInput >= 10) targetCount = 10;
+    else if (targetScoreInput >= 9) targetCount = 9;
 
     // Get Fixed Tags
     const fixedTags = collectTagInputs('generator');
     const excludedTags = collectTagInputs('excluded');
     
-    // Validate
-    const nonGenreFixed = fixedTags.filter(t => t.category !== "Genre");
-    if (nonGenreFixed.length > targetCount) {
-        alert(`You have locked ${nonGenreFixed.length} elements, but the target Movie Score only allows for ${targetCount}. Increase the target Movie Score or remove locked elements.`);
+    // Validate - Ensure we don't count Setting towards the budget
+    const scoringFixed = fixedTags.filter(t => t.category !== "Genre" && t.category !== "Setting");
+    
+    if (scoringFixed.length > targetCount) {
+        alert(`You have locked ${scoringFixed.length} scoring elements, but the target Movie Score only allows for ~${targetCount}. Increase the target Movie Score or remove locked elements.`);
         return;
     }
 
@@ -647,7 +653,7 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
         
         if (genre1) {
             // Check for Multi-Genre chance (30%)
-            // FIX: Only pick a second genre if it is compatible according to GenrePairs
+            // Only pick a second genre if it is compatible according to GenrePairs
             let partnerId = null;
             
             if (Math.random() < 0.3) {
@@ -668,23 +674,33 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
                 currentTags.push(genre1);
             }
         }
-    } else {
-        // If 1 or more genres are locked, we respect the user's locks and don't add random genres
-        // to avoid breaking their specific build intent.
     }
 
-    // B. Fill Mandatory Categories
-    const mandatorycats = ["Setting", "Protagonist", "Antagonist", "Finale"];
-    mandatorycats.forEach(cat => {
-        if(!categoriesPresent.has(cat) && getNonGenreCount(currentTags) < targetCount) {
+    // B. Handle Mandatory Setting (Does not count toward targetCount!)
+    // If setting is not locked, we must add one.
+    if (!categoriesPresent.has("Setting")) {
+        const randomSetting = getRandomTagByCategory("Setting", currentTags, excludedIds);
+        if(randomSetting) {
+            currentTags.push(randomSetting);
+            categoriesPresent.add("Setting");
+        }
+    }
+
+    // C. Fill Mandatory Scoring Categories (Protag, Antag, Finale)
+    const scoringMandatory = ["Protagonist", "Antagonist", "Finale"];
+    scoringMandatory.forEach(cat => {
+        if(!categoriesPresent.has(cat) && getScoringElementCount(currentTags) < targetCount) {
             const randomTag = getRandomTagByCategory(cat, currentTags, excludedIds);
-            if(randomTag) currentTags.push(randomTag);
+            if(randomTag) {
+                currentTags.push(randomTag);
+                categoriesPresent.add(cat);
+            }
         }
     });
 
-    // C. Fill remaining slots
+    // D. Fill remaining slots with Supporting Characters or Themes
     const fillerCats = ["Supporting Character", "Theme & Event"];
-    while(getNonGenreCount(currentTags) < targetCount) {
+    while(getScoringElementCount(currentTags) < targetCount) {
         const randCat = fillerCats[Math.floor(Math.random() * fillerCats.length)];
         const randomTag = getRandomTagByCategory(randCat, currentTags, excludedIds);
         if(randomTag) currentTags.push(randomTag);
@@ -722,16 +738,21 @@ function runGenerationAlgorithm(targetComp, targetCount, fixedTags, excludedTags
     }
     
     // 3. Calculate Final Stats
-    // Calculate Tag Cap (based on element count)
-    const ngCount = getNonGenreCount(bestSet);
+    // Calculate Tag Cap (based on SCORING element count)
+    const ngCount = getScoringElementCount(bestSet);
     let tagCap = 6;
     let maxScriptQual = 5;
 
-    if(ngCount >= 10) { tagCap = 10; maxScriptQual = 10; }
-    else if(ngCount >= 9) { tagCap = 9; maxScriptQual = 8; }
-    else if(ngCount >= 7) { tagCap = 8; maxScriptQual = 7; } // 7-8 tags
-    else if(ngCount >= 5) { tagCap = 7; maxScriptQual = 6; } // 5-6 tags
-    // else <5: tagCap 6, script 5
+    // Rules logic:
+    // < 5 Elements: Cap 5
+    // 5-6 Elements: Cap 6
+    // 7-8 Elements: Cap 7
+    // 9+ Elements: Cap 8+
+    
+    if(ngCount >= 9) { tagCap = 9; maxScriptQual = 8; }
+    else if(ngCount >= 7) { tagCap = 8; maxScriptQual = 7; } 
+    else if(ngCount >= 5) { tagCap = 7; maxScriptQual = 6; } 
+    else { tagCap = 6; maxScriptQual = 5; } // 0-4 elements
     
     // Calculate Max Potential Score from Synergy & Bonuses
     const bonuses = calculateTotalBonuses(bestSet);
@@ -776,8 +797,10 @@ function getCompatibleGenres(sourceId, excludedIds) {
     return [...unique].filter(id => !excludedIds.has(id));
 }
 
-function getNonGenreCount(tags) {
-    return tags.filter(t => t.category !== "Genre").length;
+// CORRECTED COUNTING FUNCTION
+function getScoringElementCount(tags) {
+    // Exclude Genre AND Setting from the count that determines Score Limit
+    return tags.filter(t => t.category !== "Genre" && t.category !== "Setting").length;
 }
 
 function getRandomTagByCategory(category, currentTags, excludedIds) {
@@ -1568,18 +1591,17 @@ function renderSynergyResults(matrix, bonuses, tags) {
     breakdownArt.innerText = formatSimpleScore(bonuses.art);
     breakdownArt.style.color = bonuses.art > 0 ? '#a0a0ff' : (bonuses.art < 0 ? 'var(--danger)' : '#fff');
 
-    // --- NEW LOGIC: Calculate Tag Cap (Script Quality) ---
+    // --- NEW LOGIC: Calculate Tag Cap based on SCORING ELEMENTS ONLY ---
     let ngCount = 0;
     if (tags) {
-        ngCount = getNonGenreCount(tags);
+        ngCount = getScoringElementCount(tags);
     }
     
     let tagCap = 6;
     let maxScriptQual = 5; // For context display
 
     // Same threshold logic as Generator
-    if(ngCount >= 10) { tagCap = 10; maxScriptQual = 10; }
-    else if(ngCount >= 9) { tagCap = 9; maxScriptQual = 8; }
+    if(ngCount >= 9) { tagCap = 9; maxScriptQual = 8; }
     else if(ngCount >= 7) { tagCap = 8; maxScriptQual = 7; }
     else if(ngCount >= 5) { tagCap = 7; maxScriptQual = 6; }
     // else < 5: tagCap = 6
@@ -1623,7 +1645,7 @@ function renderSynergyResults(matrix, bonuses, tags) {
         capLabel.style.textAlign = 'right';
         rightCol.appendChild(capLabel);
     }
-    capLabel.innerHTML = `Max Score Capped at <strong>${tagCap}.0</strong> (${ngCount} Elements)`;
+    capLabel.innerHTML = `Max Score Capped at <strong>${tagCap}.0</strong> (${ngCount} Scoring Elements)`;
 
     const spoilerEl = document.getElementById('spoilerDisplay');
     if (matrix.spoilers.length > 0) {
