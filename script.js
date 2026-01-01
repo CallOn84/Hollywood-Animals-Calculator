@@ -1404,7 +1404,7 @@ function calculateSynergy() {
     }
     const matrixResult = calculateMatrixScore(selectedTags);
     const bonuses = calculateTotalBonuses(selectedTags);
-    renderSynergyResults(matrixResult, bonuses);
+    renderSynergyResults(matrixResult, bonuses, selectedTags);
 }
 
 function calculateMatrixScore(tags) {
@@ -1545,7 +1545,7 @@ function formatSimpleScore(num) {
     return (num > 0 ? "+" : "") + parseFloat(num.toFixed(2));
 }
 
-function renderSynergyResults(matrix, bonuses) {
+function renderSynergyResults(matrix, bonuses, tags) {
     document.getElementById('results-synergy').classList.remove('hidden');
     const avgEl = document.getElementById('synergyAverageDisplay');
     avgEl.innerHTML = `${matrix.rawAverage.toFixed(1)} <span class="sub-value">/ 5.0</span>`;
@@ -1568,24 +1568,62 @@ function renderSynergyResults(matrix, bonuses) {
     breakdownArt.innerText = formatSimpleScore(bonuses.art);
     breakdownArt.style.color = bonuses.art > 0 ? '#a0a0ff' : (bonuses.art < 0 ? 'var(--danger)' : '#fff');
 
+    // --- NEW LOGIC: Calculate Tag Cap (Script Quality) ---
+    let ngCount = 0;
+    if (tags) {
+        ngCount = getNonGenreCount(tags);
+    }
+    
+    let tagCap = 6;
+    let maxScriptQual = 5; // For context display
+
+    // Same threshold logic as Generator
+    if(ngCount >= 10) { tagCap = 10; maxScriptQual = 10; }
+    else if(ngCount >= 9) { tagCap = 9; maxScriptQual = 8; }
+    else if(ngCount >= 7) { tagCap = 8; maxScriptQual = 7; }
+    else if(ngCount >= 5) { tagCap = 7; maxScriptQual = 6; }
+    // else < 5: tagCap = 6
+
     const MAX_GAME_SCORE = 9.9; 
     const totalComRaw = matrix.totalScore + bonuses.com;
     const totalArtRaw = matrix.totalScore + bonuses.art;
+    
+    // Calculate raw potential
     let displayCom = Math.max(0, totalComRaw * MAX_GAME_SCORE);
     let displayArt = Math.max(0, totalArtRaw * MAX_GAME_SCORE);
 
+    // Apply the Cap
+    displayCom = Math.min(tagCap, displayCom);
+    displayArt = Math.min(tagCap, displayArt);
+
     const totalComEl = document.getElementById('totalComScore');
     const totalArtEl = document.getElementById('totalArtScore');
+    
     function formatFinalRating(val) {
-        if (val > MAX_GAME_SCORE) {
-            return `${MAX_GAME_SCORE}`;
-        }
+        // Handle floating point edges or exactly 10
+        if (val >= 10) return "10.0";
         return val.toFixed(1);
     }
+
     totalComEl.innerHTML = formatFinalRating(displayCom);
     totalComEl.style.color = displayCom > 0 ? 'var(--accent)' : 'var(--danger)'; 
     totalArtEl.innerHTML = formatFinalRating(displayArt);
     totalArtEl.style.color = displayArt > 0 ? '#a0a0ff' : 'var(--danger)'; 
+    
+    // Add a small indicator of the cap in the right column
+    // We try to find if we already added a cap-label, if not create one
+    let capLabel = document.getElementById('scoreCapLabel');
+    if (!capLabel) {
+        const rightCol = document.querySelector('#results-synergy .right-col');
+        capLabel = document.createElement('div');
+        capLabel.id = 'scoreCapLabel';
+        capLabel.style.fontSize = '0.75rem';
+        capLabel.style.color = '#666';
+        capLabel.style.marginTop = '10px';
+        capLabel.style.textAlign = 'right';
+        rightCol.appendChild(capLabel);
+    }
+    capLabel.innerHTML = `Max Score Capped at <strong>${tagCap}.0</strong> (${ngCount} Elements)`;
 
     const spoilerEl = document.getElementById('spoilerDisplay');
     if (matrix.spoilers.length > 0) {
