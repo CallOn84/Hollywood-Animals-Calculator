@@ -30,7 +30,7 @@ window.onload = async function() {
         // Initialize Default Profile
         setGeneratorProfile('custom');
         
-        // NEW: Render pinned area immediately so Save/Load buttons are visible
+        // RENDER PINNED SECTION IMMEDIATELY (To show Save/Load buttons)
         renderPinnedScripts();
 
         console.log("Initialization Complete.");
@@ -949,17 +949,28 @@ function toggleScriptCard(headerEl) {
 function togglePin(uniqueId, event) {
     event.stopPropagation(); 
     
-    const existingIndex = pinnedScripts.findIndex(s => s.uniqueId === uniqueId);
+    // Using string comparison to ensure type safety
+    const existingIndex = pinnedScripts.findIndex(s => String(s.uniqueId) === String(uniqueId));
+    
     if(existingIndex > -1) {
+        // UNPIN: Remove from list
         pinnedScripts.splice(existingIndex, 1);
     } else {
-        const script = generatedScriptsCache.find(s => s.uniqueId === uniqueId);
+        // PIN: Add to list
+        const script = generatedScriptsCache.find(s => String(s.uniqueId) === String(uniqueId));
         if(script) {
-            // Create a copy with a default name property
-            const newPinned = { ...script, name: "Untitled Script" };
+            // DEEP COPY to ensure no reference issues with the generator cache
+            // This prevents issues where re-running generator might mess up references
+            const newPinned = JSON.parse(JSON.stringify(script));
+            
+            // Set default name if missing
+            if(!newPinned.name) newPinned.name = "Untitled Script";
+            
             pinnedScripts.push(newPinned);
         }
     }
+    
+    // Refresh both views
     renderPinnedScripts();
     renderGeneratedScripts(generatedScriptsCache);
 }
@@ -968,20 +979,19 @@ function renderPinnedScripts() {
     const container = document.getElementById('pinnedResultsList');
     const wrapper = document.getElementById('pinned-scripts-container');
     
-    // UPDATED: Always show the container so Save/Load buttons are accessible
+    // Always show the container so Save/Load buttons are accessible
     if(wrapper) wrapper.classList.remove('hidden');
     if(!container) return;
 
     container.innerHTML = '';
     
-    // UPDATED: Show placeholder instead of hiding
+    // Show placeholder instead of hiding
     if(pinnedScripts.length === 0) {
         container.innerHTML = '<div style="color:var(--text-muted); font-style:italic; font-size:0.9rem; padding:10px 0;">No pinned scripts yet.</div>';
         return;
     }
     
     pinnedScripts.forEach(script => {
-        // true passed here means we are in the pinned section (show editable name)
         const card = createScriptCardHTML(script, true);
         container.appendChild(card);
     });
@@ -992,25 +1002,32 @@ function renderPinnedScripts() {
    ========================================================================= */
 
 function savePinnedScripts() {
+    // Safety check for empty array, but allow saving empty list if user really wants to? 
+    // Usually better to block empty save to avoid confusion
     if (pinnedScripts.length === 0) {
         alert("No pinned scripts to save.");
         return;
     }
     
-    // Create a Blob from the JSON data
-    const dataStr = JSON.stringify(pinnedScripts, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    
-    // Create a temporary link and trigger download
-    const exportName = `hollywood_animal_scripts_${new Date().toISOString().slice(0,10)}.json`;
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", url);
-    downloadAnchorNode.setAttribute("download", exportName);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-    URL.revokeObjectURL(url);
+    try {
+        // Create a deep copy to ensure everything is clean
+        const dataToSave = JSON.parse(JSON.stringify(pinnedScripts));
+        const dataStr = JSON.stringify(dataToSave, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const exportName = `hollywood_animal_scripts_${new Date().toISOString().slice(0,10)}.json`;
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", url);
+        downloadAnchorNode.setAttribute("download", exportName);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        URL.revokeObjectURL(url);
+    } catch(e) {
+        console.error("Save failed:", e);
+        alert("Failed to save scripts. See console for details.");
+    }
 }
 
 function triggerLoadScripts() {
@@ -1033,14 +1050,16 @@ function handleFileLoad(input) {
             const loaded = JSON.parse(e.target.result);
             if(Array.isArray(loaded)) {
                 let added = 0;
-                const currentIds = new Set(pinnedScripts.map(s => s.uniqueId));
+                // Create a Set of existing IDs to prevent duplicates
+                const currentIds = new Set(pinnedScripts.map(s => String(s.uniqueId)));
                 
                 loaded.forEach(script => {
-                    // Basic validation: must have tags and uniqueId
+                    // Basic validation
                     if(script.tags && script.uniqueId) {
-                        if(!currentIds.has(script.uniqueId)) {
+                        const sId = String(script.uniqueId);
+                        if(!currentIds.has(sId)) {
                             pinnedScripts.push(script);
-                            currentIds.add(script.uniqueId);
+                            currentIds.add(sId);
                             added++;
                         }
                     }
@@ -1048,9 +1067,6 @@ function handleFileLoad(input) {
                 
                 if(added > 0) {
                     renderPinnedScripts();
-                    // Ensure the container is visible
-                    const wrapper = document.getElementById('pinned-scripts-container');
-                    if(wrapper) wrapper.classList.remove('hidden');
                     alert(`Loaded ${added} scripts.`);
                 } else {
                     alert("No new unique scripts found in file.");
