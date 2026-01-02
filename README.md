@@ -1,6 +1,6 @@
 # Hollywood Animal Calculator
 
-<img width="500" height="500" alt="callon84 github io_Hollywood-Animal-Calculator_" src="https://github.com/user-attachments/assets/052bd94c-093f-4cd3-925a-8121c64e6baa" />
+<img width="500" height="500" alt="callon84 github io_Hollywood-Animal-Calculator_" src="https://github.com/user-attachments/assets/b37c7be5-765b-414a-be0e-97bdeffecf09" />
 
 This ia a web tool that helps players generate scripts, know the synergies of story elements, and find the best advertisers for their movie.
 
