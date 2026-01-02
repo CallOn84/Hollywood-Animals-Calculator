@@ -127,10 +127,22 @@
                     </div>
                 </div>
 
-                <!-- PINNED RESULTS -->
+                <!-- PINNED RESULTS (MODIFIED FOR SAVE/LOAD) -->
                 <div id="pinned-scripts-container" class="results-container hidden">
-                    <div class="section-title">
-                        <h3 style="color: var(--accent);">Pinned Scripts</h3>
+                    <div class="pinned-header-row">
+                        <div class="section-title" style="margin-bottom:0;">
+                            <h3 style="color: var(--accent); margin:0;">Pinned Scripts</h3>
+                        </div>
+                        <div class="file-controls">
+                            <button class="file-action-btn" onclick="savePinnedScripts()" title="Download Pinned Scripts">
+                                <span>⬇ Save</span>
+                            </button>
+                            <button class="file-action-btn" onclick="triggerLoadScripts()" title="Upload JSON File">
+                                <span>⬆ Load</span>
+                            </button>
+                            <!-- Hidden File Input -->
+                            <input type="file" id="loadScriptsInput" class="hidden-file-input" accept=".json" onchange="handleFileLoad(this)">
+                        </div>
                     </div>
                     <div id="pinnedResultsList" class="script-list"></div>
                 </div>

@@ -876,7 +876,8 @@ function createScriptCardHTML(scriptObj, isPinnedSection) {
     });
 
     sortedTags.forEach(t => {
-        const tagName = GAME_DATA.tags[t.id].name;
+        const tagData = GAME_DATA.tags[t.id];
+        const tagName = tagData ? tagData.name : t.id; // Safety fallback
         const isFixed = fixedIds.has(t.id);
         tagsHtml += `<span class="gen-tag-chip ${isFixed ? 'tag-fixed' : ''}">${tagName} <small>${t.category}</small></span>`;
     });
@@ -976,6 +977,85 @@ function renderPinnedScripts() {
         const card = createScriptCardHTML(script, true);
         container.appendChild(card);
     });
+}
+
+/* =========================================================================
+   SAVE / LOAD SYSTEM
+   ========================================================================= */
+
+function savePinnedScripts() {
+    if (pinnedScripts.length === 0) {
+        alert("No pinned scripts to save.");
+        return;
+    }
+    
+    // Create a Blob from the JSON data
+    const dataStr = JSON.stringify(pinnedScripts, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    // Create a temporary link and trigger download
+    const exportName = `hollywood_animal_scripts_${new Date().toISOString().slice(0,10)}.json`;
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", url);
+    downloadAnchorNode.setAttribute("download", exportName);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    URL.revokeObjectURL(url);
+}
+
+function triggerLoadScripts() {
+    const input = document.getElementById('loadScriptsInput');
+    if(input) {
+        input.value = ''; // Reset to allow re-loading same file
+        input.click();
+    } else {
+        console.error("File input #loadScriptsInput not found in DOM.");
+    }
+}
+
+function handleFileLoad(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const loaded = JSON.parse(e.target.result);
+            if(Array.isArray(loaded)) {
+                let added = 0;
+                const currentIds = new Set(pinnedScripts.map(s => s.uniqueId));
+                
+                loaded.forEach(script => {
+                    // Basic validation: must have tags and uniqueId
+                    if(script.tags && script.uniqueId) {
+                        if(!currentIds.has(script.uniqueId)) {
+                            pinnedScripts.push(script);
+                            currentIds.add(script.uniqueId);
+                            added++;
+                        }
+                    }
+                });
+                
+                if(added > 0) {
+                    renderPinnedScripts();
+                    // Ensure the container is visible
+                    const wrapper = document.getElementById('pinned-scripts-container');
+                    if(wrapper) wrapper.classList.remove('hidden');
+                    alert(`Loaded ${added} scripts.`);
+                } else {
+                    alert("No new unique scripts found in file.");
+                }
+            } else {
+                alert("Invalid file format: JSON is not an array.");
+            }
+        } catch(err) {
+            console.error(err);
+            alert("Error parsing JSON file.");
+        }
+    };
+    reader.readAsText(file);
 }
 
 function transferScriptToAdvertisers(uniqueId) {
@@ -1300,7 +1380,7 @@ function analyzeMovie() {
 function renderDistributionCalculator(commercialScore) {
     const parent = document.getElementById('results-advertisers');
     let distWrapper = document.getElementById('dist-wrapper');
-    let currentOwned = 10;
+    let currentOwned = 3185;
     if (distWrapper) {
         const input = document.getElementById('ownedScreeningsInput');
         if (input && input.value) {

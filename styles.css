@@ -1105,3 +1105,49 @@ footer { text-align: center; color: #555; font-size: 0.8rem; margin-top: 40px; }
 .week-val.active {
     color: #fff;
 }
+
+/* ========================================= */
+/* --- FILE MANAGEMENT STYLES (NEW) --- */
+/* ========================================= */
+
+.hidden-file-input {
+    display: none;
+}
+
+.pinned-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.file-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.file-action-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.file-action-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(212, 175, 55, 0.05);
+}
+
+.file-action-btn:active {
+    transform: translateY(1px);
+}
