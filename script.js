@@ -29,6 +29,9 @@ window.onload = async function() {
         
         // Initialize Default Profile
         setGeneratorProfile('custom');
+        
+        // NEW: Render pinned area immediately so Save/Load buttons are visible
+        renderPinnedScripts();
 
         console.log("Initialization Complete.");
     } catch (error) {
@@ -964,14 +967,19 @@ function togglePin(uniqueId, event) {
 function renderPinnedScripts() {
     const container = document.getElementById('pinnedResultsList');
     const wrapper = document.getElementById('pinned-scripts-container');
+    
+    // UPDATED: Always show the container so Save/Load buttons are accessible
+    if(wrapper) wrapper.classList.remove('hidden');
+    if(!container) return;
+
     container.innerHTML = '';
     
+    // UPDATED: Show placeholder instead of hiding
     if(pinnedScripts.length === 0) {
-        wrapper.classList.add('hidden');
+        container.innerHTML = '<div style="color:var(--text-muted); font-style:italic; font-size:0.9rem; padding:10px 0;">No pinned scripts yet.</div>';
         return;
     }
     
-    wrapper.classList.remove('hidden');
     pinnedScripts.forEach(script => {
         // true passed here means we are in the pinned section (show editable name)
         const card = createScriptCardHTML(script, true);
