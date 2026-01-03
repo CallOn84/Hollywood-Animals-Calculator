@@ -1038,6 +1038,20 @@ footer { text-align: center; color: #555; font-size: 0.8rem; margin-top: 40px; }
     color: var(--text-main);
 }
 
+/* New Responsive Info Group for Distribution */
+.dist-info-group {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+@media(min-width: 600px) {
+    .dist-info-group {
+        margin-top: 0;
+        text-align: right;
+    }
+}
+
 .screenings-input {
     background: transparent;
     border: 1px solid var(--border);
@@ -1107,7 +1121,7 @@ footer { text-align: center; color: #555; font-size: 0.8rem; margin-top: 40px; }
 }
 
 /* ========================================= */
-/* --- FILE MANAGEMENT STYLES (NEW) --- */
+/* --- FILE MANAGEMENT STYLES --- */
 /* ========================================= */
 
 .hidden-file-input {

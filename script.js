@@ -27,6 +27,9 @@ window.onload = async function() {
         setupScoreSync(); 
         setupGeneratorControls(); 
         
+        // Setup Distribution Calculator (Immediate Interaction)
+        setupDistributionLogic();
+
         // Initialize Default Profile
         setGeneratorProfile('custom');
         
@@ -177,11 +180,10 @@ function switchTab(tabName) {
     currentTab = tabName;
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     
-    // Simple index mapping or selector matching
     const btns = document.querySelectorAll('.tab-btn');
     if(tabName === 'generator') btns[0].classList.add('active');
     else if(tabName === 'synergy') btns[1].classList.add('active');
-    else btns[2].classList.add('active');
+    else btns[2].classList.add('active'); // Advertisers
     
     document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
     document.getElementById(`tab-${tabName}`).classList.remove('hidden');
@@ -585,7 +587,6 @@ function collectTagInputs(context) {
     const tagInputs = []; 
     
     // BLOCK 1: Handling Genres (usually with percentages)
-    // Note: Excluded genres do NOT have the .genre-row class, so this is skipped for exclusions.
     const genreContainer = document.getElementById(`inputs-Genre-${context}`);
     const genreRows = genreContainer ? genreContainer.querySelectorAll('.genre-row') : [];
     let totalGenreInput = 0;
@@ -615,11 +616,7 @@ function collectTagInputs(context) {
     // BLOCK 2: Handling Everything Else (and Genres for exclusions)
     const container = document.getElementById(`selectors-container-${context}`);
     container.querySelectorAll('.tag-selector').forEach(sel => {
-        // BUG FIX: 
-        // Previously: if (sel.dataset.category === "Genre") return;
-        // The issue: "Excluded" genres don't have .genre-row (Block 1), 
-        // so if we skip them here too, they are never collected.
-        // Fix: Only skip genres here if they ARE NOT exclusions.
+        // Skip genres here if they were handled in Block 1
         if (sel.dataset.category === "Genre" && context !== 'excluded') return; 
 
         if (sel.value) {
@@ -855,7 +852,6 @@ function renderGeneratedScripts(scripts) {
     });
 }
 
-// --- UPDATED: createScriptCardHTML ---
 function createScriptCardHTML(scriptObj, isPinnedSection) {
     const div = document.createElement('div');
     div.className = 'gen-card';
@@ -960,7 +956,6 @@ function togglePin(uniqueId, event) {
         const script = generatedScriptsCache.find(s => String(s.uniqueId) === String(uniqueId));
         if(script) {
             // DEEP COPY to ensure no reference issues with the generator cache
-            // This prevents issues where re-running generator might mess up references
             const newPinned = JSON.parse(JSON.stringify(script));
             
             // Set default name if missing
@@ -1002,15 +997,12 @@ function renderPinnedScripts() {
    ========================================================================= */
 
 function savePinnedScripts() {
-    // Safety check for empty array, but allow saving empty list if user really wants to? 
-    // Usually better to block empty save to avoid confusion
     if (pinnedScripts.length === 0) {
         alert("No pinned scripts to save.");
         return;
     }
     
     try {
-        // Create a deep copy to ensure everything is clean
         const dataToSave = JSON.parse(JSON.stringify(pinnedScripts));
         const dataStr = JSON.stringify(dataToSave, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
@@ -1120,8 +1112,9 @@ function transferScriptToAdvertisers(uniqueId) {
 }
 
 
-// --- EXISTING CALCULATOR LOGIC BELOW ---
-// (Kept intact, see original script for full block)
+/* =========================================================================
+   ANALYSIS / ADVERTISERS / DISTRIBUTION LOGIC
+   ========================================================================= */
 
 function analyzeMovie() {
     const tagInputs = collectTagInputs('advertisers');
@@ -1286,7 +1279,7 @@ function analyzeMovie() {
         agentContainer.innerHTML = agentHtml;
     }
 
-    // --- REVISED HOLIDAY LOGIC (Detailed Breakdown) ---
+    // --- HOLIDAY LOGIC ---
     const holidayContainer = document.getElementById('holidayDisplay');
     holidayContainer.innerHTML = '';
 
@@ -1396,85 +1389,48 @@ function analyzeMovie() {
         </div>
     `;
 
-    renderDistributionCalculator(inputCom);
+    // --- DYNAMICALLY MOVE DISTRIBUTION CALCULATOR TO RESULTS ---
+    const distCard = document.getElementById('dist-wrapper');
+    const resultsContainer = document.getElementById('results-advertisers');
+    
+    if(distCard && resultsContainer) {
+        resultsContainer.appendChild(distCard);
+        distCard.style.marginTop = "0"; 
+    }
 
+    document.getElementById('results-advertisers').classList.remove('hidden');
     document.getElementById('results-advertisers').scrollIntoView({ behavior: 'smooth' });
 }
 
-function renderDistributionCalculator(commercialScore) {
-    const parent = document.getElementById('results-advertisers');
-    let distWrapper = document.getElementById('dist-wrapper');
-    let currentOwned = 3185;
-    if (distWrapper) {
-        const input = document.getElementById('ownedScreeningsInput');
-        if (input && input.value) {
-            currentOwned = parseInt(input.value);
-        }
+// --- NEW DISTRIBUTION LOGIC (Setup and Update) ---
+
+function setupDistributionLogic() {
+    const comInput = document.getElementById('comScoreInput');
+    const comSlider = document.getElementById('comScoreSlider');
+    const ownedInput = document.getElementById('ownedScreeningsInput');
+    const scoreDisplay = document.getElementById('dist-com-score-display');
+
+    function update() {
+        const score = parseFloat(comInput.value) || 0;
+        const owned = parseInt(ownedInput.value) || 0;
+        
+        // Update the display text in the card (if present)
+        if(scoreDisplay) scoreDisplay.innerText = score.toFixed(1);
+        
+        // Update grid
+        updateDistributionGrid(score, owned);
     }
 
-    if (!distWrapper) {
-        distWrapper = document.createElement('div');
-        distWrapper.id = 'dist-wrapper';
-        distWrapper.className = 'card result-card';
-        const header = document.createElement('h3');
-        header.innerText = 'Distribution Calculator';
-        distWrapper.appendChild(header);
+    // Attach listeners
+    if(comInput) comInput.addEventListener('input', update);
+    if(comSlider) comSlider.addEventListener('input', update);
+    if(ownedInput) ownedInput.addEventListener('input', update);
 
-        const inputRow = document.createElement('div');
-        inputRow.className = 'dist-input-row';
-        inputRow.innerHTML = `
-            <div class="dist-input-group">
-                <label for="ownedScreeningsInput">Owned Theatres (Screenings)</label>
-                <input type="number" id="ownedScreeningsInput" class="screenings-input" value="${currentOwned}" min="0" step="1">
-            </div>
-            <p class="subtitle" style="margin:0; align-self:center;">Enter your owned screenings to see independent booking requirements.</p>
-        `;
-        distWrapper.appendChild(inputRow);
-
-        const grid = document.createElement('div');
-        grid.id = 'dist-results-grid';
-        grid.className = 'dist-grid';
-        distWrapper.appendChild(grid);
-
-        parent.appendChild(distWrapper);
-
-        const inputEl = document.getElementById('ownedScreeningsInput');
-        inputEl.addEventListener('input', () => {
-             const val = parseInt(inputEl.value) || 0;
-             updateDistributionUI(commercialScore, val);
-        });
-    } else {
-        const inputEl = document.getElementById('ownedScreeningsInput');
-        const newEl = inputEl.cloneNode(true);
-        inputEl.parentNode.replaceChild(newEl, inputEl);
-        newEl.addEventListener('input', () => {
-             const val = parseInt(newEl.value) || 0;
-             updateDistributionUI(commercialScore, val);
-        });
-        newEl.value = currentOwned;
-    }
-    updateDistributionUI(commercialScore, currentOwned);
+    // Initial run
+    update();
 }
 
-function updateDistributionUI(score, owned) {
-    const results = calculateWeeklyDistribution(score, owned);
-    const grid = document.getElementById('dist-results-grid');
-    grid.innerHTML = '';
-
-    results.forEach((val, index) => {
-        const weekNum = index + 1;
-        const box = document.createElement('div');
-        box.className = 'week-box';
-        const isHigh = val > 5000;
-        box.innerHTML = `
-            <span class="week-label">Week ${weekNum}</span>
-            <span class="week-val ${val > 0 ? 'active' : ''}">${val.toLocaleString()}</span>
-        `;
-        grid.appendChild(box);
-    });
-}
-
-function calculateWeeklyDistribution(commercialScore, availableScreenings) {
+function updateDistributionGrid(commercialScore, availableScreenings) {
     const BASE = 1000;
     const W1_MULT = 2;
     const W2_MULT = 1;
@@ -1486,22 +1442,38 @@ function calculateWeeklyDistribution(commercialScore, availableScreenings) {
     const rawW2 = (commercialScore * W2_MULT * BASE) - availableScreenings;
     const w2 = Math.max(0.0, rawW2);
 
-    let results = [w1, w2];
+    let calcValues = [w1, w2];
     let currentDecayBase = w2;
 
     for (let i = 2; i < 8; i++) {
         currentDecayBase *= DECAY;
-        results.push(currentDecayBase);
+        calcValues.push(currentDecayBase);
     }
 
-    return results.map((val, index) => {
-        if (index < 4) {
-            return Math.ceil(val);
-        } else {
-            return Math.floor(val);
-        }
+    const finalResults = calcValues.map((val, index) => {
+        return index < 4 ? Math.ceil(val) : Math.floor(val);
+    });
+
+    const grid = document.getElementById('dist-results-grid');
+    if(!grid) return;
+    
+    grid.innerHTML = '';
+    finalResults.forEach((val, index) => {
+        const weekNum = index + 1;
+        const box = document.createElement('div');
+        box.className = 'week-box';
+        // Highlight active weeks
+        if (val > 0) box.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+        
+        box.innerHTML = `
+            <span class="week-label">Week ${weekNum}</span>
+            <span class="week-val ${val > 0 ? 'active' : ''}">${val.toLocaleString()}</span>
+        `;
+        grid.appendChild(box);
     });
 }
+
+// --- SYNERGY LOGIC (Unchanged, just kept for context) ---
 
 function calculateSynergy() {
     const selectedTags = collectTagInputs('synergy');
@@ -1736,6 +1708,17 @@ function renderSynergyResults(matrix, bonuses, tags) {
 
 function resetSelectors(context) {
     initializeSelectors(context);
+
+    // If resetting Advertisers, move the calculator back to its initial position
+    if (context === 'advertisers') {
+        const distCard = document.getElementById('dist-wrapper');
+        const anchor = document.getElementById('dist-calc-anchor');
+        if(distCard && anchor) {
+            anchor.appendChild(distCard);
+            distCard.style.marginTop = ""; 
+        }
+    }
+
     if (context === 'generator' || context === 'excluded') {
         document.getElementById(`results-generator`).classList.add('hidden');
     } else {

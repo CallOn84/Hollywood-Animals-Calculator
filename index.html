@@ -45,7 +45,7 @@
 
         <div class="container">
             
-            <!-- TAB 1: SCRIPT GENERATOR (NEW) -->
+            <!-- TAB 1: SCRIPT GENERATOR -->
             <div id="tab-generator" class="tab-content hidden">
                 
                 <div class="card builder-card">
@@ -53,7 +53,7 @@
                         <h3>Generator Settings</h3>
                     </div>
                     
-                    <!-- NEW: PROFILE SELECTION BUTTONS -->
+                    <!-- PROFILE SELECTION BUTTONS -->
                     <div class="profile-control-container">
                         <div class="profile-label-row">
                             <label>Tag Availability</label>
@@ -70,7 +70,6 @@
                             Select which story elements are available for generation.
                         </p>
                     </div>
-                    <!-- END NEW SECTION -->
 
                     <div class="score-controls-wrapper">
                         <!-- TARGET COMPATIBILITY -->
@@ -113,7 +112,7 @@
                     
                     <div class="divider-line"></div>
 
-                    <!-- EXCLUDED ELEMENTS (NEW) -->
+                    <!-- EXCLUDED ELEMENTS -->
                     <div class="card-header">
                         <h3 style="color: var(--danger);">Excluded Elements</h3>
                         <button class="reset-btn" onclick="resetSelectors('excluded')">Reset Bans</button>
@@ -127,7 +126,7 @@
                     </div>
                 </div>
 
-                <!-- PINNED RESULTS (MODIFIED FOR SAVE/LOAD) -->
+                <!-- PINNED RESULTS -->
                 <div id="pinned-scripts-container" class="results-container hidden">
                     <div class="pinned-header-row">
                         <div class="section-title" style="margin-bottom:0;">
@@ -157,7 +156,7 @@
 
             </div>
 
-            <!-- TAB 2: SE COMPATIBILITY (Existing) -->
+            <!-- TAB 2: SE COMPATIBILITY -->
             <div id="tab-synergy" class="tab-content active">
                 
                 <div class="card search-card">
@@ -241,7 +240,7 @@
                 </div>
             </div>
 
-            <!-- TAB 3: BEST ADVERTISERS (Existing) -->
+            <!-- TAB 3: BEST ADVERTISERS -->
             <div id="tab-advertisers" class="tab-content hidden">
                 <div class="card search-card">
                     <h3>Quick Search</h3>
@@ -288,6 +287,35 @@
                     <div id="selectors-container-advertisers"></div>
                     <div class="action-area">
                         <button class="analyze-btn" onclick="analyzeMovie()">Analyse</button>
+                    </div>
+                </div>
+
+                <!-- DISTRIBUTION CALCULATOR (Initial Position) -->
+                <div id="dist-calc-anchor" style="margin-top: 25px;">
+                    <div id="dist-wrapper" class="card result-card" style="border-left: 4px solid var(--accent); transition: all 0.5s ease;">
+                        <div class="card-header">
+                            <h3>Distribution Calculator</h3>
+                        </div>
+                        
+                        <div class="dist-input-row">
+                            <div class="dist-input-group">
+                                <label for="ownedScreeningsInput">Owned Theatres (Screenings)</label>
+                                <input type="number" id="ownedScreeningsInput" class="screenings-input" value="3185" min="0" step="1">
+                            </div>
+                            <div class="dist-info-group">
+                                <span class="subtitle" style="margin:0; font-size:0.85rem;">
+                                    Based on Target Commercial Score: <strong id="dist-com-score-display" style="color:var(--accent);">5.0</strong>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <p class="subtitle" style="margin-top:-10px; margin-bottom: 20px;">
+                            Screenings needed for independent distribution. Adjust the <strong>Commercial Score</strong> above to see changes.
+                        </p>
+
+                        <div id="dist-results-grid" class="dist-grid">
+                            <!-- Grid populates via JS immediately -->
+                        </div>
                     </div>
                 </div>
 
